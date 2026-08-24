@@ -1,0 +1,17 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "rules": {
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "framer-motion",
+            "importNames": ["motion"],
+            "message": "Use `m` instead of `motion`, inside the app-wide <LazyMotion features={domAnimation} strict> in components/providers/motion-provider.tsx. `motion` compiles in the full feature set (drag, layout, projection) and puts ~10-18 kB gzip back into first-load JS. AnimatePresence, useMotionValue, useSpring and useTransform stay imported from framer-motion as normal."
+          }
+        ]
+      }
+    ]
+  }
+}

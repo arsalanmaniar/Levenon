@@ -1,0 +1,381 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ---------------------------------------------------------------------------
+   Levenon brand tokens — locked. See .claude/skills/levenon-brand-style/SKILL.md
+   Light-first: paper background, ink type, purple thread accents.
+   --------------------------------------------------------------------------- */
+:root {
+  --ink: #0b0b0d;
+  --paper: #fbfaf8;
+  --purple-700: #5b1a9e;
+  --purple-500: #7c2ae8;
+  /* Success. The one non-purple accent; see SKILL.md §2. 5.02:1 on paper. */
+  --success: #2d7a4f;
+  --purple-300: #b98cf2;
+  --charcoal: #5b5a5f;
+  --hairline: #eae8e2;
+
+  /*
+   * Same seven tokens as space-separated RGB channels.
+   *
+   * Tailwind can only compose an alpha modifier (bg-ink/25, text-paper/70) when
+   * the colour is expressed as rgb(<channels> / <alpha-value>). Pointing the
+   * theme at the hex custom properties above made every `/opacity` utility
+   * compile to nothing at all — sold-out size chips rendered at full strength,
+   * the cart backdrop had no dim, and the dark section lost its text hierarchy.
+   * The hex forms stay for plain CSS (borders, outlines, SVG strokes).
+   */
+  --ink-rgb: 11 11 13;
+  --paper-rgb: 251 250 248;
+  --purple-700-rgb: 91 26 158;
+  --purple-500-rgb: 124 42 232;
+  --purple-300-rgb: 185 140 242;
+  --charcoal-rgb: 91 90 95;
+  --hairline-rgb: 234 232 226;
+  --success-rgb: 45 122 79;
+
+  --shell: 1400px;
+  --nav-h: 72px;
+
+  color-scheme: light;
+}
+
+/*
+ * Dark theme — the same seven tokens with swapped values, nothing more.
+ *
+ * Every colour on this site already resolves through these custom properties,
+ * so a theme is a value swap rather than a second set of components. Driven by
+ * `next-themes` writing `data-theme` on <html>.
+ *
+ * Contrast, measured on #0F0E0D before these values were written:
+ *   --ink       16.94:1   --charcoal   7.94:1
+ *   --success    7.10:1   --purple-300 7.43:1
+ *
+ * **`--purple-500` measures 3.08:1 on the dark ground and must never carry
+ * text there.** It stays for focus rings and the 3D thread, where 3:1 is the
+ * bar; `--purple-300` is the accent that text uses in dark. That is the same
+ * split the atelier section has always used.
+ *
+ * `--hairline` is 1.33:1 here and decorative, exactly as in light, where it is
+ * 1.17:1. Dividers are not controls; nothing about that changes between themes.
+ */
+[data-theme="dark"] {
+  --ink: #f2f0ec;
+  --paper: #0f0e0d;
+  --hairline: #2a2926;
+  --charcoal: #a8a6a2;
+  --success: #4caf7d;
+
+  --ink-rgb: 242 240 236;
+  --paper-rgb: 15 14 13;
+  --hairline-rgb: 42 41 38;
+  --charcoal-rgb: 168 166 162;
+  --success-rgb: 76 175 125;
+
+  /*
+   * `--purple-500` is 3.08:1 on this ground and cannot carry text, but it is
+   * the hover colour on 56 call sites. Remapping the token to purple-300's
+   * value (7.43:1) fixes all of them at once and leaves the call sites alone —
+   * which is the whole point of expressing colour as tokens.
+   *
+   * The 3D thread is unaffected: `thread-sculpture.tsx` reads its material
+   * colours from JS constants, not from CSS custom properties.
+   */
+  --purple-500: #b98cf2;
+  --purple-500-rgb: 185 140 242;
+
+  color-scheme: dark;
+}
+
+/*
+ * The atelier is the *light* surface in dark mode (see the note below), so its
+ * accents go back to the light-theme values. Measured on #F2F0EC:
+ * purple-300 is 2.28:1 and fails; purple-500 is 5.50:1 and passes. Dark
+ * `--charcoal` is 2.14:1 there; the light value is 6.01:1.
+ *
+ * `--ink` and `--paper` are deliberately NOT overridden — the section uses them
+ * inverted (`bg-ink text-paper`), so the global swap is what flips it.
+ */
+[data-theme="dark"] .dark-section {
+  --purple-500: #7c2ae8;
+  --purple-500-rgb: 124 42 232;
+  --purple-300: #7c2ae8;
+  --purple-300-rgb: 124 42 232;
+  --charcoal: #5b5a5f;
+  --charcoal-rgb: 91 90 95;
+  --success: #2d7a4f;
+  --success-rgb: 45 122 79;
+}
+
+/*
+ * The atelier keeps its job, and it needs no override to do it.
+ *
+ * SKILL.md §6 makes the dark section the page's one rhythm beat — a single
+ * inversion, bracketed by paper. The section is written in tokens
+ * (`bg-ink text-paper`), not literal colours, so when the tokens swap above,
+ * the section swaps with them: `bg-ink` resolves to #F2F0EC and `text-paper`
+ * to #0F0E0D. On a dark page it becomes the *light* block, and the beat
+ * survives inverted.
+ *
+ * An earlier draft of this file re-declared the light values inside
+ * `.dark-section` to "make it light". That does the opposite — it cancels the
+ * swap and pins the section dark on a dark page, erasing the beat entirely.
+ * Expressing surfaces in tokens is what makes a theme a value change; do not
+ * reach past that with literals.
+ *
+ * The consequence is handled in components/3d/thread-canvas.tsx: the sculpture
+ * variant follows the surface it actually sits on, not a hardcoded prop.
+ */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Lenis drives scrolling; these are the library's required base styles. */
+  html.lenis,
+  html.lenis body {
+    height: auto;
+  }
+
+  .lenis.lenis-smooth {
+    scroll-behavior: auto !important;
+  }
+
+  .lenis.lenis-stopped {
+    overflow: hidden;
+  }
+
+  ::selection {
+    background-color: var(--purple-500);
+    color: var(--paper);
+  }
+
+  /* One focus treatment everywhere. Never removed without a replacement. */
+  :focus-visible {
+    outline: 2px solid var(--purple-500);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+
+  .dark-section ::selection {
+    background-color: var(--purple-300);
+    color: var(--ink);
+  }
+
+  .dark-section :focus-visible {
+    outline-color: var(--purple-300);
+  }
+}
+
+@layer components {
+  /* Mono utility text: eyebrows, tags, prices, SKUs. Always uppercase. */
+  .label {
+    font-family: var(--font-mono), ui-monospace, monospace;
+    /* 11px → 12px (2026-08-24): uppercase mono at 0.18em tracking is the
+       hardest-working text on the site (every eyebrow, price, size chip,
+       badge and nav control) and 11px was the bottom of SKILL.md §3's own
+       stated range. 12px is still inside that range (`text-[11px]`–
+       `text-xs`), so this is a move within spec rather than a deviation
+       from it — "premium" should not mean squinting. */
+    font-size: 12px;
+    line-height: 1.2;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  /*
+   * The brand wordmark, as the supplied artwork rather than styled text.
+   *
+   * `public/levenon-wordmark*.png` are derived from `Levenon-Logo.png` itself
+   * — cropped to the measured ink bounds and with the white background lifted
+   * to transparency; the purple ring and thread are the original pixels,
+   * untouched. The dark variant recolours only the neutral letterforms, so the
+   * mark reads on `--paper` in either theme.
+   *
+   * A CSS background rather than two `<img>` tags on purpose: a browser
+   * downloads only the background-image the cascade actually applies, so the
+   * theme swap costs one request, not two. `background-position: left` keeps
+   * the mark flush with the layout edge at any height.
+   */
+  .wordmark-asset {
+    background-image: url("/levenon-wordmark.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: left center;
+  }
+
+  [data-theme="dark"] .wordmark-asset {
+    background-image: url("/levenon-wordmark-dark.png");
+  }
+
+  /* The outlined purple "e" from the wordmark. */
+  .thread-e {
+    color: transparent;
+    -webkit-text-stroke: 1.2px var(--purple-500);
+  }
+
+  @supports not (-webkit-text-stroke: 1px black) {
+    .thread-e {
+      color: var(--purple-500);
+    }
+  }
+
+  .dark-section .thread-e {
+    -webkit-text-stroke-color: var(--purple-300);
+  }
+
+  @supports not (-webkit-text-stroke: 1px black) {
+    .dark-section .thread-e {
+      color: var(--purple-300);
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   The scroll stitch — native CSS scroll-driven animation, no JavaScript.
+
+   The line is clipped from the left and the clip opens as the divider crosses
+   the viewport, so the dashes appear one at a time like stitches. Replaces a
+   GSAP ScrollTrigger scrub that cost a 542 ms long task on the home page.
+
+   Everything lives inside @supports + prefers-reduced-motion guards, so where
+   scroll timelines are unsupported (or motion is unwanted) the divider ships
+   fully drawn — which was already the fallback state.
+   --------------------------------------------------------------------------- */
+@keyframes stitch-sew {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .stitch-divider__line {
+      animation: stitch-sew linear both;
+      animation-timeline: view();
+      /* Sew between entering the viewport and reaching a third of the way up. */
+      animation-range: entry 15% cover 34%;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Atelier scroll drift — CSS publishes progress, the 3D scene reads it.
+
+   The dark section's camera closes half a unit and the sculpture turns ~5° as
+   the section rises up the page. Rather than a scroll listener feeding React
+   (a main-thread cost on every scroll tick), the *browser* animates a custom
+   property against a view timeline and the R3F frame loop samples it — the
+   same mechanism as the stitch divider above, which is already proven here.
+
+   @property is what makes this work at all. An unregistered custom property
+   has no type, so it can only animate discretely: it would jump 0 → 1 at the
+   midpoint. Registering it as <number> makes it interpolable, so the value
+   arrives as a real ramp. Where @property is unsupported the jump is harmless —
+   the scene damps toward the target rather than assigning it, so a step reads
+   as a glide.
+
+   `inherits: true` lets the canvas host read the section's value without
+   holding a reference to the section.
+   --------------------------------------------------------------------------- */
+@property --atelier-progress {
+  syntax: "<number>";
+  initial-value: 0;
+  inherits: true;
+}
+
+@keyframes atelier-drift {
+  from {
+    --atelier-progress: 0;
+  }
+  to {
+    --atelier-progress: 1;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .atelier-drift {
+      animation: atelier-drift linear both;
+      animation-timeline: view();
+      /* Full travel between the section appearing and it filling the frame. */
+      animation-range: entry 0% cover 55%;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Frosted nav — native scroll-driven animation keyed to document scroll, not
+   JavaScript. Transparent overlay at the very top of the page, over the
+   hero; past 80px of scroll the nav settles into a solid, blurred bar over
+   whatever is underneath it.
+
+   Reversed from a previous pass (2026-08-24): the nav used to start fully
+   opaque and only gain translucency on scroll — the opposite of the
+   "floats over the hero, solidifies once you leave it" behaviour a fashion
+   nav is expected to have, and one of the concrete things that made the
+   header read as an app bar rather than a brand overlay. Safe here
+   specifically because this hero is a light/paper background, not a dark
+   photographic one — dark nav text over a transparent header still has
+   real contrast at the top of the page, unlike a hero with a dark image
+   would need (white text + a scrim, which this brand's hero doesn't have
+   and isn't being asked for).
+
+   `animation-timeline: scroll(root)` is the document-scroll counterpart to
+   the `view()` timeline already used by the stitch divider and the atelier
+   drift — same reasoning: a scroll *listener* re-renders on every tick, the
+   browser driving a keyframe against scroll position does not touch the main
+   thread at all. Unsupported browsers keep the plain `bg-paper` Tailwind
+   classes on the header — solid, no blur, every time — a safe default
+   rather than a broken one, and arguably the more conservative choice for a
+   browser this animation doesn't run in anyway.
+   --------------------------------------------------------------------------- */
+@keyframes nav-frost {
+  from {
+    background-color: rgb(var(--paper-rgb) / 0);
+    backdrop-filter: blur(0px);
+  }
+  to {
+    background-color: rgb(var(--paper-rgb) / 0.85);
+    backdrop-filter: blur(12px);
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .nav-frost {
+      animation: nav-frost linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0px 80px;
+    }
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Reduced motion. Motion code branches on the media query in JS as well —
+   this is the belt-and-braces floor for anything CSS-driven.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
