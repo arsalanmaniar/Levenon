@@ -20,14 +20,12 @@
  * The shop's WhatsApp number in the international form `wa.me` requires:
  * country code first, digits only, no `+`, spaces, dashes or parentheses.
  *
- * Supplied as the Pakistani local number `0334 330 7607`. A leading `0` is the
- * national trunk prefix and is dropped when the country code is added, so
- * `03343307607` becomes `92` + `3343307607` = `923343307607`.
- *
- * Treated as a placeholder pending the owner's final number — swap the digits
- * here and every entry point follows.
+ * Supplied directly in this form: `923142200737`. Replaced in full from the
+ * previous number, not appended alongside it — every entry point resolves
+ * through `getShopWhatsAppNumber()` below, so this one edit is the whole
+ * change.
  */
-export const DEFAULT_WHATSAPP_NUMBER = "923343307607";
+export const DEFAULT_WHATSAPP_NUMBER = "923142200737";
 
 /**
  * Reduces a number to the digits `wa.me` expects. Returns null for anything

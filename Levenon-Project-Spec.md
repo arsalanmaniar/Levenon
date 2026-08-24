@@ -313,6 +313,26 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### WhatsApp number update (2026-08-24, eighth pass)
+
+`DEFAULT_WHATSAPP_NUMBER` in `lib/whatsapp.ts` changed from `923343307607` to `923142200737` — the
+one edit the centralisation from the previous pass was built for. Every integration (floating button,
+footer, `/contact`, checkout, PDP order action, PDP enquiry link, order tracking) resolves through
+`getShopWhatsAppNumber()`/`shopWhatsAppUrl()`, so none of them needed touching. Message templates
+unchanged, as instructed.
+
+Two comment-only references to the old number were also updated (an illustrative example in
+`app/contact/page.tsx`'s `formatForDisplay` doc comment, and this file's own note in `lib/whatsapp.ts`)
+so the literal digits don't linger anywhere in live source. **The old number remains, deliberately, in
+the previous pass's own log entry below** — that entry is accurate history of what the number was at
+the time, and this file's own established convention (used throughout every entry in this log) is to
+add new entries above old ones, never rewrite them. Rewriting it would make the historical record
+wrong, not more correct.
+
+Verified: `tsc --noEmit`, `next lint`, `next build` all clean. Production build's rendered HTML and
+compiled chunks checked directly for both numbers — old number: 0 occurrences; new number: present at
+every integration point, correct `wa.me/923142200737` form (no `+`, spaces, or leading zero).
+
 #### Ship-ready pass: progressive mobile 3D, real wordmark asset, WhatsApp integration (2026-08-24, seventh pass)
 
 **Progressive 3D — built, measured, and gated stricter than the suggested starting point.**

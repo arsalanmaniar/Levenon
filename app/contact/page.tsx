@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 
 /**
  * Formats the configured digits back into something a person can read and dial
- * — `923343307607` → `+92 334 330 7607`. Display only; every link still uses
+ * — `923142200737` → `+92 314 220 0737`. Display only; every link still uses
  * the raw international digits `wa.me` requires.
  *
  * Falls back to a plain `+`-prefixed string for any length this pattern does
