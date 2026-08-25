@@ -79,18 +79,23 @@ export function WishlistContents() {
               >
                 <div className="relative aspect-[4/5] overflow-hidden border border-hairline bg-paper">
                   <ProductMedia product={product} sizes={GRID_IMAGE_SIZES} />
-                  {!isInStock(product) && (
-                    <span className="label absolute left-4 top-4 rounded-full border border-hairline bg-paper px-3 py-1.5 text-charcoal">
-                      Waitlist
+                  <span className="absolute left-4 top-4 flex flex-wrap gap-1.5">
+                    <span className="label bg-ink px-2.5 py-1 text-paper">
+                      Unstitched
                     </span>
-                  )}
+                    {!isInStock(product) && (
+                      <span className="label bg-paper/90 px-2.5 py-1 text-charcoal">
+                        Waitlist
+                      </span>
+                    )}
+                  </span>
                 </div>
 
                 <div className="mt-4 flex items-baseline justify-between gap-4">
                   <h2 className="font-display text-lg font-extrabold tracking-[-0.02em]">
                     {product.name}
                   </h2>
-                  <span className="label whitespace-nowrap text-ink">
+                  <span className="font-display text-base font-semibold tracking-tight text-purple-500 whitespace-nowrap">
                     {formatPrice(product)}
                   </span>
                 </div>

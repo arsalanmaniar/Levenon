@@ -3,9 +3,9 @@ import { fontVariables } from "@/lib/fonts";
 import { siteDescription, siteName, siteUrl } from "@/lib/site";
 import { SmoothScroll } from "@/components/providers/smooth-scroll";
 import { MotionProvider } from "@/components/providers/motion-provider";
+import { PageTransition } from "@/components/providers/page-transition";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CartProvider } from "@/components/cart/cart-provider";
-import { WhatsAppFloat } from "@/components/ui/whatsapp-float";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { WishlistProvider } from "@/components/wishlist/wishlist-provider";
@@ -102,13 +102,8 @@ export default function RootLayout({
           <WishlistProvider>
             <RecentlyViewedProvider>
               <CartProvider>
-                {children}
+                <PageTransition>{children}</PageTransition>
                 <CartDrawer />
-                {/*
-                  Both read `useCart()` (WhatsAppFloat hides while the drawer
-                  is open), so both have to sit inside CartProvider.
-                */}
-                <WhatsAppFloat />
                 <ScrollToTop />
               </CartProvider>
             </RecentlyViewedProvider>

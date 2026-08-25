@@ -350,7 +350,8 @@
     backdrop-filter: blur(0px);
   }
   to {
-    background-color: rgb(var(--paper-rgb) / 0.85);
+    /* 0.90, not 0.85 (client brief, 2026-08-24: "backdrop-blur-md bg-paper/90"). */
+    background-color: rgb(var(--paper-rgb) / 0.9);
     backdrop-filter: blur(12px);
   }
 }

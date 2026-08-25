@@ -107,6 +107,13 @@ const config: Config = {
           "60%": { transform: "scaleY(1)", opacity: "1" },
           "100%": { transform: "scaleY(1)", opacity: "0" },
         },
+        // Nav links' load-in stagger (client brief, 2026-08-24). A plain CSS
+        // keyframe, same reasoning as `hero-fade-up`: present in server HTML
+        // from first paint, no Framer Motion flash on above-the-fold chrome.
+        "nav-item-fade-in": {
+          from: { opacity: "0", transform: "translateY(-8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "thread-spin": "thread-spin 2.4s linear infinite",
@@ -117,6 +124,7 @@ const config: Config = {
         "hero-fade-up": "hero-fade-up 700ms cubic-bezier(0.16, 1, 0.3, 1) both",
         "canvas-fade-in": "canvas-fade-in 600ms cubic-bezier(0.16, 1, 0.3, 1) both",
         "scroll-draw": "scroll-draw 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite",
+        "nav-item-fade-in": "nav-item-fade-in 400ms cubic-bezier(0.16, 1, 0.3, 1) both",
       },
     },
   },

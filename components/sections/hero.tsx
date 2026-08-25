@@ -1,11 +1,22 @@
-import { ThreadCanvas } from "@/components/3d/thread-canvas";
+import Image from "next/image";
 import { BackgroundBeams } from "@/components/ui/background-beams";
 import { HeroAurora } from "@/components/ui/hero-aurora";
 import { ScrollIndicator } from "@/components/ui/scroll-indicator";
 import { ThreadButton } from "@/components/ui/thread-button";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Reveal } from "@/components/ui/reveal";
-import { getCollectionSummary } from "@/lib/server/products";
+import { getCollectionSummary, listProducts } from "@/lib/server/products";
+
+/**
+ * Slight rotation, per tile — CSS only, matches the client brief's literal
+ * `-3deg / 0 / +3deg` fan.
+ */
+const COLLAGE_ROTATION = ["-rotate-3", "rotate-0", "rotate-3"];
+const COLLAGE_OFFSET = [
+  "left-0 top-0 z-0",
+  "left-[14%] top-[10%] z-10",
+  "left-[28%] top-[20%] z-20",
+];
 
 const FOOTNOTES = ["Three pieces, uncut", "Hand embroidery", "Come back daily"];
 
@@ -18,6 +29,12 @@ const FOOTNOTES = ["Three pieces, uncut", "Hand embroidery", "Come back daily"];
  */
 export async function Hero() {
   const { season, pieceCount } = await getCollectionSummary();
+  // "Top 3 from catalogue-data.ts" (client brief): read through the one data
+  // seam (`listProducts`) rather than the raw file, so this still works
+  // unchanged if the active source ever flips to the database — then take the
+  // first 3 with real photography, since the collage's whole point is real
+  // product imagery, not the SVG line-art fallback.
+  const collage = (await listProducts()).filter((product) => product.images[0]).slice(0, 3);
 
   /*
    * `lg:min-h-[90vh]` (restored 2026-08-24, bounded this time): the fully
@@ -124,8 +141,11 @@ export async function Hero() {
                   competing weight against the primary shimmer button — the
                   same shape most design systems mean by "ghost", just built
                   on this brand's existing button rather than a new variant. */}
+              {/* Points at the standalone /atelier route (client brief,
+                  2026-08-24), not the in-page #atelier section — the nav's
+                  own "Atelier" link still scrolls to that section directly. */}
               <ThreadButton
-                href="#atelier"
+                href="/atelier"
                 tone="outline"
                 className="min-h-[56px] justify-center sm:justify-start"
               >
@@ -158,32 +178,45 @@ export async function Hero() {
           </Reveal>
         </div>
 
-        {/* Canvas slot — `order-2` on mobile sits it between the headline and
-            the CTAs; on desktop it spans both rows of the right column. */}
+        {/* Editorial collage slot — `order-2` on mobile sits it between the
+            headline and the CTAs; on desktop it spans both rows of the right
+            column. Replaces the R3F sculpture (client brief, 2026-08-24):
+            three real product photographs, fanned and overlapping, so the
+            hero reads as "fashion product" on first paint rather than as a
+            3D demo. */}
         <div className="relative order-2 lg:order-none lg:col-span-6 lg:col-start-7 lg:row-span-2 lg:row-start-1">
-          {/* 260px on phones: the sculpture is framed against the canvas's
-              *vertical* extent, so a taller slot on a narrow screen just
-              adds empty margin above and below it rather than a bigger
-              object — measured at 390px, the 300px slot was roughly a third
-              sculpture and two thirds air. */}
-          <div className="relative mx-auto h-[260px] w-full max-w-[620px] sm:h-[clamp(340px,64vw,480px)] lg:h-[min(76vh,700px)] lg:max-w-none">
-            {/*
-              The glow floor as a plain CSS layer, sitting behind the canvas
-              — not a replacement for `ContactShadows` inside the WebGL scene
-              (that stays; it is the sculpture's own cast light, correct and
-              subtle), but a second, guaranteed-visible ground glow that
-              renders even before the canvas has mounted, doesn't depend on
-              WebGL support, and costs nothing to paint.
-            */}
+          <div className="relative mx-auto w-full max-w-[420px] py-6 pl-8 sm:max-w-[460px] lg:max-w-[480px] lg:py-0">
+            {/* Thread motif — a single hairline-width purple rule down the
+                collage's left edge, CSS only. */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-[10%] bottom-[6%] top-[55%] -z-10"
-              style={{
-                backgroundImage:
-                  "radial-gradient(closest-side, rgb(var(--purple-500-rgb) / 0.25), transparent 75%)",
-              }}
+              className="absolute bottom-6 left-0 top-6 w-px bg-purple-500 lg:bottom-0 lg:top-0"
             />
-            <ThreadCanvas variant="light" />
+
+            <div className="relative aspect-[4/5] w-full">
+              {collage.map((product, index) => {
+                const image = product.images[0];
+                return (
+                  <div
+                    key={product.id}
+                    className={`absolute h-[64%] w-[64%] overflow-hidden border border-hairline bg-paper shadow-[0_24px_48px_-20px_rgba(20,15,10,0.4)] ${COLLAGE_ROTATION[index]} ${COLLAGE_OFFSET[index]}`}
+                  >
+                    <Image
+                      src={image.url}
+                      alt={image.alt || product.name}
+                      fill
+                      sizes="(min-width: 1024px) 480px, (min-width: 640px) 60vw, 80vw"
+                      priority={index === 0}
+                      className="object-cover"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="mt-6 pl-2 font-mono text-xs tracking-wide text-charcoal">
+              48 pieces. 6 fabrics. One edit.
+            </p>
           </div>
         </div>
       </div>

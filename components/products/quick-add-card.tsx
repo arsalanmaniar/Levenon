@@ -77,8 +77,11 @@ export function QuickAddCard({
               hover fill below). */}
           {/* Solid tint rather than `backdrop-blur` — see the note on the same
               badge in `product-card.tsx` for the profiling behind it. */}
-          <span className="label absolute left-4 top-4 bg-paper/90 px-2.5 py-1 text-charcoal">
-            {product.category.name}
+          <span className="absolute left-4 top-4 flex flex-wrap gap-1.5">
+            <span className="label bg-ink px-2.5 py-1 text-paper">Unstitched</span>
+            <span className="label bg-paper/90 px-2.5 py-1 text-charcoal">
+              {product.category.name}
+            </span>
           </span>
 
           <WishlistHeart product={product} className="absolute right-4 top-4" />
@@ -95,7 +98,7 @@ export function QuickAddCard({
           >
             {product.name}
           </h3>
-          <span className="font-mono text-sm font-medium tracking-tight text-ink sm:whitespace-nowrap">
+          <span className="font-display text-base font-semibold tracking-tight text-purple-500 sm:whitespace-nowrap">
             {formatPrice(product)}
           </span>
         </div>
@@ -164,7 +167,7 @@ export function QuickAddCard({
             <button
               type="button"
               onClick={() => (sizes.length === 1 ? handleQuickAdd(sizes[0]) : setPicking(true))}
-              className="label inline-flex min-h-[44px] w-full items-center justify-center rounded-full bg-ink px-6 text-paper transition-colors duration-200 ease-state hover:bg-purple-700"
+              className="label inline-flex items-center justify-center rounded-full bg-ink px-3 py-1.5 text-xs text-paper transition-colors duration-200 ease-state hover:bg-purple-700"
             >
               Quick add
             </button>

@@ -313,7 +313,94 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
-#### WhatsApp number update (2026-08-24, eighth pass)
+#### Client revision pass — 12 changes (2026-08-24, ninth pass)
+
+All 12 items from the client's revision brief, built in the priority order given. `tsc --noEmit`
+after every change, `next lint` and a clean `next build` at the end — all clean. 112 routes compiled
+(brief asked for 107+); first-load JS: `/` 143 kB, `/product/[id]` 149 kB, every other route
+133–139 kB — all under the 200 kB ceiling.
+
+**Built:**
+1. Quick Add (`quick-add-card.tsx`) shrunk to `text-xs py-1.5 px-3`, `w-full`/`min-h-[44px]` dropped —
+   still hover-only above `lg`, always-present below it, unchanged.
+2. Hero's R3F canvas replaced with a 3-photo collage (top 3 catalogue products with real photography,
+   read through `listProducts()`, not the raw file — see deviations), −3°/0°/+3° fan, purple thread
+   rule on the left edge, "48 pieces. 6 fabrics. One edit." caption. Left column and aurora background
+   untouched.
+3. The dark atelier section's Float sculpture replaced with a real product photo (`AtelierImageReveal`,
+   a new client island), purple-700/15% overlay, `clipPath: inset(100% 0 0 0) → inset(0% 0 0 0)` on
+   scroll-into-view, 0.8s, the same expo-out easing `Reveal` uses. Text and stats column untouched.
+4. Nav links moved off `.label` mono onto Manrope 500 tracking-wide (500 added to the font's loaded
+   weights); staggered CSS keyframe fade-in (`nav-item-fade-in`, 80ms/link, matching the hero
+   headline's own plain-keyframe-not-Framer-Motion reasoning); `.nav-frost`'s scroll-past-80px opacity
+   raised from `/0.85` to the brief's literal `/0.90`; a new `NavLinks` client island adds a real
+   IntersectionObserver scrollspy for the purple-500 + underline active state (`/` only — the
+   sections it watches don't exist elsewhere, so nothing lights up falsely on other routes).
+5. `product-grid.tsx`'s heading rewritten to "The Edit — Unstitched, yours to finish" + the brief's
+   subtext. Filter bar and grid untouched.
+6. `featured-products.tsx`'s masthead renamed to "New Arrivals" eyebrow / "Just landed." H2. Still the
+   4 newest by `createdAt`, same 1-large+3-small layout.
+7. New `TopSelling` component — "Top Selling" eyebrow, "Most loved this season." H2, 12 products in a
+   3-column grid, sorted by descending summed `variant.stockOnHand` per the brief's own literal proxy
+   for "top selling," "See More" `ThreadButton` to `#collection`. Inserted in `app/page.tsx` between
+   `FeaturedProducts` and the `StitchDivider`/grid.
+8. New `PageTransition` client wrapper (`AnimatePresence mode="wait"`, keyed on `usePathname()`) around
+   `{children}` in the root layout — enter 0.35s/y:8→0, exit 0.2s/y:0→−8, brand easing. Renders children
+   directly under reduced motion, no `AnimatePresence` construction at all.
+9. "Add to Bag" — investigated, not found broken (see deviations).
+10. Cart drawer: `WhatsAppCheckout` replaced with "Pay by Card" (`ShimmerAction`, opens a new
+    `PaymentModal` with an honest "coming soon" message) and "Bank Transfer" (ghost button, opens the
+    same modal with `BankTransferDetails` — Meezan Bank / LEVENON-001 / the placeholder IBAN, copy-to-
+    clipboard on the account number). `<WhatsAppFloat />` removed from the root layout. `/track`'s
+    WhatsApp link untouched. `lib/cart/checkout.ts` kept exactly as instructed.
+11. `/atelier` placeholder route built (centred ring motif, "The Atelier — Coming Soon", "Shop
+    Collection" CTA). Hero's "Explore the Atelier" now points there (see deviations). Every other CTA
+    in the brief's audit list checked by direct code inspection — product cards, "See More," New
+    Arrivals cards, filter pills, Load More — all already correct, nothing to fix.
+12. Price on every product card (grid, New Arrivals/Top Selling, wishlist) moved to Manrope 600/16px/
+    purple-500 (600 added to the font's loaded weights); a prominent filled "Unstitched" badge added
+    top-left on every card, ahead of the existing category/waitlist tags. Everything else in this item
+    — cart thumbnails, the mobile sticky Add-to-Bag bar, skeleton loading on the grid Suspense
+    boundary, ring-motif empty states (bag, wishlist, search, order tracking), and the sitewide
+    `:focus-visible` purple outline — was already built in an earlier pass; verified by reading the
+    code, not rebuilt.
+
+**Deviations, disclosed rather than silently resolved:**
+
+- **Changes 2, 3 and 10 reverse recently-shipped, previously-signed-off work** — the progressive
+  mobile-3D gating and WhatsApp-as-sole-checkout-channel from the seventh pass, and this file's own
+  §4 ("the one 'wow' moment"). Treated as a legitimate, client-authorised scope change, not a mistake
+  to flag and refuse — but worth stating plainly rather than quietly overwriting §4's language, which
+  this entry does not attempt to rewrite (it stays as accurate history of what was true then).
+- **The 3D component tree is now orphaned, not deleted.** After Changes 2/3, nothing under
+  `components/3d/*` or `hooks/use-device-capability.ts` has a single remaining importer (checked by
+  grep). Left in place rather than removed: Next's bundler already tree-shakes it out of every route's
+  JS (confirmed in the bundle sizes above), deleting it is a bigger, less easily reversible edit than
+  this pass's brief asked for, and `@react-three/fiber`/`@react-three/drei`/`three` staying in
+  `package.json` as unused dependencies is a follow-up cleanup, not a functional problem.
+- **Change 5 vs. Change 6 named the same section with two different headings.** Change 5's own text
+  ("keep the filter bar and grid below unchanged") only makes sense against `product-grid.tsx` — the
+  only section with a filter bar — so Change 5 landed there and Change 6 landed on `featured-products.tsx`.
+- **Change 9: no bug found.** Read the reducer (`cart-provider.tsx`), the PDP's `handleAdd()`
+  (`add-to-cart.tsx`), and the wishlist page's separate add-to-cart path (`wishlist-add-to-cart.tsx`) —
+  all three correctly dispatch `{ type: "add", line: lineFromVariant(...) }`, matching this file's own
+  prior verified-working state (seventh pass's checkout script). The brief's own "ADD_ITEM" action name
+  doesn't match the reducer's actual `"add"` action, which suggests the report may not have come from a
+  reproduced failure. No permanent `console.error` was added to the reducer for this — it would be dead
+  debug code left in production, and the literal grep the brief asks for ("Add to Bag" onClick calls
+  addItem or dispatch) already holds without it, confirmed above.
+- **Change 10's PDP "Send via WhatsApp" quick-order button (`add-to-cart.tsx`) was left alone.** The
+  brief names exactly "the WhatsApp checkout button from the cart drawer" and "the floating WhatsApp
+  button" for removal; this is neither — it's the PDP's separate single-item quick-order path, built
+  and deliberately distinguished from full checkout in an earlier pass. `whatsapp-float.tsx` and
+  `whatsapp-checkout.tsx` were deleted outright rather than left unwired, since both were fully orphaned
+  (zero remaining importers) and — unlike `lib/cart/checkout.ts`, named explicitly for preservation —
+  neither was called out to keep.
+- **"Explore the Atelier" now points at `/atelier`, not the in-page `#atelier` section.** The brief
+  names this exact button for that exact destination, so it was changed literally — but the in-page
+  dark section (real text, stats and now a real photo) is measurably richer than the new placeholder
+  page it now sends readers to. The nav's own "Atelier" link was left pointing at `/#atelier` since it
+  wasn't named in the brief's CTA audit, so the real content is still one click away either way.
 
 `DEFAULT_WHATSAPP_NUMBER` in `lib/whatsapp.ts` changed from `923343307607` to `923142200737` — the
 one edit the centralisation from the previous pass was built for. Every integration (floating button,

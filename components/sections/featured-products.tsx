@@ -49,11 +49,9 @@ export async function FeaturedProducts() {
         <Reveal>
           <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b border-hairline pb-6">
             <div>
-              <p className="label text-charcoal">
-                {summary.season} — New arrivals
-              </p>
+              <p className="label text-charcoal">New Arrivals</p>
               <h2 className="mt-4 font-display text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
-                Edit 01, in full
+                Just landed.
               </h2>
             </div>
 

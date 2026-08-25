@@ -78,18 +78,14 @@ export async function ProductGrid({
           <Reveal>
             <div>
               <p className="label text-charcoal">The collection</p>
-              {/*
-                Deliberately not "{summary.season}, in full" here — the new
-                featured rail above (Priority 2) uses that exact text as its
-                own H2 ("Edit 01, in full"), and the two sections sit close
-                enough on the page that repeating it verbatim read as a
-                mistake, not a rhythm. This heading names what the section
-                actually is relative to the one above it: everything, not
-                just what's new.
-              */}
+              {/* Rewritten per the client's revision brief (2026-08-24). */}
               <h2 className="mt-4 font-display text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
-                Shop the full edit
+                The Edit — Unstitched, yours to finish
               </h2>
+              <p className="mt-4 max-w-[46ch] text-lg leading-relaxed text-charcoal">
+                Each piece is raw cloth. You choose the tailor, the fit, the
+                finish. We choose the fabric.
+              </p>
             </div>
           </Reveal>
 

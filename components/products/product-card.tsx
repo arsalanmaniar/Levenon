@@ -141,6 +141,13 @@ export function ProductCard({
               nothing to paint.
             */}
             <span className="absolute left-4 top-4 flex flex-wrap gap-1.5">
+              {/* Prominent, filled — every piece here is unstitched cloth,
+                  and the client brief (2026-08-24) wants that led with, not
+                  buried below the fold of the card. Solid ink, not the quiet
+                  paper/90 caption treatment the tags beside it use. */}
+              <span className="label bg-ink px-2.5 py-1 text-paper">
+                Unstitched
+              </span>
               {!inStock && (
                 <span className="label bg-paper/90 px-2.5 py-1 text-charcoal">
                   Waitlist
@@ -168,7 +175,10 @@ export function ProductCard({
             <h3 className="font-display text-lg font-bold tracking-[-0.02em]">
               {product.name}
             </h3>
-            <span className="font-mono text-base font-medium tracking-tight text-ink sm:whitespace-nowrap">
+            {/* Manrope 600/16px, purple-500 (client brief, 2026-08-24) — the
+                price now reads as the card's second-loudest element after
+                the name, not a quiet mono aside. */}
+            <span className="font-display text-base font-semibold tracking-tight text-purple-500 sm:whitespace-nowrap">
               {formatPrice(product)}
             </span>
           </div>

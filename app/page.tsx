@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { SiteNav } from "@/components/sections/site-nav";
 import { Hero } from "@/components/sections/hero";
 import { FeaturedProducts } from "@/components/sections/featured-products";
+import { TopSelling } from "@/components/sections/top-selling";
 import { ProductGrid } from "@/components/sections/product-grid";
 import { ProductGridFallback } from "@/components/sections/product-grid-fallback";
 import { SignatureSection } from "@/components/sections/signature-section";
@@ -62,6 +63,10 @@ export default function HomePage({
           instead, where it still marks a real section change.
         */}
         <FeaturedProducts />
+
+        {/* Top Selling (client brief, 2026-08-24) — between New Arrivals and
+            the full collection grid. */}
+        <TopSelling />
 
         <div className="mx-auto max-w-shell px-6 md:px-10">
           <StitchDivider />

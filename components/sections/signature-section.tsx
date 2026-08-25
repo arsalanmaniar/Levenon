@@ -1,17 +1,21 @@
-import { ThreadCanvas } from "@/components/3d/thread-canvas";
 import { ThreadButton } from "@/components/ui/thread-button";
 import { Reveal } from "@/components/ui/reveal";
 import { StitchDivider } from "@/components/ui/stitch-divider";
-import { getCollectionSummary } from "@/lib/server/products";
+import { AtelierImageReveal } from "@/components/sections/atelier-image-reveal";
+import { getCollectionSummary, listProducts } from "@/lib/server/products";
 
 /**
  * The single dark section on the page — the rhythm beat (SKILL.md §6).
  *
- * Roles invert: ink ground, paper type, purple-300 thread. This is the only
- * place bloom is allowed, and only on capable hardware.
+ * Roles invert: ink ground, paper type, purple-300 thread. The sculpture
+ * (client brief, 2026-08-24) is now a real textile detail photograph instead.
  */
 export async function SignatureSection() {
   const { pieceCount } = await getCollectionSummary();
+  const withPhotos = (await listProducts()).filter((product) => product.images[0]);
+  // Offset past the hero's own first 3, so the two sections don't repeat a
+  // photo — falls back to the first available image if the catalogue is thin.
+  const atelierPhoto = withPhotos[3] ?? withPhotos[0];
 
   return (
     <section
@@ -20,27 +24,17 @@ export async function SignatureSection() {
     >
       <div className="mx-auto grid max-w-shell gap-12 px-6 py-24 md:px-10 md:py-32 lg:grid-cols-12 lg:items-center lg:gap-16">
         <div className="relative order-2 lg:order-1 lg:col-span-6">
-          <div className="relative mx-auto h-[clamp(300px,58vw,420px)] w-full max-w-[520px] lg:h-[min(68vh,600px)] lg:max-w-none">
-            {/*
-              Floor glow, matching the hero's own treatment exactly (same
-              radial-gradient recipe, same purple token) so the two
-              sculptures read as the same physical object photographed in
-              two different rooms rather than two unrelated art styles —
-              Phase 6's explicit ask. Purple-300 here rather than
-              purple-500: on the ink ground the darker accent is nearly
-              invisible, the same reason the rest of this section swaps to
-              the lighter purple.
-            */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-x-[10%] bottom-[6%] top-[55%] -z-10"
-              style={{
-                backgroundImage:
-                  "radial-gradient(closest-side, rgb(var(--purple-300-rgb) / 0.22), transparent 75%)",
-              }}
-            />
-            <ThreadCanvas variant="dark" />
-          </div>
+          {/* 400×500 (client brief) as the aspect ratio + max size, scaling
+              down responsively below that rather than a rigid box that would
+              break on narrow viewports. */}
+          {atelierPhoto ? (
+            <div className="relative mx-auto aspect-[4/5] w-full max-w-[400px] border border-paper/10 lg:mx-0">
+              <AtelierImageReveal
+                src={atelierPhoto.images[0].url}
+                alt={atelierPhoto.images[0].alt || atelierPhoto.name}
+              />
+            </div>
+          ) : null}
         </div>
 
         {/*

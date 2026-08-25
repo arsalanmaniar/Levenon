@@ -8,7 +8,10 @@ export const display = Manrope({
   subsets: ["latin"],
   // 800 is the locked display weight (SKILL.md §3); 700 is added only for the
   // product card's name, which the UI-overhaul brief calls out specifically.
-  weight: ["700", "800"],
+  // 500 and 600 are added for the client revision pass (2026-08-24): 500 for
+  // the nav links, 600 for the product-card price, both moving off the mono
+  // `.label` system onto Manrope at those specific weights.
+  weight: ["500", "600", "700", "800"],
   variable: "--font-display",
   /*
    * `optional`, not `swap`. Measured with Lighthouse (GPU-accelerated

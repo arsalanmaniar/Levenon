@@ -6,7 +6,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { Trash2 } from "lucide-react";
 import { useCart } from "./cart-provider";
-import { WhatsAppCheckout } from "./whatsapp-checkout";
+import { ShimmerAction } from "@/components/ui/shimmer-button";
+import { PaymentModal } from "./payment-modal";
+import { BankTransferDetails } from "./bank-transfer-details";
 import { DiscountField } from "./discount-field";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { formatMinor, type CartTotals } from "@/lib/cart/types";
@@ -50,6 +52,12 @@ export function CartDrawer() {
    */
   const [discount, setDiscount] = useState<DiscountCode | null>(null);
   const summary = summariseOrder(totals, discount);
+
+  // Payment placeholders (client brief, 2026-08-24, replacing WhatsApp
+  // checkout): no gateway exists yet, so "Pay by Card" opens an honest
+  // "coming soon" panel rather than a real charge flow.
+  const [cardModalOpen, setCardModalOpen] = useState(false);
+  const [bankModalOpen, setBankModalOpen] = useState(false);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -303,14 +311,49 @@ export function CartDrawer() {
                   )}
 
                   <p className="label mt-3 text-charcoal">
-                    Shipping and duties settled on WhatsApp
+                    Shipping and duties confirmed after payment
                   </p>
 
-                  <WhatsAppCheckout className="mt-6" discount={discount} />
+                  <div className="mt-6 space-y-3">
+                    <ShimmerAction
+                      type="button"
+                      onClick={() => setCardModalOpen(true)}
+                      className="w-full py-4"
+                    >
+                      Pay by Card
+                    </ShimmerAction>
+                    <button
+                      type="button"
+                      onClick={() => setBankModalOpen(true)}
+                      className="label inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-hairline px-6 py-4 text-ink transition-colors duration-200 ease-state hover:border-purple-500 hover:text-purple-500"
+                    >
+                      Bank Transfer
+                    </button>
+                  </div>
                 </footer>
               </>
             )}
           </m.div>
+
+          <PaymentModal
+            open={cardModalOpen}
+            onClose={() => setCardModalOpen(false)}
+            title="Pay by card"
+          >
+            <p className="text-sm leading-relaxed text-charcoal">
+              Card payments are coming soon. For now, orders are settled by
+              bank transfer — send the receipt on WhatsApp once you&rsquo;ve
+              paid and the order is confirmed.
+            </p>
+          </PaymentModal>
+
+          <PaymentModal
+            open={bankModalOpen}
+            onClose={() => setBankModalOpen(false)}
+            title="Bank transfer details"
+          >
+            <BankTransferDetails />
+          </PaymentModal>
         </div>
       )}
     </AnimatePresence>
