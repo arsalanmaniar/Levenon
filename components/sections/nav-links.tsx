@@ -51,7 +51,9 @@ export function NavLinks() {
               href={link.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "group inline-flex min-h-[44px] items-center font-display text-nav font-medium uppercase tracking-[0.08em] transition-colors duration-200 ease-state",
+                // 12px fixed, not clamp — "nav is fixed height" (client
+                // brief, 2026-08-28).
+                "group inline-flex min-h-[44px] items-center font-display text-[12px] font-medium uppercase tracking-[0.08em] transition-colors duration-200 ease-state",
                 active ? "text-purple-500" : "text-charcoal hover:text-ink",
               )}
             >

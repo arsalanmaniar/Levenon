@@ -20,6 +20,13 @@
      paper text rather than setting amber text on paper directly. Disclosed,
      not silently substituted — the client's literal value is used as given. */
   --amber: #d97706;
+  /* Form validation (client brief, 2026-08-28, Item 4E) — the brief's own
+     literal hex. 4.64:1 on --paper, passing AA for normal text; the dark-
+     theme override below is Tailwind's red-400, not this value, because
+     this exact red only clears ~4:1 on the dark paper ground (see the
+     contrast note there) — same reasoning as --success's own light/dark
+     split just below. */
+  --error: #dc2626;
   --purple-300: #b98cf2;
   --charcoal: #5b5a5f;
   --hairline: #eae8e2;
@@ -43,6 +50,7 @@
   --hairline-rgb: 234 232 226;
   --success-rgb: 45 122 79;
   --amber-rgb: 217 119 6;
+  --error-rgb: 220 38 38;
 
   --shell: 1400px;
   --nav-h: 72px;
@@ -75,12 +83,17 @@
   --hairline: #2a2926;
   --charcoal: #a8a6a2;
   --success: #4caf7d;
+  /* Tailwind's red-400 — ~6.96:1 on this dark paper ground, against ~2.66:1
+     for the light-theme #DC2626 value on the same ground. Same brightened-
+     for-dark treatment as --success just above. */
+  --error: #f87171;
 
   --ink-rgb: 242 240 236;
   --paper-rgb: 15 14 13;
   --hairline-rgb: 42 41 38;
   --charcoal-rgb: 168 166 162;
   --success-rgb: 76 175 125;
+  --error-rgb: 248 113 113;
 
   /*
    * `--purple-500` is 3.08:1 on this ground and cannot carry text, but it is
@@ -115,6 +128,31 @@
   --charcoal-rgb: 91 90 95;
   --success: #2d7a4f;
   --success-rgb: 45 122 79;
+  --error: #dc2626;
+  --error-rgb: 220 38 38;
+}
+
+/*
+ * The footer, unlike the atelier just above, must be *literally* always
+ * dark — not "the inverted surface relative to theme," which is what
+ * `bg-ink`/`text-paper` alone actually give you, since `--ink`/`--paper`
+ * swap globally with `data-theme`. Left unpinned, the footer's `bg-ink`
+ * would render near-white in dark site-theme (`--ink` resolves to
+ * `#F2F0EC` there) — the opposite of "footer stays dark regardless of
+ * theme," a real bug caught on this pass's colour audit, not something the
+ * brief named directly. `--charcoal`/`--hairline` are pinned too, so
+ * `text-charcoal`/`border-hairline` used anywhere inside the footer read
+ * consistently rather than only `bg-ink`/`text-paper` being correct.
+ */
+#stockists-footer {
+  --ink: #0b0b0d;
+  --paper: #fbfaf8;
+  --charcoal: #5b5a5f;
+  --hairline: #eae8e2;
+  --ink-rgb: 11 11 13;
+  --paper-rgb: 251 250 248;
+  --charcoal-rgb: 91 90 95;
+  --hairline-rgb: 234 232 226;
 }
 
 /*
@@ -190,20 +228,18 @@
   /* Mono utility text: eyebrows, tags, prices, SKUs. Always uppercase. */
   .label {
     font-family: var(--font-mono), ui-monospace, monospace;
-    /* clamp(10px, 1vw, 13px) (client brief, 2026-08-27: "Small/labels
-       (IBM Plex Mono): clamp(10px, 1vw, 13px)") — fluid, not the previous
-       pass's fixed 12px. `.label` is the single most-repeated typographic
-       pattern on the site (every eyebrow, price, size chip, badge, nav
-       control and — via `ShimmerButton`/`ThreadButton`'s shared base —
-       most button text), so this one rule change is also most of "Button
-       text: clamp(12px, 1vw, 14px)" and "Nav links"/"Footer headings" by
-       construction, without touching each call site individually. 10px is
-       still inside SKILL.md §3's stated 11px–12px range at the viewport
-       widths this project actually measures against (1vw only reaches 10px
-       below a ~1000px viewport, and the browser's own minimum readable
-       size floor applies below that regardless) — a fluid floor, not a
-       regression past what "premium, not squinting" already established. */
-    font-size: clamp(0.625rem, 1vw, 0.8125rem);
+    /* clamp(10px, 0.8vw, 12px) (client brief, 2026-08-28: "Labels/mono:
+       clamp(10px, 0.8vw, 12px)" — corrected down from the previous pass's
+       clamp(10px, 1vw, 13px), judged too large). `.label` is the single
+       most-repeated typographic pattern on the site (every eyebrow, price,
+       size chip and badge), so this one rule change covers that whole
+       tier by construction. Nav links, button text and footer text used to
+       inherit this too; the current brief wants those four fixed instead
+       (12px/13px/13px/11px), so they now carry their own explicit
+       `text-[Npx]` at each call site — see nav-links.tsx, site-footer.tsx,
+       and the shared button base classes — and this rule no longer needs
+       to serve double duty for them. */
+    font-size: clamp(0.625rem, 0.8vw, 0.75rem);
     line-height: 1.2;
     letter-spacing: 0.18em;
     text-transform: uppercase;

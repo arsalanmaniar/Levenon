@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { PaymentModal } from "@/components/cart/payment-modal";
 import { ShimmerAction } from "@/components/ui/shimmer-button";
-import { cn } from "@/lib/cn";
+import { FormField } from "@/components/ui/form-field";
 
 /** The ring from the wordmark's "e" — same construction used for every empty/success state on the site. */
 function Ring() {
@@ -38,6 +38,8 @@ export function NotifyMe({
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"form" | "submitting" | "success" | "error">("form");
   const [error, setError] = useState<string | null>(null);
+  const [attempted, setAttempted] = useState(false);
+  const [shakeSignal, setShakeSignal] = useState(0);
 
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -49,12 +51,18 @@ export function NotifyMe({
       setStatus("form");
       setEmail("");
       setError(null);
+      setAttempted(false);
+      setShakeSignal(0);
     }, 300);
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!emailValid) return;
+    if (!emailValid) {
+      setAttempted(true);
+      setShakeSignal((n) => n + 1);
+      return;
+    }
 
     setStatus("submitting");
     setError(null);
@@ -96,29 +104,26 @@ export function NotifyMe({
             </p>
           </div>
         ) : (
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} noValidate>
             <p className="text-body leading-relaxed text-charcoal">
               {productName} is cut through. Leave your email and we&rsquo;ll
               tell you the moment it&rsquo;s back.
             </p>
-            <label className="mt-6 block">
-              <span className="label text-charcoal">Email</span>
-              <input
+            <div className="mt-6">
+              <FormField
+                label="Email"
                 type="email"
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 autoComplete="email"
                 placeholder="you@example.com"
-                className={cn(
-                  "mt-2 h-12 w-full rounded-none border border-hairline bg-paper px-4 text-base text-ink",
-                  "transition-colors duration-200 ease-state placeholder:text-charcoal",
-                  "hover:border-purple-500 focus:border-purple-500",
-                )}
+                error={attempted && !emailValid ? "Enter a valid email address" : null}
+                shakeSignal={shakeSignal}
               />
-            </label>
+            </div>
             {status === "error" && error && (
-              <p className="mt-3 text-sm text-purple-700">{error} — please try again.</p>
+              <p className="mt-3 text-sm text-error">{error} — please try again.</p>
             )}
             <ShimmerAction
               type="submit"

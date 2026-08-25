@@ -313,6 +313,147 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Font-size correction, theme-colour audit, footer logo definitive fix, UX polish (2026-08-28, thirteenth pass)
+
+Four items from the client's revision brief — the twelfth pass's own clamp values shipped too
+large, and this pass replaces them with the corrected figures plus a full theme-colour audit, a
+rebuilt footer logo, and six UX items. Targeted fixes only, no new pages or routes. `tsc --noEmit`
+clean after every batch; `next lint` clean; `next build` clean after a full `.next` wipe. First-load
+JS: `/` 155 kB, `/product/[id]` 158 kB, everything else 141–151 kB — all under the 200 kB ceiling
+(120 routes, unchanged route count). No browser was spawned, per the brief's instruction — verified
+by `tsc`, grep, and build output only.
+
+**Built:**
+1. **Font sizes, corrected.** `tailwind.config.ts`'s `fontSize` tokens replaced with the brief's
+   smaller values: `hero` 36–72px (was ~100px), `h2` 24–42px, `h3` 18–28px, `body`/`card-name`
+   13–15px, `card-price` 12–14px. `.label` (globals.css) tightened to 10–12px. Four tiers the brief
+   wants fixed rather than fluid — nav links, button text, footer links, footer heading — came out
+   of the shared token scale entirely and became literal `text-[12px]`/`text-[13px]`/`text-[11px]`
+   at each call site (`nav-links.tsx`, `site-footer.tsx`, `shimmer-button.tsx`, `thread-button.tsx`),
+   since a fixed-height element has no fluid range to name. Three non-nav/footer reuses of the old
+   `nav`/`footer-heading`/`footer-link` tokens (a filter chip's × glyph, two fabric-explorer
+   captions) were remapped to ad hoc clamps of the right scale rather than the now-semantically-wrong
+   fixed values. The atelier's decorative "01" numeral — `aria-hidden`, so not itself a readability
+   concern — was shrunk from a 180–280px clamp to 40–72px to satisfy the audit's own hard, testable
+   "no font-size above 72px outside hero H1" rule; disclosed as a visible reduction, not a silent one.
+   Grepped the full codebase against that rule afterward: everything above 42px is either the hero
+   (72px cap), the pre-existing "Page H1" tier (32–52px, three call sites, untouched — not one of the
+   brief's six named tiers and already compliant), or two pre-existing dark-section/content headings
+   at 40–64px predating this pass, also compliant and out of the brief's named list. Zero
+   `text-7xl`/`text-8xl`/`text-9xl` found sitewide. SKILL.md §3's headline-scale table, which still
+   documented the old ~100px/~52px figures, was corrected to match what's actually shipped — a
+   pre-existing documentation/code drift this pass's own audit surfaced, not something the brief
+   named directly.
+2. **Theme-aware colour audit.** Grepped for `text-white`/`text-black`/`bg-white`/`bg-black` and
+   hardcoded hex — the only hit outside the footer/loading-screen exceptions was two `#ffffff`
+   `<directionalLight color>` props in `thread-sculpture.tsx`, which are Three.js light-source
+   values in linear colour space, not DOM `className`/`style` text or background colours, so out
+   of the rule's actual scope. `TikTokIcon` (`social-icons.tsx`) had its `tone` prop and hardcoded
+   `#FFFFFF`/`#0B0B0D` fills replaced with `fill="currentColor"`, consumed as `text-paper` (footer)
+   / `text-ink` (sidebar) at its two call sites — `InstagramIcon`/`FacebookIcon`'s own internal
+   `#fff` fills are genuine fixed brand-logo colours and were left alone, disclosed as such.
+   **Real bug found and fixed, not named in the brief:** the footer's `bg-ink text-paper` — added
+   in the twelfth pass with the stated intent "always dark regardless of theme" — was still
+   theme-reactive, because `--ink`/`--paper` themselves swap globally with `data-theme`; in dark
+   site-theme the footer's background would have flipped to near-white. Fixed by pinning
+   `--ink`/`--paper`/`--charcoal`/`--hairline` (plus their `-rgb` companions) to their light-theme
+   values inside `#stockists-footer` in `globals.css` — the same *literal-pin* pattern the client
+   brief's own footer intent always implied, distinct from the atelier's deliberate
+   *theme-relative-inversion* pattern (`.dark-section`, which does NOT pin `--ink`/`--paper`, on
+   purpose, documented separately). Recalculated contrast while there: `text-charcoal` on the now-
+   pinned-dark footer background is only ~3.8:1 (fails AA); `FooterLink`'s resting colour was moved
+   to `text-paper/60` to match the footer's own established secondary-text convention and pass AA.
+   **Correction to the brief's own stated figure, not acted on:** Item 2 cites "purple-500 on paper
+   is only 3.08:1" — SKILL.md's own measured table shows 3.08:1 is the *dark*-ground figure;
+   purple-500 on `--paper` is ~5.9:1 and passes. Verified via grep that no `text-purple-500` exists
+   inside the always-dark atelier files (the genuine problem the figure describes), so no sitewide
+   purple-500-on-paper usage was changed.
+3. **Footer logo, rebuilt.** `Wordmark`'s `surface?: "auto" | "dark"` prop (a `filter:
+   brightness(0) invert(1)` on the dark-variant PNG) replaced with a literal `logoColour?: string`
+   prop, default `currentColor`, using CSS `mask-image`/`-webkit-mask-image` +
+   `background-color: logoColour` — the brief's own named prop and technique, and a more standard
+   colourable pattern than the filter approach. The footer imports the identical component the nav
+   uses (`import { Wordmark } from "@/components/ui/wordmark"`, no duplicate SVG/copy) and calls
+   `<Wordmark logoColour="currentColor" className="h-8 w-auto text-paper" />` — `h-8` (32px) per the
+   brief, `w-auto`, `currentColor` resolving through the CSS `color` cascade to the pinned
+   `text-paper`. Base classes (`h-[1.15em]`/`text-[1.375rem]`/`wordmark-asset`) are conditionally
+   omitted whenever `logoColour` is set, so a caller's own height override never collides with the
+   component's own — `lib/cn.ts`'s `cn()` is a plain class-string joiner, not tailwind-merge, so two
+   conflicting `h-*` classes would otherwise both land in the output with unpredictable cascade order.
+4. **UX polish, six items:**
+   - **Toasts.** New `ToastProvider`/`useToast()` (`components/providers/toast-provider.tsx`),
+     mounted once in `app/layout.tsx` above `WishlistProvider`/`CartProvider` so both providers'
+     own add/remove/toggle callbacks can call it directly — every existing entry point for "add to
+     bag" and "toggle wishlist" gets a toast for free rather than each call site wiring one
+     individually. Bottom-centre, slide-up, 2.5s auto-dismiss, `aria-live="polite"`,
+     `prefers-reduced-motion`-gated. Colour handling reconciles the brief's literal
+     "success/error/info" type colours against SKILL.md §2's locked "`--success` is never a
+     surface" rule: every toast is the same neutral `bg-ink text-paper` pill; only a small dot per
+     type carries the accent (`--success`/`--charcoal`/`--purple-500`). Wired into `CartProvider`'s
+     `addVariant` ("Added to bag"), `WishlistProvider`'s `toggle` ("Added to wishlist" /
+     "Removed from wishlist", direction read off state before dispatch), `discount-field.tsx`'s
+     successful-apply path ("Code applied", alongside its existing persistent tick/code row, which
+     stays — that's ongoing state, not a momentary confirmation, so the two aren't redundant), and
+     `share-button.tsx`, which previously had its own bespoke portal + `AnimatePresence` "Link
+     copied!" toast — migrated onto the shared hook so there's one toast implementation, not two.
+   - **Skeleton loading.** The collection grid already had `ProductGridSkeleton`/
+     `ProductCardSkeleton` behind a `Suspense` boundary. New Arrivals and Top Selling on the home
+     page had none — both are `async` server components with no fallback, so a slow catalogue fetch
+     blocked everything below the hero with nothing shown. Added `FeaturedProductsFallback`/
+     `TopSellingFallback` (`product-grid-fallback.tsx`), matching each section's real chrome and
+     layout exactly (the 1-large-plus-3 asymmetric grid, the 12-card 3-column grid) so nothing
+     reflows when data lands, and wrapped both in their own `Suspense` on `/` and `/new-in`. The
+     Recently Viewed strip was left alone — it reads a synchronous in-memory/sessionStorage
+     provider with no network fetch, so there is no loading moment for a skeleton to cover.
+   - **Scroll-to-top.** Already smooth-scrolled. Converted to `m.button` with
+     `whileTap={{ scale: 0.9 }}` and a spring transition (`stiffness: 500, damping: 15`) for the
+     "scale(0.9) → scale(1) bounce" the brief asks for — the spring's natural overshoot on settle is
+     what reads as a bounce, rather than a linear tween back to 1.
+   - **Form input styling.** New shared `components/ui/form-field.tsx` (`FormField`) — one styled
+     input primitive (label, error line, shake) — replacing four independent hand-rolled input
+     `className` strings across checkout, notify-me, newsletter, and track-order. All four now share:
+     `border-hairline` (or `border-error` when invalid), `bg-paper`, `text-ink`,
+     `focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20`, `placeholder:text-charcoal/50`,
+     `min-h-[48px]`, `rounded-sm` (2px, brand rule — Tailwind's default `rounded-sm`, no config
+     override needed), `transition-[border-color] duration-200`. Track-order and newsletter keep
+     their own single combined status line (hint/error/result-count in one place) rather than
+     adopting `FormField`'s own error slot — a deliberate, already-documented pattern in
+     `track-form.tsx`'s own comment — so only their input styling and shake were unified, not their
+     message structure.
+   - **Form error states.** New `--error: #DC2626` token (`globals.css` `:root`, plus `-rgb`
+     companion), Tailwind-mapped as `error` (`tailwind.config.ts`), documented in SKILL.md §2 and
+     §2's dark-theme table. Dark-theme value is `#F87171` (Tailwind red-400), not the light value —
+     `#DC2626` only clears ~2.66:1 on the dark paper ground, `#F87171` clears ~6.96:1 — the same
+     brightened-for-dark treatment `--success` already has. This resolves a tension in the brief's
+     own wording ("`border-red-400`" alongside "add `--error: #DC2626`"): the light-theme token is
+     the client's literal hex, and Tailwind's actual red-400 is what the dark-theme override uses.
+     Checkout, notify-me, newsletter, and track-order all validate on submit (not live, except where
+     already live before this pass) and, on failure: mark invalid fields `border-error`, show
+     `text-error text-xs` inline messages, and shake (`x: [0, -8, 8, -4, 4, 0]`, 0.4s,
+     `prefers-reduced-motion`-gated) via `useAnimationControls` — a signal counter (`shakeSignal`),
+     not a boolean, so a second failed attempt with nothing changed still shakes again. Two genuine
+     submit-level error banners (checkout's and notify-me's network-failure messages) were also
+     moved onto `text-error`, replacing `text-purple-700`, since they are literally error messages;
+     decorative `hover:bg-purple-700` accents elsewhere were left untouched. SKILL.md §2's "there is
+     deliberately no matching error colour" line was corrected to document the new, narrowly-scoped
+     exception (form-field invalid states only — never a button, panel, or non-form failure message).
+   - **Mobile bottom spacing.** `MobileAddBar` (the PDP's sticky "Add to Bag" bar) is `fixed`, shows
+     for the rest of the page the instant `#add-to-cart` scrolls out of view, and stays visible
+     through Reviews, Recently Viewed, and the footer — so on mobile it was covering the footer's
+     own last row by the time a reader reached the true bottom of a PDP. Fixed with an `lg:hidden`
+     80px spacer between `<SiteFooter />` and `<MobileAddBar />` on the PDP specifically, rather than
+     a sitewide `pb-20`: `ScrollToTop` (the only other floating control, present on every page) is a
+     40px corner circle well clear of real content, and no dedicated "WhatsApp float" component
+     exists in the codebase today despite being referenced in `scroll-to-top.tsx`'s own comment —
+     so there was no second sitewide overlap to guard against.
+
+**Verified:** `tsc --noEmit`, `next lint`, `next build` (after `rm -rf .next`) all clean; grep
+confirms no `text-white`/`text-black`/`bg-white`/`bg-black` outside the footer/loading-screen
+exceptions (the one hit, `thread-sculpture.tsx`, is a Three.js light colour, not a DOM class); grep
+confirms no font-size above 72px outside the hero H1 and no `text-7xl`/`8xl`/`9xl` sitewide; footer
+imports the same `Wordmark` component as the nav (`grep -n Wordmark`); `ToastProvider` present and
+mounted in `app/layout.tsx`. First-load JS for every route is under the 200 kB ceiling.
+
 #### Responsive type, footer logo fix, atelier redesign, social icons, live counter, fabric explorer, search history (2026-08-27, twelfth pass)
 
 Eight items from the client's revision brief. `tsc --noEmit` after every change; `next lint` and

@@ -72,12 +72,12 @@ export async function FabricExplorer() {
                   <p className="font-display text-[clamp(1.125rem,2.5vw,1.375rem)] font-bold text-paper">
                     {category.name}
                   </p>
-                  <p className="mt-1 font-mono text-footer-heading text-purple-300">
+                  <p className="mt-1 font-mono text-[clamp(0.6875rem,1vw,0.8125rem)] text-purple-300">
                     {count} {count === 1 ? "piece" : "pieces"}
                   </p>
                   <span
                     aria-hidden="true"
-                    className="mt-3 inline-flex translate-y-2 items-center gap-1.5 text-footer-link text-paper opacity-0 transition-all duration-200 ease-state group-hover:translate-y-0 group-hover:opacity-100"
+                    className="mt-3 inline-flex translate-y-2 items-center gap-1.5 text-[clamp(0.75rem,1vw,0.875rem)] text-paper opacity-0 transition-all duration-200 ease-state group-hover:translate-y-0 group-hover:opacity-100"
                   >
                     Shop →
                   </span>

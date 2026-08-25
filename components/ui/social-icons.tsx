@@ -48,21 +48,18 @@ export function FacebookIcon({ className }: { className?: string }) {
   );
 }
 
-/** `tone="light"` for a dark background (the footer); `tone="dark"` for a light one (the sidebar, on paper). */
-export function TikTokIcon({
-  className,
-  tone = "dark",
-}: {
-  className?: string;
-  tone?: "dark" | "light";
-}) {
+/**
+ * TikTok's own mark has no fixed brand colour the way Instagram/Facebook do
+ * (it ships black-on-light or white-on-dark, never a specific hex) — `fill`
+ * is `currentColor`, so the two contexts that use this icon set their own
+ * colour through a `text-ink`/`text-paper` Tailwind class on `className`
+ * (client brief, 2026-08-28: token colours, not a literal `#0B0B0D`/`#FFFFFF`
+ * pair) rather than this component hardcoding either. `tone` is gone — it
+ * was two hex strings standing in for exactly `text-ink`/`text-paper`.
+ */
+export function TikTokIcon({ className }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 28 28"
-      className={className}
-      aria-hidden="true"
-      fill={tone === "light" ? "#FFFFFF" : "#0B0B0D"}
-    >
+    <svg viewBox="0 0 28 28" className={className} aria-hidden="true" fill="currentColor">
       <path d="M18.5 3.6c.5 2.2 1.9 3.7 4.2 4v3a7.6 7.6 0 0 1-4.2-1.3v6.9a6 6 0 1 1-6-6c.2 0 .5 0 .7.03v3.05a2.9 2.9 0 1 0 2.3 2.85V3.6h3Z" />
     </svg>
   );

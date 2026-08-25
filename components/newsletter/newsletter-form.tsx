@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
+import { m, useAnimationControls } from "framer-motion";
 import { ShimmerAction } from "@/components/ui/shimmer-button";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { EMAIL_MAX_LENGTH, isValidEmail } from "@/lib/newsletter";
@@ -57,6 +58,12 @@ export function NewsletterForm() {
   const [error, setError] = useState<string | null>(null);
   const [subscribed, setSubscribed] = useState(false);
   const successRef = useRef<HTMLDivElement>(null);
+  const shakeControls = useAnimationControls();
+
+  function shake() {
+    if (reducedMotion) return;
+    shakeControls.start({ x: [0, -8, 8, -4, 4, 0], transition: { duration: 0.4 } });
+  }
 
   /*
    * The submit button unmounts with the form, so without this the keyboard
@@ -74,10 +81,12 @@ export function NewsletterForm() {
     const email = value.trim();
     if (email.length === 0) {
       setError(EMPTY_MESSAGE);
+      shake();
       return;
     }
     if (!isValidEmail(email)) {
       setError(MALFORMED_MESSAGE);
+      shake();
       return;
     }
 
@@ -120,7 +129,7 @@ export function NewsletterForm() {
       </label>
 
       <div className="flex flex-col gap-3 sm:flex-row">
-        <input
+        <m.input
           id={inputId}
           name="email"
           type="email"
@@ -132,6 +141,7 @@ export function NewsletterForm() {
           value={value}
           aria-invalid={error !== null}
           aria-describedby={statusId}
+          animate={shakeControls}
           onChange={(event) => {
             setValue(event.target.value);
             // Clear on edit: an error about what was typed a moment ago is
@@ -139,10 +149,10 @@ export function NewsletterForm() {
             if (error !== null) setError(null);
           }}
           className={cn(
-            "h-12 w-full min-w-0 flex-1 rounded-none border bg-paper px-4 text-base text-ink",
-            "transition-colors duration-200 ease-state placeholder:text-charcoal",
-            "hover:border-purple-500 focus:border-purple-500",
-            error !== null ? "border-purple-700" : "border-hairline",
+            "min-h-[48px] w-full min-w-0 flex-1 rounded-sm border bg-paper px-4 text-base text-ink",
+            "transition-[border-color] duration-200 ease-state placeholder:text-charcoal/50",
+            "hover:border-purple-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20",
+            error !== null ? "border-error" : "border-hairline",
           )}
         />
 
@@ -162,7 +172,7 @@ export function NewsletterForm() {
         role="status"
         className={cn(
           "label mt-4",
-          error !== null ? "text-purple-700" : "text-charcoal",
+          error !== null ? "text-error" : "text-charcoal",
         )}
       >
         {error ?? HINT_MESSAGE}

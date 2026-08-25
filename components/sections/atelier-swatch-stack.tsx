@@ -53,7 +53,7 @@ function Swatch({
           initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.15 }}
-          className="pointer-events-none absolute -bottom-8 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink px-3 py-1 text-footer-heading text-paper shadow-thread"
+          className="pointer-events-none absolute -bottom-8 left-1/2 z-40 -translate-x-1/2 whitespace-nowrap rounded-full bg-ink px-3 py-1 text-[clamp(0.6875rem,1vw,0.8125rem)] text-paper shadow-thread"
         >
           {product.name}
         </m.span>
@@ -80,7 +80,14 @@ export function AtelierSwatchStack({ products }: { products: Product[] }) {
       {/* The "01" — decorative, not readable text, hence `aria-hidden`. */}
       <m.span
         aria-hidden="true"
-        className="pointer-events-none absolute -left-3 top-0 select-none font-display text-[clamp(11.25rem,20vw,17.5rem)] font-extrabold leading-[0.8] text-purple-700"
+        // Reduced from a 280px max to the 72px ceiling (client brief,
+        // 2026-08-28: "no font-size above 72px outside the hero H1") —
+        // this element is `aria-hidden` decoration, not a reading tier,
+        // but the audit instruction and its own VERIFY grep don't carve
+        // out an exception for that, so it's disclosed as a visible
+        // design change (a much quieter background numeral than the
+        // previous pass intended) rather than left non-compliant.
+        className="pointer-events-none absolute -left-3 top-0 select-none font-display text-[clamp(2.5rem,6vw,4.5rem)] font-extrabold leading-[0.8] text-purple-700"
         initial={reducedMotion ? { opacity: 0.2 } : { opacity: 0 }}
         whileInView={{ opacity: 0.2 }}
         viewport={{ once: true }}

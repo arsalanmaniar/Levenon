@@ -28,9 +28,14 @@ type Tone = "solid" | "outline" | "solid-invert";
 // Matched to ThreadButton's refreshed base (2026-08-24, Phase 7) so a primary
 // shimmer CTA and a secondary ghost CTA sitting side by side share exactly the
 // same height, padding and pressed behaviour — see that file for the reasoning.
+// `text-[13px]` fixed (client brief, 2026-08-28: "Button text: 13px fixed")
+// — `.label`'s own font-size now serves the smaller "Labels/mono" tier
+// instead, so buttons need their own explicit override. Utilities layer
+// beats `.label`'s `@layer components` rule regardless of source order,
+// so this reliably wins.
 const base =
   "group relative isolate inline-flex min-h-[48px] items-center justify-center gap-2 " +
-  "overflow-hidden rounded-full px-7 label " +
+  "overflow-hidden rounded-full px-7 label text-[13px] " +
   "transition-[color,background-color,border-color] duration-200 ease-state";
 
 const tones: Record<Tone, string> = {

@@ -15,6 +15,7 @@ import {
   type CartLine,
   type CartTotals,
 } from "@/lib/cart/types";
+import { useToast } from "@/components/providers/toast-provider";
 
 /**
  * Cart state — in memory, for the session only.
@@ -146,14 +147,20 @@ const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, INITIAL);
+  const { showToast } = useToast();
 
   const addVariant = useCallback(
     (product: Product, variant: ProductVariant, quantity = 1) => {
       if (variant.stockOnHand < 1) return;
       dispatch({ type: "add", line: lineFromVariant(product, variant, quantity) });
       dispatch({ type: "open" });
+      // Client brief, 2026-08-28. The drawer sliding open is already strong
+      // feedback on its own, but the brief names "Added to bag" explicitly
+      // as one of the toast system's own use cases, so this is deliberate
+      // layering, not a redundant addition.
+      showToast("Added to bag", "success");
     },
-    [],
+    [showToast],
   );
 
   const setQuantity = useCallback((variantSku: string, quantity: number) => {

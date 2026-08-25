@@ -365,6 +365,14 @@ export default async function ProductPage({ params }: Params) {
       </main>
       </ReviewSessionProvider>
       <SiteFooter />
+      {/* `MobileAddBar` is `fixed`, so it sits on top of whatever is
+          scrolled to the bottom of the viewport — including the footer's
+          own last row, since the bar shows for the rest of the page the
+          moment `#add-to-cart` scrolls out of view and stays visible
+          through Reviews, Recently Viewed and the footer (client brief,
+          2026-08-28, Item 4F). This spacer is the room the bar needs;
+          `lg:hidden` because the bar itself is `lg:hidden`. */}
+      <div className="h-20 lg:hidden" aria-hidden="true" />
       <MobileAddBar product={product} />
     </>
   );

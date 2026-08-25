@@ -69,7 +69,14 @@ function FooterLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="group inline-flex min-h-[40px] items-center text-footer-link text-charcoal transition-colors duration-200 ease-state hover:text-paper"
+      // 13px fixed (client brief, 2026-08-28). `text-paper/60`, not
+      // `text-charcoal` — this is a dark section, and the brief's own rule
+      // for one is "text-paper (explicitly)"; `--charcoal`'s light-theme
+      // value (now pinned here, see globals.css) is only ~3.8:1 against
+      // the footer's own pinned-dark background, under the 4.5:1 AA floor
+      // for normal text. `/60` matches the footer's own heading and
+      // copyright, which already used paper opacity for secondary text.
+      className="group inline-flex min-h-[40px] items-center text-[13px] text-paper/60 transition-colors duration-200 ease-state hover:text-paper"
     >
       <span className="relative">
         {label}
@@ -89,13 +96,17 @@ export function SiteFooter() {
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {/* Col 1 — brand statement + social. */}
           <div>
-            {/* `surface="dark"` (client brief, 2026-08-27) — the footer is
-                always dark regardless of site theme, so the wordmark must
-                always render its dark-surface form too, not follow
-                `data-theme`. See `Wordmark`'s own doc comment for the bug
-                this fixes. Size: clamp(24px, 3vw, 36px), the brief's own
-                figures — larger than the nav's own ~20px instance. */}
-            <Wordmark surface="dark" className="text-[clamp(1.5rem,3vw,2.25rem)]" />
+            {/* `logoColour="currentColor"` + `text-paper` (client brief,
+                2026-08-28) — the footer is always dark regardless of site
+                theme, so the wordmark must always render solid paper too,
+                not follow `data-theme`. See `Wordmark`'s own doc comment
+                for the mask technique and the bug this fixes. `h-8 w-auto`
+                overrides the component's usual em-based sizing with the
+                brief's literal "height 32px, width auto". */}
+            <Wordmark
+              logoColour="currentColor"
+              className="h-8 w-auto text-paper"
+            />
             <p className="mt-6 max-w-[34ch] text-body leading-relaxed text-paper/70">
               Unstitched. Yours to finish.
             </p>
@@ -116,7 +127,7 @@ export function SiteFooter() {
               </li>
               <li>
                 <SocialLink href="#" label="TikTok" brand="tiktok">
-                  <TikTokIcon tone="light" className="h-7 w-7" />
+                  <TikTokIcon className="h-7 w-7 text-paper" />
                 </SocialLink>
               </li>
             </ul>
@@ -125,7 +136,8 @@ export function SiteFooter() {
           {/* Col 2–4 — link columns, equal width, tops aligned by the grid itself. */}
           {columns.map((column) => (
             <div key={column.title}>
-              <h2 className="border-b border-paper/20 pb-4 font-mono text-footer-heading uppercase tracking-[0.18em] text-paper/60">
+              {/* 11px fixed uppercase (client brief, 2026-08-28). */}
+              <h2 className="border-b border-paper/20 pb-4 font-mono text-[11px] uppercase tracking-[0.18em] text-paper/60">
                 {column.title}
               </h2>
               <ul className="mt-5 space-y-0.5">

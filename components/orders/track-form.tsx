@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useId, useState } from "react";
+import { m, useAnimationControls } from "framer-motion";
 import { ShimmerAction } from "@/components/ui/shimmer-button";
 import { OrderTimeline } from "@/components/orders/order-timeline";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { formatMinor } from "@/lib/cart/types";
 import type { StoredOrder } from "@/lib/orders/order-types";
 import { formatOrderDate, isPakistaniMobile } from "@/lib/orders/orders-data";
@@ -156,6 +158,13 @@ export function TrackForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<StoredOrder[] | null>(null);
+  const reducedMotion = usePrefersReducedMotion();
+  const shakeControls = useAnimationControls();
+
+  function shake() {
+    if (reducedMotion) return;
+    shakeControls.start({ x: [0, -8, 8, -4, 4, 0], transition: { duration: 0.4 } });
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -164,6 +173,7 @@ export function TrackForm() {
     if (phone.length === 0) {
       setError(EMPTY_MESSAGE);
       setResults(null);
+      shake();
       return;
     }
 
@@ -172,6 +182,7 @@ export function TrackForm() {
       // leaving the reader at a rejected field with nowhere to go.
       setError(MALFORMED_MESSAGE);
       setResults([]);
+      shake();
       return;
     }
 
@@ -185,6 +196,7 @@ export function TrackForm() {
     } catch {
       setError(ERROR_MESSAGE);
       setResults(null);
+      shake();
     } finally {
       setLoading(false);
     }
@@ -205,7 +217,7 @@ export function TrackForm() {
         </label>
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
-          <input
+          <m.input
             id={inputId}
             name="phone"
             type="tel"
@@ -217,6 +229,7 @@ export function TrackForm() {
             value={value}
             aria-invalid={error !== null}
             aria-describedby={statusId}
+            animate={shakeControls}
             onChange={(event) => {
               setValue(event.target.value);
               // An error about what was typed a moment ago is noise once the
@@ -224,10 +237,10 @@ export function TrackForm() {
               if (error !== null) setError(null);
             }}
             className={cn(
-              "h-12 w-full min-w-0 flex-1 rounded-none border bg-paper px-4 text-base text-ink",
-              "transition-colors duration-200 ease-state placeholder:text-charcoal",
-              "hover:border-purple-500 focus:border-purple-500",
-              error !== null ? "border-purple-700" : "border-hairline",
+              "min-h-[48px] w-full min-w-0 flex-1 rounded-sm border bg-paper px-4 text-base text-ink",
+              "transition-[border-color] duration-200 ease-state placeholder:text-charcoal/50",
+              "hover:border-purple-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20",
+              error !== null ? "border-error" : "border-hairline",
             )}
           />
 
@@ -239,7 +252,7 @@ export function TrackForm() {
         <p
           id={statusId}
           role="status"
-          className={cn("label mt-4", error !== null ? "text-purple-700" : "text-charcoal")}
+          className={cn("label mt-4", error !== null ? "text-error" : "text-charcoal")}
         >
           {error ?? (results && results.length > 0 ? summary : HINT_MESSAGE)}
         </p>

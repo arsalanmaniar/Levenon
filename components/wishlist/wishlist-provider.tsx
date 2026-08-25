@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { Product } from "@/lib/types";
+import { useToast } from "@/components/providers/toast-provider";
 
 /**
  * Wishlist state — in memory, for the session only.
@@ -72,12 +73,23 @@ const WishlistContext = createContext<WishlistContextValue | null>(null);
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, INITIAL);
+  const { showToast } = useToast();
 
   const add = useCallback((product: Product) => dispatch({ type: "add", product }), []);
   const remove = useCallback((id: string) => dispatch({ type: "remove", id }), []);
   const toggle = useCallback(
-    (product: Product) => dispatch({ type: "toggle", product }),
-    [],
+    (product: Product) => {
+      // Direction read off current render state before dispatch — the
+      // reducer's own `toggle` case (line 47) computes the same
+      // `exists` check internally, but the toast has to know which way
+      // this is about to go (client brief, 2026-08-28: "Added to bag",
+      // "Removed from wishlist" are two of the toast system's own named
+      // use cases).
+      const exists = state.items.some((item) => item.id === product.id);
+      showToast(exists ? "Removed from wishlist" : "Added to wishlist", "success");
+      dispatch({ type: "toggle", product });
+    },
+    [state.items, showToast],
   );
   const clear = useCallback(() => dispatch({ type: "clear" }), []);
 

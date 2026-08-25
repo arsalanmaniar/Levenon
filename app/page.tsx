@@ -6,7 +6,11 @@ import { FeaturedProducts } from "@/components/sections/featured-products";
 import { TopSelling } from "@/components/sections/top-selling";
 import { FabricExplorer } from "@/components/sections/fabric-explorer";
 import { ProductGrid } from "@/components/sections/product-grid";
-import { ProductGridFallback } from "@/components/sections/product-grid-fallback";
+import {
+  ProductGridFallback,
+  FeaturedProductsFallback,
+  TopSellingFallback,
+} from "@/components/sections/product-grid-fallback";
 import { SignatureSection } from "@/components/sections/signature-section";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 import { SiteFooter } from "@/components/sections/site-footer";
@@ -63,11 +67,19 @@ export default function HomePage({
           divider moves to sit between the featured rail and the full grid
           instead, where it still marks a real section change.
         */}
-        <FeaturedProducts />
+        {/* Own Suspense boundary (client brief, 2026-08-28, Item 4B) — a
+            grey pulse placeholder in the section's own shape while the
+            catalogue resolves, rather than either section holding up the
+            hero or rendering with nothing at all. */}
+        <Suspense fallback={<FeaturedProductsFallback />}>
+          <FeaturedProducts />
+        </Suspense>
 
         {/* Top Selling (client brief, 2026-08-24) — between New Arrivals and
             the full collection grid. */}
-        <TopSelling />
+        <Suspense fallback={<TopSellingFallback />}>
+          <TopSelling />
+        </Suspense>
 
         {/* Explore by Fabric (client brief, 2026-08-27) — between Top
             Selling and the full collection grid. */}

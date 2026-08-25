@@ -5,6 +5,7 @@ import { SmoothScroll } from "@/components/providers/smooth-scroll";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { PageTransition } from "@/components/providers/page-transition";
 import { LoadingScreen } from "@/components/providers/loading-screen";
+import { ToastProvider } from "@/components/providers/toast-provider";
 import { SocialSidebar } from "@/components/ui/social-sidebar";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CartProvider } from "@/components/cart/cart-provider";
@@ -107,16 +108,23 @@ export default function RootLayout({
           {/* First-load only, sessionStorage-gated — see the component for
               why it needs no cart/wishlist context. */}
           <LoadingScreen />
-          {/* Separate providers: clearing one must never touch the other. */}
-          <WishlistProvider>
-            <RecentlyViewedProvider>
-              <CartProvider>
-                <PageTransition>{children}</PageTransition>
-                <CartDrawer />
-                <ScrollToTop />
-              </CartProvider>
-            </RecentlyViewedProvider>
-          </WishlistProvider>
+          {/* Above Wishlist/Cart so both providers' own actions can call
+              `useToast()` directly (client brief, 2026-08-28) — every
+              add/remove entry point gets a toast for free, rather than
+              each of the many call sites (product cards, quick-add, the
+              PDP, the wishlist page) wiring one individually. */}
+          <ToastProvider>
+            {/* Separate providers: clearing one must never touch the other. */}
+            <WishlistProvider>
+              <RecentlyViewedProvider>
+                <CartProvider>
+                  <PageTransition>{children}</PageTransition>
+                  <CartDrawer />
+                  <ScrollToTop />
+                </CartProvider>
+              </RecentlyViewedProvider>
+            </WishlistProvider>
+          </ToastProvider>
         </MotionProvider>
         </ThemeProvider>
       </body>

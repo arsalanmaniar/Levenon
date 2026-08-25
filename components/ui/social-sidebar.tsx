@@ -8,8 +8,8 @@ import { FacebookIcon, InstagramIcon, SocialLink, TikTokIcon } from "./social-ic
  * viewport, since a fixed element has no scroll position of its own to be
  * halfway *down* in the document sense.
  *
- * `TikTokIcon tone="dark"` here, `tone="light"` in the footer's own
- * instance — this sidebar sits over the page's ordinary `--paper`
+ * `TikTokIcon` here gets `text-ink`, the footer's own instance gets
+ * `text-paper` — this sidebar sits over the page's ordinary `--paper`
  * background for almost its entire scroll range, unlike the footer, which
  * is always `bg-ink`. See that icon's own doc comment.
  */
@@ -23,7 +23,7 @@ export function SocialSidebar() {
         <FacebookIcon className="h-7 w-7" />
       </SocialLink>
       <SocialLink href="#" label="TikTok" brand="tiktok">
-        <TikTokIcon tone="dark" className="h-7 w-7" />
+        <TikTokIcon className="h-7 w-7 text-ink" />
       </SocialLink>
     </div>
   );

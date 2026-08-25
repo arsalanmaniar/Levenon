@@ -57,8 +57,9 @@ type ThreadButtonProps = {
 // button's fill and border transition). Press feedback moved off
 // `active:scale-[0.98]` onto Framer's `whileTap` below, same reasoning as
 // `ShimmerButton`.
+// `text-[13px]` fixed — see the identical note in `shimmer-button.tsx`.
 const base =
-  "group label inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-7 " +
+  "group label text-[13px] inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-7 " +
   "transition-[color,background-color,border-color] duration-[250ms] ease-state";
 
 const tones: Record<Tone, string> = {

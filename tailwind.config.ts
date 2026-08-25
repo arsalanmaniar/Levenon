@@ -27,6 +27,9 @@ const config: Config = {
         success: "rgb(var(--success-rgb) / <alpha-value>)",
         // Urgency accent (client brief, 2026-08-27) — low-stock badges/text.
         amber: "rgb(var(--amber-rgb) / <alpha-value>)",
+        // Form validation (client brief, 2026-08-28) — invalid-field borders
+        // and inline error text. Same channel-token reasoning as success/amber.
+        error: "rgb(var(--error-rgb) / <alpha-value>)",
         purple: {
           300: "rgb(var(--purple-300-rgb) / <alpha-value>)",
           500: "rgb(var(--purple-500-rgb) / <alpha-value>)",
@@ -47,17 +50,22 @@ const config: Config = {
        * Section H3 has no existing call site on the site yet — added so one
        * exists the moment a component needs it, per the brief's own naming.
        */
+      /*
+       * Corrected, smaller clamp values (client brief, 2026-08-28 — "Previous
+       * clamp() values were too large"). `nav`/`footer-heading`/`footer-link`/
+       * `btn` are gone: the brief now wants those four fixed, not fluid
+       * ("Nav links: 12px fixed (not clamp — nav is fixed height)" and
+       * three more like it), so they're literal `text-[Npx]` at their call
+       * sites instead of a shared clamp token — see nav-links.tsx,
+       * site-footer.tsx, and the shared button base classes.
+       */
       fontSize: {
-        hero: "clamp(2.5rem, 7vw, 6.875rem)", // 40px – 110px
-        h2: "clamp(1.75rem, 4vw, 3.5rem)", // 28px – 56px
-        h3: "clamp(1.25rem, 2.5vw, 2.25rem)", // 20px – 36px
-        body: "clamp(0.875rem, 1.2vw, 1rem)", // 14px – 16px
-        nav: "clamp(0.6875rem, 1vw, 0.8125rem)", // 11px – 13px
-        "card-name": "clamp(0.8125rem, 1.2vw, 1rem)", // 13px – 16px
-        "card-price": "clamp(0.8125rem, 1.2vw, 0.9375rem)", // 13px – 15px
-        "footer-heading": "clamp(0.6875rem, 1vw, 0.8125rem)", // 11px – 13px
-        "footer-link": "clamp(0.75rem, 1vw, 0.875rem)", // 12px – 14px
-        btn: "clamp(0.75rem, 1vw, 0.875rem)", // 12px – 14px
+        hero: "clamp(2.25rem, 5vw, 4.5rem)", // 36px – 72px
+        h2: "clamp(1.5rem, 3vw, 2.625rem)", // 24px – 42px
+        h3: "clamp(1.125rem, 2vw, 1.75rem)", // 18px – 28px
+        body: "clamp(0.8125rem, 1vw, 0.9375rem)", // 13px – 15px
+        "card-name": "clamp(0.8125rem, 1vw, 0.9375rem)", // 13px – 15px
+        "card-price": "clamp(0.75rem, 0.9vw, 0.875rem)", // 12px – 14px
       },
       letterSpacing: {
         label: "0.18em",

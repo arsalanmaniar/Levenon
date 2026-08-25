@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { SiteNav } from "@/components/sections/site-nav";
 import { SiteFooter } from "@/components/sections/site-footer";
 import { FeaturedProducts } from "@/components/sections/featured-products";
+import { FeaturedProductsFallback } from "@/components/sections/product-grid-fallback";
 
 export const metadata: Metadata = {
   title: "New In",
@@ -20,7 +22,9 @@ export default function NewInPage() {
     <>
       <SiteNav />
       <main id="main">
-        <FeaturedProducts />
+        <Suspense fallback={<FeaturedProductsFallback />}>
+          <FeaturedProducts />
+        </Suspense>
       </main>
       <SiteFooter />
     </>

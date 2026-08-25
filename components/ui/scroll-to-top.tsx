@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { m } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
 
@@ -32,7 +33,7 @@ export function ScrollToTop() {
   if (!visible) return null;
 
   return (
-    <button
+    <m.button
       type="button"
       onClick={() =>
         window.scrollTo({
@@ -41,6 +42,13 @@ export function ScrollToTop() {
         })
       }
       aria-label="Back to top"
+      // Client brief, 2026-08-28 (Item 4C): "brief scale(0.9) → scale(1)
+      // bounce" on click, on top of the smooth scroll it already had.
+      // `whileTap` covers a click's press-then-release in one gesture; the
+      // spring transition (not the linear one this file's other transitions
+      // use) is what gives the settle its overshoot, i.e. the "bounce".
+      whileTap={reducedMotion ? undefined : { scale: 0.9 }}
+      transition={{ type: "spring", stiffness: 500, damping: 15 }}
       className={cn(
         "fixed z-40 grid h-10 w-10 place-items-center rounded-full border border-hairline bg-paper text-ink shadow-[0_4px_20px_rgb(11_11_13/0.15)] transition-colors duration-200 ease-state hover:border-purple-500 hover:text-purple-500",
         "bottom-24 right-6 md:bottom-28 md:right-10",
@@ -58,6 +66,6 @@ export function ScrollToTop() {
       >
         <path d="M12 19V5M6 11l6-6 6 6" />
       </svg>
-    </button>
+    </m.button>
   );
 }

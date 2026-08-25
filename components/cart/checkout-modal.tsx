@@ -3,11 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ShimmerAction } from "@/components/ui/shimmer-button";
+import { FormField } from "@/components/ui/form-field";
 import { BankTransferDetails } from "./bank-transfer-details";
 import { formatMinor, type CartLine } from "@/lib/cart/types";
 import type { OrderSummary } from "@/lib/cart/discount";
 import { isPakistaniMobile } from "@/lib/orders/orders-data";
-import { cn } from "@/lib/cn";
 
 type PaymentMethod = "card" | "bank_transfer";
 type Step = "form" | "submitting" | "success" | "error";
@@ -46,18 +46,27 @@ export function CheckoutModal({
     totalMinor: number;
     currency: "PKR" | "USD";
   } | null>(null);
+  // Both start closed: no field shows red on a form nobody has tried to
+  // submit yet. `shakeSignal` is a counter, not the same boolean as
+  // `attempted` — a second failed attempt with nothing changed still needs
+  // to shake again, which a boolean flip can't express.
+  const [attempted, setAttempted] = useState(false);
+  const [shakeSignal, setShakeSignal] = useState(0);
 
   const phoneValid = isPakistaniMobile(fields.phone);
-  const canSubmit =
-    fields.name.trim().length > 0 &&
-    phoneValid &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email) &&
-    fields.address.trim().length > 0 &&
-    fields.city.trim().length > 0;
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email);
+  const nameValid = fields.name.trim().length > 0;
+  const addressValid = fields.address.trim().length > 0;
+  const cityValid = fields.city.trim().length > 0;
+  const canSubmit = nameValid && phoneValid && emailValid && addressValid && cityValid;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!canSubmit || !summary.currency) return;
+    if (!canSubmit || !summary.currency) {
+      setAttempted(true);
+      setShakeSignal((n) => n + 1);
+      return;
+    }
 
     setStep("submitting");
     setError(null);
@@ -132,47 +141,69 @@ export function CheckoutModal({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Field
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      <FormField
         label="Full name"
         value={fields.name}
-        onChange={(value) => setFields((prev) => ({ ...prev, name: value }))}
+        onChange={(event) =>
+          setFields((prev) => ({ ...prev, name: event.target.value }))
+        }
         autoComplete="name"
+        required
+        error={attempted && !nameValid ? "Enter your full name" : null}
+        shakeSignal={shakeSignal}
       />
-      <div>
-        <Field
-          label="Phone"
-          value={fields.phone}
-          onChange={(value) => setFields((prev) => ({ ...prev, phone: value }))}
-          type="tel"
-          inputMode="tel"
-          autoComplete="tel"
-          placeholder="03XX XXXXXXX"
-        />
-        {fields.phone.length > 0 && !phoneValid && (
-          <p className="mt-1.5 text-xs text-purple-700">
-            Pakistani mobiles only — 03XX XXXXXXX or +92 3XX XXXXXXX
-          </p>
-        )}
-      </div>
-      <Field
+      <FormField
+        label="Phone"
+        value={fields.phone}
+        onChange={(event) =>
+          setFields((prev) => ({ ...prev, phone: event.target.value }))
+        }
+        type="tel"
+        inputMode="tel"
+        autoComplete="tel"
+        placeholder="03XX XXXXXXX"
+        required
+        error={
+          attempted && !phoneValid
+            ? "Pakistani mobiles only — 03XX XXXXXXX or +92 3XX XXXXXXX"
+            : null
+        }
+        shakeSignal={shakeSignal}
+      />
+      <FormField
         label="Email"
         value={fields.email}
-        onChange={(value) => setFields((prev) => ({ ...prev, email: value }))}
+        onChange={(event) =>
+          setFields((prev) => ({ ...prev, email: event.target.value }))
+        }
         type="email"
         autoComplete="email"
+        required
+        error={attempted && !emailValid ? "Enter a valid email address" : null}
+        shakeSignal={shakeSignal}
       />
-      <Field
+      <FormField
         label="Delivery address"
         value={fields.address}
-        onChange={(value) => setFields((prev) => ({ ...prev, address: value }))}
+        onChange={(event) =>
+          setFields((prev) => ({ ...prev, address: event.target.value }))
+        }
         autoComplete="street-address"
+        required
+        error={attempted && !addressValid ? "Enter a delivery address" : null}
+        shakeSignal={shakeSignal}
       />
-      <Field
+      <FormField
         label="City"
         value={fields.city}
-        onChange={(value) => setFields((prev) => ({ ...prev, city: value }))}
+        onChange={(event) =>
+          setFields((prev) => ({ ...prev, city: event.target.value }))
+        }
         autoComplete="address-level2"
+        required
+        error={attempted && !cityValid ? "Enter a city" : null}
+        shakeSignal={shakeSignal}
       />
 
       {summary.currency && (
@@ -185,7 +216,7 @@ export function CheckoutModal({
       )}
 
       {step === "error" && error && (
-        <p className="text-sm text-purple-700">{error} — please try again.</p>
+        <p className="text-sm text-error">{error} — please try again.</p>
       )}
 
       <ShimmerAction
@@ -200,43 +231,5 @@ export function CheckoutModal({
             : "Continue with bank transfer"}
       </ShimmerAction>
     </form>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-  autoComplete,
-  inputMode,
-  placeholder,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  autoComplete?: string;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-  placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="label text-charcoal">{label}</span>
-      <input
-        type={type}
-        required
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        autoComplete={autoComplete}
-        inputMode={inputMode}
-        placeholder={placeholder}
-        className={cn(
-          "mt-2 h-12 w-full rounded-none border border-hairline bg-paper px-4 text-base text-ink",
-          "transition-colors duration-200 ease-state placeholder:text-charcoal",
-          "hover:border-purple-500 focus:border-purple-500",
-        )}
-      />
-    </label>
   );
 }

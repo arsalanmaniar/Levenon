@@ -50,9 +50,10 @@ Declared once in `app/globals.css` on `:root`, consumed through Tailwind theme k
 | `--charcoal` | `#5B5A5F` | Secondary text, captions, muted labels. |
 | `--hairline` | `#EAE8E2` | Borders, dividers, card outlines. |
 | `--success` | `#2D7A4F` | **The only non-purple accent.** Confirmation states solely — a valid discount code, a completed signup. **5.02:1 on `--paper`**, so it passes AA for normal text. Never a surface, never a border, never decorative. |
+| `--error` | `#DC2626` | **Form validation only** (added 2026-08-28). Invalid-field borders and their inline message. **4.64:1 on `--paper`** — passes AA for normal text. Never a surface, never used outside a form's own invalid state. |
 
 Tailwind mapping (already configured): `bg-paper`, `text-ink`, `text-charcoal`,
-`border-hairline`, `text-purple-500`, `bg-purple-700`, `text-purple-300`.
+`border-hairline`, `text-purple-500`, `bg-purple-700`, `text-purple-300`, `text-error`, `border-error`.
 
 ### Dark theme — the same tokens, swapped values
 
@@ -68,6 +69,7 @@ value swap, never a second set of components or a `dark:` class scattered throug
 | `--hairline` | `#EAE8E2` | `#2A2926` | 1.33:1 — decorative, same as light (1.17:1); dividers are not controls in either theme |
 | `--charcoal` | `#5B5A5F` | `#A8A6A2` | 7.94:1 |
 | `--success` | `#2D7A4F` | `#4CAF7D` | 7.10:1 |
+| `--error` | `#DC2626` | `#F87171` (Tailwind red-400) | 6.96:1 — the light value only clears ~2.66:1 on dark paper, so it's brightened the same way `--success` is |
 | `--purple-700` / `--purple-300` | unchanged | unchanged | `--purple-300` is 7.43:1 — the accent that carries **text** in dark |
 | `--purple-500` | `#7C2AE8` | **remapped to `#B98CF2`** | Literal `--purple-500` is 3.08:1 on dark paper and cannot carry text. Rather than hunt down every `text-purple-500` hover state across the site, the *token* is remapped for the duration of dark theme — same class name, same call sites, correct contrast everywhere at once. `--purple-300` is left at its own value; the two tokens simply converge in dark mode outside the atelier (see below). |
 
@@ -84,8 +86,11 @@ its pair's contrast, that is a blocker, not a note to fix later.
 - `--success` marks a state, never a thing. It may tint a confirmation's text and its glyph and
   nothing else — no success buttons, no success panels, no success borders. **It must never be the
   only carrier of the message**: a tick glyph and a plain-language label always accompany it, so the
-  meaning survives greyscale, colour-blindness, and a screen reader. There is deliberately no
-  matching error colour — failure states stay `--charcoal` with words that say what to do.
+  meaning survives greyscale, colour-blindness, and a screen reader. Non-form failure states (a
+  fetch that failed, an unrecognised discount code) stay `--charcoal` with words that say what to
+  do, exactly as before. **`--error` (added 2026-08-28) is the one exception, and it is scoped
+  narrowly**: a form field's own invalid state after a submit attempt — its border and the inline
+  message below it — nothing else. It is never a button, a panel, or a non-form failure message.
   **Narrow, disclosed exception (2026-08-23):** a channel-identifying icon glyph — e.g. the PDP's
   WhatsApp `Phone` icon — may carry `--success` when it labels an external channel rather than a
   state. The control it sits inside must still use ink/hairline for its surface and border; only
@@ -113,25 +118,33 @@ Loaded via `next/font/google` and exposed as `font-display`, `font-sans`, `font-
 - **Body**: `leading-relaxed`, max measure ~65ch. Never justify.
 - Sentence case for headlines; UPPERCASE reserved for mono utility text only.
 
-### Headline scale — three named tiers, not a free choice per page
+### Headline scale — corrected 2026-08-28, six shared tiers plus fixed-size UI text
+
+The previous clamp values on this page (~100px hero, ~52px page H1) shipped too large in
+practice and were replaced site-wide. Current tiers, defined once in `tailwind.config.ts`
+`theme.extend.fontSize` and consumed as `text-hero` / `text-h2` / `text-h3` / `text-body` /
+`text-card-name` / `text-card-price` — never a raw `text-[Npx]` clamp restating one of these:
 
 | Tier | Size | Where |
 |---|---|---|
-| **Hero H1** | `clamp(3.75rem, 8vw, 6.25rem)` (~100px desktop) | The home page hero only. One per site. |
-| **Page H1** | `clamp(2rem, 5vw, 3.25rem)` (~52px desktop) | Every other page's `<h1>` — a PDP, `/track`, `/wishlist`. |
-| **Section H2** | `clamp(1.75rem, 4vw, 2.5rem)` Manrope 800 | Named subsections inside a page — a PDP's "Reviews", "More from this fabric". |
+| **Hero H1** | `clamp(2.25rem, 5vw, 4.5rem)` (36px–72px) | The home page hero only. One per site. |
+| **Page H1** | `clamp(2rem, 5vw, 3.25rem)` (32px–52px) | Every other page's `<h1>` — a PDP, `/track`, `/wishlist`, content pages. Untouched by the 2026-08-28 correction (already well under the 72px cap); a repeated literal `text-[clamp(2rem,5vw,3.25rem)]`, not a shared token, since it has just the three call sites. |
+| **Section H2** | `clamp(1.5rem, 3vw, 2.625rem)` (24px–42px) | Named subsections — "New Arrivals", "Top Selling", a PDP's "Reviews". |
+| **Section H3** | `clamp(1.125rem, 2vw, 1.75rem)` (18px–28px) | A level below H2 — card group headings, modal titles. |
+| **Body** | `clamp(0.8125rem, 1vw, 0.9375rem)` (13px–15px) | Paragraph copy. |
+| **Card name** | `clamp(0.8125rem, 1vw, 0.9375rem)` (13px–15px) | Product card title. |
+| **Card price** | `clamp(0.75rem, 0.9vw, 0.875rem)` (12px–14px) | Product card price. |
 
-Raised from ~84px to ~100px in the UI-overhaul pass (2026-08-22): at real laptop viewports the
-84px hero read as one modest headline floating over a large field of empty paper — the hero
-needed to visually command the first screen, not just label it. The floor also moved up, from
-`2.75rem` to `3.75rem` (44px → 60px), so phones get the same weight increase rather than only
-wide screens.
+**No font-size above 72px anywhere except the hero H1** — a hard, testable rule, not a
+guideline; the decorative atelier "01" numeral was shrunk from a 180–280px clamp to fit it.
 
-Before this tier existed, section headings on non-home pages were set as 11px mono eyebrows —
-correct for a label, wrong for a heading a reader is meant to actually read as a heading. That
-produced a 41px cliff straight from the 52px page H1 to an 11px eyebrow with nothing between.
-Section H2 exists to fill that gap; it is not interchangeable with either H1 tier and it is not
-a mono eyebrow rendered bigger; it is regular Manrope 800, unstyled by `.label`.
+A second group is fixed pixel sizes, not clamp, because the element they're in has a fixed
+height regardless of viewport: nav links (12px), buttons (13px), footer links (13px), footer
+column headings (11px, uppercase). These are literal `text-[12px]` etc. at each call site, not
+a shared token — there is no fluid range to name.
+
+Labels/mono (eyebrows, SKUs, tags) stay on `.label` in `globals.css`, independently corrected
+to `clamp(0.625rem, 0.8vw, 0.75rem)` (10px–12px) the same pass.
 
 The 84px hero tier is **not** a general "biggest heading" size — it belongs to the one page that
 opens the whole site's story. Reaching for it on a PDP or a utility page overstates what that

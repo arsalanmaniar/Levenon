@@ -6,6 +6,7 @@ import {
   type ApplyResult,
   type DiscountCode,
 } from "@/lib/cart/discount";
+import { useToast } from "@/components/providers/toast-provider";
 
 /**
  * Code entry for the bag.
@@ -34,6 +35,7 @@ export function DiscountField({
   const [result, setResult] = useState<ApplyResult | null>(null);
   const inputId = `discount-${useId().replace(/:/g, "")}`;
   const feedbackId = `${inputId}-feedback`;
+  const { showToast } = useToast();
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -45,6 +47,10 @@ export function DiscountField({
     if (outcome.status === "applied") {
       onApply(outcome.discount);
       setValue("");
+      // The persistent tick/code row below stays — it's ongoing state, not
+      // a momentary confirmation, and the two aren't redundant (client
+      // brief, 2026-08-28 names "Code applied" as its own toast use case).
+      showToast("Code applied", "success");
     }
   };
 
