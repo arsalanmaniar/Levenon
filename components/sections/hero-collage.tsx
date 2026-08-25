@@ -6,25 +6,38 @@ import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import type { Product } from "@/lib/types";
 
 /**
- * Slight rotation, per tile — CSS only, matches the client brief's literal
- * `-3deg / 0 / +3deg` fan.
+ * Five tiles (client brief, 2026-08-26, up from 3): 2 larger on the left,
+ * 3 smaller stacked on the right, all fanned -4°..+4° and overlapping enough
+ * that the box fills edge to edge with no dead margin. Position/size/rotation
+ * are hand-placed percentages rather than a formula — the ask was "fills the
+ * space, looks natural," not a computed grid.
  */
-const ROTATION = ["-rotate-3", "rotate-0", "rotate-3"];
-const OFFSET = [
-  "left-0 top-0 z-0",
-  "left-[14%] top-[10%] z-10",
-  "left-[28%] top-[20%] z-20",
+const ROTATION = ["-rotate-3", "rotate-2", "rotate-4", "-rotate-3", "rotate-2"];
+const PLACEMENT = [
+  "left-0 top-0 h-[54%] w-[56%] z-10", // left column, upper
+  "left-[4%] top-[44%] h-[54%] w-[54%] z-20", // left column, lower
+  "left-[54%] top-0 h-[30%] w-[46%] z-30", // right column, upper
+  "left-[58%] top-[26%] h-[30%] w-[42%] z-[15]", // right column, middle
+  "left-[52%] top-[54%] h-[44%] w-[48%] z-25", // right column, lower
 ];
-// Alternating direction per card (client brief, 2026-08-25) — even tiles zoom
-// in then out, the middle tile does the reverse phase, so the three never
-// pulse in lockstep.
-const KEN_BURNS = ["animate-ken-burns", "animate-ken-burns-reverse", "animate-ken-burns"];
-// Top tile (index 0) moves the most on scroll, the lowest the least — "top
-// image moves up slightly faster than bottom" from the brief.
+// Alternating direction per card (client brief, 2026-08-25) — so the five
+// never pulse in lockstep.
+const KEN_BURNS = [
+  "animate-ken-burns",
+  "animate-ken-burns-reverse",
+  "animate-ken-burns",
+  "animate-ken-burns-reverse",
+  "animate-ken-burns",
+];
+// Top-row tiles move the most on scroll, the bottom-row the least — "top
+// image moves up slightly faster than bottom" from the original brief,
+// extended across all five.
 const PARALLAX_RANGE: [number, number][] = [
   [-20, 20],
-  [-13, 13],
-  [-7, 7],
+  [-8, 8],
+  [-22, 22],
+  [-12, 12],
+  [-6, 6],
 ];
 
 const ENTRANCE_EASE = [0.25, 0.1, 0, 1] as const;
@@ -47,11 +60,11 @@ function CollageTile({
 
   return (
     <m.div
-      className={`absolute h-[64%] w-[64%] overflow-hidden border border-hairline bg-paper shadow-[0_24px_48px_-20px_rgba(20,15,10,0.4)] ${ROTATION[index]} ${OFFSET[index]}`}
+      className={`absolute overflow-hidden border border-hairline bg-paper shadow-[0_24px_48px_-20px_rgba(20,15,10,0.4)] ${ROTATION[index]} ${PLACEMENT[index]}`}
       style={reducedMotion ? undefined : { y }}
       initial={reducedMotion ? false : { clipPath: "inset(100% 0 0 0)" }}
       animate={{ clipPath: "inset(0% 0 0 0)" }}
-      transition={{ duration: 0.7, delay: index * 0.15, ease: ENTRANCE_EASE }}
+      transition={{ duration: 0.7, delay: index * 0.12, ease: ENTRANCE_EASE }}
     >
       {/* Hover layer — scoped to this one tile via its own `group`, scaling
           the fabric up 1.04× to reveal more of it. Separate from the Ken
@@ -67,8 +80,8 @@ function CollageTile({
               src={image.url}
               alt={image.alt || product.name}
               fill
-              sizes="(min-width: 1024px) 480px, (min-width: 640px) 60vw, 80vw"
-              priority={index === 0}
+              sizes="(min-width: 1024px) 340px, (min-width: 640px) 45vw, 60vw"
+              priority={index < 2}
               className="object-cover"
             />
           </div>
@@ -83,7 +96,7 @@ export function HeroCollage({ products }: { products: Product[] }) {
   const { scrollY } = useScroll();
 
   return (
-    <div className="relative mx-auto w-full max-w-[420px] py-6 pl-8 sm:max-w-[460px] lg:max-w-[480px] lg:py-0">
+    <div className="relative mx-auto w-full max-w-[460px] py-6 pl-8 sm:max-w-[520px] lg:max-w-[580px] lg:py-0">
       {/* Thread motif — a single hairline-width purple rule down the
           collage's left edge. Grows from 0→100% height on load rather than
           a static line (client brief, 2026-08-25). */}
@@ -95,7 +108,10 @@ export function HeroCollage({ products }: { products: Product[] }) {
         transition={{ duration: 0.6, delay: 0.4, ease: BRAND_EASE }}
       />
 
-      <div className="relative aspect-[4/5] w-full">
+      {/* Taller than the previous 4:5 single stack — five tiles across two
+          sub-columns need the extra height to fill without crowding
+          (client brief, 2026-08-26: "no empty space around it"). */}
+      <div className="relative aspect-[4/5.6] w-full">
         {products.map((product, index) => (
           <CollageTile
             key={product.id}

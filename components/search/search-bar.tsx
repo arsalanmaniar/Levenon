@@ -148,14 +148,17 @@ export function SearchBar() {
         onClick={() => setOpen(true)}
         className="label inline-flex min-h-[44px] items-center gap-2 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
       >
-        <Search
-          aria-hidden="true"
-          size={18}
-          strokeWidth={1.5}
-          // Visible on mobile (icon-only, no label there); hidden from `sm`
-          // where the text label takes over; visible again from `lg`.
+        <m.span
+          // Hover: scale(1.15) + rotate(15deg), 0.2s (client brief,
+          // 2026-08-26). Visible on mobile (icon-only, no label there);
+          // hidden from `sm` where the text label takes over; visible
+          // again from `lg`.
+          whileHover={reducedMotion ? undefined : { scale: 1.15, rotate: 15 }}
+          transition={{ duration: 0.2 }}
           className="block sm:hidden lg:block"
-        />
+        >
+          <Search aria-hidden="true" size={18} strokeWidth={1.5} />
+        </m.span>
         <span className="hidden sm:inline">Search</span>
         <span className="sr-only sm:hidden">Search the collection</span>
       </button>
@@ -186,7 +189,7 @@ export function SearchBar() {
                   exit={reducedMotion ? { opacity: 0 } : { y: "-100%" }}
                   transition={{ duration: reducedMotion ? 0 : 0.45, ease: EASE }}
                 >
-                  <div className="relative mx-auto flex h-[120px] max-w-shell items-center px-6 md:px-10">
+                  <div className="relative mx-auto flex h-[120px] max-w-shell items-center px-6 md:px-12 lg:px-20">
                     <Search
                       aria-hidden="true"
                       size={22}
@@ -220,7 +223,7 @@ export function SearchBar() {
                     </button>
                   </div>
 
-                  <div className="mx-auto max-w-shell border-t border-hairline px-6 pb-16 pt-8 md:px-10">
+                  <div className="mx-auto max-w-shell border-t border-hairline px-6 pb-16 pt-8 md:px-12 lg:px-20">
                     <SearchResults
                       listId={listId}
                       term={trimmed}

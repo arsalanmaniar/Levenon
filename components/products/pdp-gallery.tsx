@@ -38,7 +38,11 @@ export function PdpGallery({
 
   return (
     <div>
-      <div className="relative aspect-[4/5] overflow-hidden border border-hairline bg-paper">
+      {/* Capped, not just aspect-ratio-shaped (client brief, 2026-08-26): on
+          a wide sticky column, `aspect-[4/5]` alone could exceed the
+          viewport on a shorter laptop screen — 50vh on mobile, 70vh from
+          `md`, both below the previous "takes the full viewport" complaint. */}
+      <div className="relative aspect-[4/5] max-h-[50vh] overflow-hidden border border-hairline bg-paper md:max-h-[70vh]">
         <AnimatePresence mode="wait" initial={false}>
           {showFallback ? (
             <m.div
@@ -90,7 +94,8 @@ export function PdpGallery({
                 aria-label={`View ${index + 1} of ${images.length}`}
                 onClick={() => setActive(index)}
                 className={cn(
-                  "relative h-20 w-16 overflow-hidden border transition-colors duration-200 ease-state",
+                  // 80×80 (client brief, 2026-08-26) — up from 80×64.
+                  "relative h-20 w-20 overflow-hidden border transition-colors duration-200 ease-state",
                   index === active
                     ? "border-purple-500"
                     : "border-hairline hover:border-purple-500/50",
@@ -103,7 +108,7 @@ export function PdpGallery({
                     src={image.url}
                     alt=""
                     fill
-                    sizes="64px"
+                    sizes="80px"
                     className="object-cover"
                     onError={() =>
                       setFailedIndexes((prev) => new Set(prev).add(index))

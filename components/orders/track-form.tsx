@@ -50,7 +50,7 @@ function Ring() {
 /** Nothing came back for this number. */
 function NoOrders() {
   return (
-    <div className="mt-12 border border-hairline px-6 py-12 text-center md:px-10 md:py-16">
+    <div className="mt-12 border border-hairline px-6 py-12 text-center md:px-12 lg:px-20 md:py-16">
       <div className="flex justify-center">
         <Ring />
       </div>
@@ -66,7 +66,7 @@ function NoOrders() {
       </p>
 
       <Link
-        href="/#collection"
+        href="/shop"
         className="label mt-8 inline-flex min-h-[48px] items-center rounded-full bg-ink px-6 text-paper transition-colors duration-200 ease-state hover:bg-purple-700"
       >
         Shop Collection

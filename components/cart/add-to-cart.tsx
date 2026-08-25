@@ -6,6 +6,7 @@ import { AnimatePresence, m } from "framer-motion";
 import { useCart } from "./cart-provider";
 import { cn } from "@/lib/cn";
 import { ShimmerAction } from "@/components/ui/shimmer-button";
+import { NotifyMe } from "@/components/products/notify-me";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { SIZE_ORDER, isInStock, type Product, type Size } from "@/lib/types";
 
@@ -228,12 +229,10 @@ export function AddToCart({ product }: { product: Product }) {
             </AnimatePresence>
           </ShimmerAction>
         ) : (
-          <a
-            href="/#stockists"
-            className="label inline-flex min-h-[56px] w-full items-center justify-center rounded-full border border-hairline px-6 py-4 text-ink transition-colors duration-200 ease-state hover:border-purple-500 hover:text-purple-500"
-          >
-            Join the waitlist
-          </a>
+          // "Notify Me" (client brief, 2026-08-26) — replaces the previous
+          // pass's plain "Join the waitlist" link to `/#stockists` with a
+          // real back-in-stock signup.
+          <NotifyMe productId={product.id} productName={product.name} />
         )}
       </div>
     </div>

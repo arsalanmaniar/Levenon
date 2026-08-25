@@ -28,7 +28,10 @@ export function LoadMoreGrid({ products }: { products: Product[] }) {
         {/* Two tight columns below `sm` (a single stacked column left the
             season's whole 48-piece rail as one long mobile scroll), opening
             up to the wider gutter from `sm` where a card has room to breathe. */}
-        <ul className="mt-12 grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-14 lg:grid-cols-3 2xl:grid-cols-4">
+        {/* Even column gaps (client brief, 2026-08-26): gap-4 mobile,
+            gap-6 desktop, both axes equal rather than the previous
+            asymmetric x/y split. */}
+        <ul className="mt-12 grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3 2xl:grid-cols-4">
           {visible.map((product, index) => (
             <Reveal
               as="li"

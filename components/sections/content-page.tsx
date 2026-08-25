@@ -32,7 +32,7 @@ export function ContentPage({
           <p className="label text-charcoal">{eyebrow}</p>
           {/* Page H1 tier (SKILL.md §3), the same one `/track` and
               `/wishlist` use. */}
-          <h1 className="mt-5 font-display text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
+          <h1 className="mt-5 font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
             {title}
           </h1>
           <p className="mt-6 text-lg leading-relaxed text-charcoal">{intro}</p>

@@ -34,12 +34,11 @@ export function SiteNav() {
         }
         links={
           /*
-            `gap-6` at `md`, opening to `gap-10` at `lg`: at exactly 768px the
-            four centre links plus the full right cluster (search, wishlist,
-            bag, theme toggle) measured wider than the viewport — a real
-            overflow (`right=849` against 768), not a hypothetical one. `lg`
-            already had the room to spare, so only the crowded `md`–`lg` range
-            needed tightening.
+            `gap-6` at `md`, opening to `gap-10` at `lg` — a fifth centre
+            link ("Stockists", client brief, 2026-08-26) joined the four this
+            spacing was originally tuned against; kept as-is since the row
+            still fits at `md` with the added label, and `lg` already had
+            room to spare.
           */
           <NavLinks />
         }

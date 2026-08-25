@@ -42,8 +42,12 @@ export function CartButton() {
       {/* Same sm..lg hide as SearchBar's icon — see the comment there. */}
       <m.span
         animate={bagControls}
-        whileHover={reducedMotion ? undefined : { scale: 1.15 }}
-        transition={{ duration: 0.2 }}
+        // Hover: scale(1.15) + a slight bounce (client brief, 2026-08-26) —
+        // the `y` keyframe array plays once per hover-enter and settles back
+        // at 0 while the hover continues, so it reads as a bounce rather
+        // than a held offset.
+        whileHover={reducedMotion ? undefined : { scale: 1.15, y: [0, -3, 0] }}
+        transition={{ duration: 0.3 }}
         className="block sm:hidden lg:block"
       >
         <ShoppingBag aria-hidden="true" size={18} strokeWidth={1.5} />

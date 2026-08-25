@@ -9,7 +9,7 @@ export default function ProductLoading() {
   return (
     <>
       <SiteNav />
-      <main id="main" className="mx-auto max-w-shell px-6 py-12 md:px-10 md:py-16">
+      <main id="main" className="mx-auto max-w-shell px-6 py-12 md:px-12 lg:px-20 md:py-16">
         <ThreadLoader label="Pulling the thread" />
 
         <div

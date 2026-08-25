@@ -68,7 +68,7 @@ export default function HomePage({
             the full collection grid. */}
         <TopSelling />
 
-        <div className="mx-auto max-w-shell px-6 md:px-10">
+        <div className="mx-auto max-w-shell px-6 md:px-12 lg:px-20">
           <StitchDivider />
         </div>
 

@@ -16,14 +16,26 @@ const FOOTNOTES = ["Three pieces, uncut", "Hand embroidery", "Come back daily"];
  * The canvas slot is sized in both axes before anything loads, so the sculpture
  * arriving late never shifts the type.
  */
+// Five fabrics, not six — the brief's own list for the collage (client
+// brief, 2026-08-26) omits "net", so this is deliberate, not an oversight.
+const COLLAGE_CATEGORIES = ["lawn", "chiffon", "silk", "cotton", "organza"];
+
 export async function Hero() {
   const { season, pieceCount } = await getCollectionSummary();
-  // "Top 3 from catalogue-data.ts" (client brief): read through the one data
-  // seam (`listProducts`) rather than the raw file, so this still works
-  // unchanged if the active source ever flips to the database — then take the
-  // first 3 with real photography, since the collage's whole point is real
-  // product imagery, not the SVG line-art fallback.
-  const collage = (await listProducts()).filter((product) => product.images[0]).slice(0, 3);
+  // "5 diverse products... different fabrics" (client brief, 2026-08-26):
+  // one per target category, read through the one data seam (`listProducts`)
+  // rather than the raw file. Falls back to filling from the rest of the
+  // catalogue if a category has no photographed product, so the collage
+  // still renders 5 tiles even on a thin catalogue.
+  const catalogue = await listProducts();
+  const withPhotos = catalogue.filter((product) => product.images[0]);
+  const collage = COLLAGE_CATEGORIES.map((slug) =>
+    withPhotos.find((product) => product.category.slug === slug),
+  ).filter((product): product is NonNullable<typeof product> => Boolean(product));
+  for (const product of withPhotos) {
+    if (collage.length >= 5) break;
+    if (!collage.includes(product)) collage.push(product);
+  }
 
   /*
    * `lg:min-h-[90vh]` (restored 2026-08-24, bounded this time): the fully
@@ -50,7 +62,7 @@ export async function Hero() {
           between the headline and the body copy, two 40px gaps stacked
           either side of it read as the section falling apart rather than as
           rhythm. Desktop keeps its own gutter via `lg:gap-x-6`. */}
-      <div className="mx-auto grid w-full max-w-shell grid-cols-1 gap-6 px-6 pb-14 pt-12 md:px-10 md:pb-16 md:pt-24 lg:grid-cols-12 lg:grid-rows-[auto_auto] lg:items-center lg:gap-x-6 lg:gap-y-0 lg:pb-20 lg:pt-28">
+      <div className="mx-auto grid w-full max-w-shell grid-cols-1 gap-6 px-6 pb-14 pt-12 md:px-12 lg:px-20 md:pb-16 md:pt-24 lg:grid-cols-12 lg:grid-rows-[auto_auto] lg:items-center lg:gap-x-6 lg:gap-y-0 lg:pb-20 lg:pt-28">
         {/*
           Three blocks, explicitly ordered, rather than the previous
           two-column split (2026-08-24, Phase 8). On mobile the required
@@ -85,7 +97,7 @@ export async function Hero() {
           */}
           <h1
             style={{ animationDelay: "150ms" }}
-            className="mt-6 animate-hero-fade-up font-display text-[clamp(4rem,9vw,6.875rem)] font-extrabold leading-[0.92] tracking-[-3px] motion-reduce:animate-none"
+            className="mt-6 animate-hero-fade-up font-display text-balance text-[clamp(4rem,9vw,6.875rem)] font-extrabold leading-[0.92] tracking-[-3px] motion-reduce:animate-none"
           >
             Unstitched.
             <br />

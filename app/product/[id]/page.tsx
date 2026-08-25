@@ -16,6 +16,7 @@ import { MobileAddBar } from "@/components/cart/mobile-add-bar";
 import { SizeGuide } from "@/components/products/size-guide";
 import { RecentlyViewedStrip } from "@/components/recently-viewed/recently-viewed-strip";
 import { WishlistHeart } from "@/components/wishlist/wishlist-heart";
+import { ShareButton } from "@/components/products/share-button";
 import { StarRating } from "@/components/reviews/stars";
 import { REVIEW_ROW, ReviewItem } from "@/components/reviews/review-item";
 import { ReviewList } from "@/components/reviews/review-list";
@@ -125,9 +126,18 @@ export default async function ProductPage({ params }: Params) {
   const reviews = getReviews(product.slug);
   const rating = getAverageRating(product.slug);
 
+  // "You might also like" (client brief, 2026-08-26): same fabric category,
+  // sorted by total stock on hand descending, max 4 — a proxy for "what's
+  // actually moving" in the absence of real sales data, same reasoning
+  // `TopSelling` uses on the home page.
   const related = (await listProducts({ category: product.category.slug }))
     .filter((candidate) => candidate.id !== product.id)
-    .slice(0, 3);
+    .sort(
+      (a, b) =>
+        b.variants.reduce((sum, variant) => sum + variant.stockOnHand, 0) -
+        a.variants.reduce((sum, variant) => sum + variant.stockOnHand, 0),
+    )
+    .slice(0, 4);
 
   return (
     <>
@@ -147,7 +157,7 @@ export default async function ProductPage({ params }: Params) {
       <main id="main">
         {/* Bottom padding matches the mobile bar's own height, so it never
             overlaps the related-products strip or the footer beneath it. */}
-        <article className="mx-auto max-w-shell px-6 py-12 pb-24 md:px-10 md:py-16 lg:pb-16">
+        <article className="mx-auto max-w-shell px-6 py-12 pb-24 md:px-12 lg:px-20 md:py-16 lg:pb-16">
           <nav aria-label="Breadcrumb" className="label text-charcoal">
             <Link href="/#collection" className="hover:text-purple-500">
               Collection
@@ -199,7 +209,10 @@ export default async function ProductPage({ params }: Params) {
                         an absence of evidence about it. */}
                     <LiveRating variant="header" />
                   </div>
-                  <WishlistHeart product={product} variant="inline" />
+                  <div className="flex items-center gap-2">
+                    <ShareButton />
+                    <WishlistHeart product={product} variant="inline" />
+                  </div>
                 </div>
               </Reveal>
 
@@ -301,14 +314,14 @@ export default async function ProductPage({ params }: Params) {
         <section
           id="reviews"
           aria-labelledby="reviews-heading"
-          className="mx-auto max-w-shell scroll-mt-24 px-6 pb-24 md:px-10 md:pb-32"
+          className="mx-auto max-w-shell scroll-mt-24 px-6 pb-24 md:px-12 lg:px-20 md:pb-32"
         >
           <StitchDivider className="mb-16" />
 
           <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-b border-hairline pb-6">
             <h2
               id="reviews-heading"
-              className="font-display text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold leading-[1.05] tracking-[-0.03em]"
+              className="font-display text-balance text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold leading-[1.05] tracking-[-0.03em]"
             >
               Reviews
             </h2>
@@ -326,12 +339,12 @@ export default async function ProductPage({ params }: Params) {
         </section>
 
         {related.length > 0 && (
-          <section className="mx-auto max-w-shell px-6 pb-24 md:px-10 md:pb-32">
-            <h2 className="border-b border-hairline pb-6 font-display text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold leading-[1.05] tracking-[-0.03em]">
+          <section className="mx-auto max-w-shell px-6 pb-24 md:px-12 lg:px-20 md:pb-32">
+            <h2 className="border-b border-hairline pb-6 font-display text-balance text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold leading-[1.05] tracking-[-0.03em]">
               More from this fabric
             </h2>
             <SpotlightSurface>
-              <ul className="mt-12 grid grid-cols-1 gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className="mt-12 grid grid-cols-1 gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-4">
               {related.map((candidate, index) => (
                 <Reveal as="li" key={candidate.id} delay={index * 0.07}>
                   <ProductCard product={candidate} />

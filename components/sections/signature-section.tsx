@@ -1,40 +1,32 @@
 import { ThreadButton } from "@/components/ui/thread-button";
 import { Reveal } from "@/components/ui/reveal";
 import { StitchDivider } from "@/components/ui/stitch-divider";
-import { AtelierImageReveal } from "@/components/sections/atelier-image-reveal";
-import { getCollectionSummary, listProducts } from "@/lib/server/products";
+import { AtelierAbstract } from "@/components/sections/atelier-abstract";
+import { getCollectionSummary } from "@/lib/server/products";
 
 /**
  * The single dark section on the page — the rhythm beat (SKILL.md §6).
  *
- * Roles invert: ink ground, paper type, purple-300 thread. The sculpture
- * (client brief, 2026-08-24) is now a real textile detail photograph instead.
+ * Roles invert: ink ground, paper type, purple-300 thread. The real textile
+ * photograph from the previous pass is now an abstract fabric-fold SVG
+ * (client brief, 2026-08-26) — see `atelier-abstract.tsx`.
  */
 export async function SignatureSection() {
   const { pieceCount } = await getCollectionSummary();
-  const withPhotos = (await listProducts()).filter((product) => product.images[0]);
-  // Offset past the hero's own first 3, so the two sections don't repeat a
-  // photo — falls back to the first available image if the catalogue is thin.
-  const atelierPhoto = withPhotos[3] ?? withPhotos[0];
 
   return (
     <section
       id="atelier"
       className="dark-section atelier-drift relative scroll-mt-[var(--nav-h)] overflow-hidden bg-ink text-paper"
     >
-      <div className="mx-auto grid max-w-shell gap-12 px-6 py-24 md:px-10 md:py-32 lg:grid-cols-12 lg:items-center lg:gap-16">
+      <div className="mx-auto grid max-w-shell gap-12 px-6 py-24 md:px-12 lg:px-20 md:py-32 lg:grid-cols-12 lg:items-center lg:gap-16">
         <div className="relative order-2 lg:order-1 lg:col-span-6">
           {/* 400×500 (client brief) as the aspect ratio + max size, scaling
               down responsively below that rather than a rigid box that would
               break on narrow viewports. */}
-          {atelierPhoto ? (
-            <div className="relative mx-auto aspect-[4/5] w-full max-w-[400px] border border-paper/10 lg:mx-0">
-              <AtelierImageReveal
-                src={atelierPhoto.images[0].url}
-                alt={atelierPhoto.images[0].alt || atelierPhoto.name}
-              />
-            </div>
-          ) : null}
+          <div className="relative mx-auto aspect-[4/5] w-full max-w-[400px] border border-paper/10 lg:mx-0">
+            <AtelierAbstract />
+          </div>
         </div>
 
         {/*
@@ -53,7 +45,7 @@ export async function SignatureSection() {
                 CLOTH, / BEFORE / THE CUT."). Set larger and tighter than
                 before so it carries the section the way the hero headline
                 carries the page. */}
-            <h2 className="mt-6 font-display text-[clamp(2.75rem,5.5vw,4rem)] font-extrabold leading-[0.98] tracking-[-0.03em]">
+            <h2 className="mt-6 font-display text-balance text-[clamp(2.75rem,5.5vw,4rem)] font-extrabold leading-[0.98] tracking-[-0.03em]">
               The cloth,
               <br />
               before

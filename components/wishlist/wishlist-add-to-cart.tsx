@@ -27,7 +27,7 @@ export function WishlistAddToCart({ product }: { product: Product }) {
   if (!isInStock(product)) {
     return (
       <a
-        href="/#stockists"
+        href="/stockists"
         className="label inline-flex min-h-[44px] items-center rounded-full border border-hairline px-5 text-ink transition-colors duration-200 ease-state hover:border-purple-500 hover:text-purple-500"
       >
         Join the waitlist

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Heart } from "lucide-react";
 import { m, useAnimationControls } from "framer-motion";
@@ -16,6 +16,13 @@ import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
  * (scale 1→1.3→1) and the badge pops — same pattern as `CartButton`, watching
  * `count` rather than the toggle itself, so it fires regardless of which
  * card's heart was clicked.
+ *
+ * On hover (client brief, 2026-08-26): scale(1.2) plus a brief purple-300
+ * fill — `flashFill` below is a plain timed state rather than a Framer
+ * colour tween, since lucide's `Heart` isn't a motion component and
+ * swapping a Tailwind class on a timer is the simpler way to get a fill
+ * that flashes in and reverts *while the pointer is still hovering*, which
+ * a CSS `:hover` rule alone cannot express.
  */
 export function WishlistButton() {
   const { count } = useWishlist();
@@ -23,6 +30,8 @@ export function WishlistButton() {
   const heartControls = useAnimationControls();
   const badgeControls = useAnimationControls();
   const previousCount = useRef(count);
+  const [flashFill, setFlashFill] = useState(false);
+  const flashTimer = useRef<number | null>(null);
 
   useEffect(() => {
     if (count > previousCount.current && !reducedMotion) {
@@ -32,9 +41,19 @@ export function WishlistButton() {
     previousCount.current = count;
   }, [count, reducedMotion, heartControls, badgeControls]);
 
+  useEffect(() => () => {
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+  }, []);
+
   return (
     <Link
       href="/wishlist"
+      onPointerEnter={() => {
+        if (reducedMotion) return;
+        setFlashFill(true);
+        if (flashTimer.current) window.clearTimeout(flashTimer.current);
+        flashTimer.current = window.setTimeout(() => setFlashFill(false), 400);
+      }}
       /*
        * Below `sm` this sits alongside four other nav controls (Shop, the
        * theme toggle, Search, Bag) in a row that measured 282px wide at
@@ -51,11 +70,20 @@ export function WishlistButton() {
       {/* Same sm..lg hide as SearchBar's icon — see the comment there. */}
       <m.span
         animate={heartControls}
-        whileHover={reducedMotion ? undefined : { scale: 1.15 }}
+        whileHover={reducedMotion ? undefined : { scale: 1.2 }}
         transition={{ duration: 0.2 }}
-        className="block sm:hidden lg:block"
+        className={
+          flashFill
+            ? "block text-purple-300 transition-colors duration-200 sm:hidden lg:block"
+            : "block transition-colors duration-200 sm:hidden lg:block"
+        }
       >
-        <Heart aria-hidden="true" size={18} strokeWidth={1.5} />
+        <Heart
+          aria-hidden="true"
+          size={18}
+          strokeWidth={1.5}
+          fill={flashFill ? "currentColor" : "none"}
+        />
       </m.span>
       <span className="hidden sm:inline">Saved</span>
       <m.span

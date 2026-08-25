@@ -73,13 +73,13 @@ export async function ProductGrid({
 
   return (
     <section id="collection" className="scroll-mt-[var(--nav-h)]">
-      <div className="mx-auto max-w-shell px-6 py-20 md:px-10 md:py-28">
+      <div className="mx-auto max-w-shell px-6 py-20 md:px-12 lg:px-20 md:py-28">
         <div className="flex flex-wrap items-end justify-between gap-6 border-b border-hairline pb-8">
           <Reveal>
             <div>
               <p className="label text-charcoal">The collection</p>
               {/* Rewritten per the client's revision brief (2026-08-24). */}
-              <h2 className="mt-4 font-display text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
+              <h2 className="mt-4 font-display text-balance text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
                 The Edit — Unstitched, yours to finish
               </h2>
               <p className="mt-4 max-w-[46ch] text-lg leading-relaxed text-charcoal">

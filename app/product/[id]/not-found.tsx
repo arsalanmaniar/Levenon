@@ -10,11 +10,11 @@ export default function ProductNotFound() {
       <SiteNav />
       <main
         id="main"
-        className="mx-auto flex min-h-[60vh] max-w-shell flex-col justify-center px-6 py-24 md:px-10"
+        className="mx-auto flex min-h-[60vh] max-w-shell flex-col justify-center px-6 py-24 md:px-12 lg:px-20"
       >
         <p className="label text-charcoal">404 — Off the rail</p>
 
-        <h1 className="mt-6 max-w-measure font-display text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
+        <h1 className="mt-6 max-w-measure font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
           This piece is no longer cut.
         </h1>
 

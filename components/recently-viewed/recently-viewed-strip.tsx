@@ -35,7 +35,7 @@ export function RecentlyViewedStrip({ product }: { product: Product }) {
       aria-labelledby="recently-viewed-heading"
       className="border-t border-hairline"
     >
-      <div className="mx-auto max-w-shell px-6 py-16 md:px-10 md:py-20">
+      <div className="mx-auto max-w-shell px-6 py-16 md:px-12 lg:px-20 md:py-20">
         <h2 id="recently-viewed-heading" className="label text-charcoal">
           Recently viewed
         </h2>
@@ -49,7 +49,7 @@ export function RecentlyViewedStrip({ product }: { product: Product }) {
             the negative margin is cancelled by the padding so nothing escapes
             the document width.
           */}
-          <ul className="-mx-6 mt-8 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-4 md:-mx-10 md:px-10">
+          <ul className="-mx-6 mt-8 flex snap-x snap-mandatory gap-6 overflow-x-auto px-6 pb-4 md:-mx-10 md:px-12 lg:px-20">
             {others.map((item) => (
               <li
                 key={item.id}

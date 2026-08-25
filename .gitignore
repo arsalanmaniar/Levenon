@@ -21,3 +21,7 @@ tsconfig.tsbuildinfo
 # store this writes to must never be committed, same reasoning as the SQL
 # dumps above.
 /data/orders.json
+
+# Back-in-stock waitlist signups (lib/waitlist/waitlist-store.ts) — real
+# customer email addresses. Same reasoning as orders.json above.
+/data/waitlist.json

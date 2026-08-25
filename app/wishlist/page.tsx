@@ -16,9 +16,9 @@ export default function WishlistPage() {
     <>
       <SiteNav />
       <main id="main">
-        <div className="mx-auto max-w-shell px-6 py-16 md:px-10 md:py-20">
+        <div className="mx-auto max-w-shell px-6 py-16 md:px-12 lg:px-20 md:py-20">
           <p className="label text-charcoal">Saved</p>
-          <h1 className="mt-5 font-display text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
+          <h1 className="mt-5 font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
             Your saved pieces
           </h1>
           <WishlistContents />

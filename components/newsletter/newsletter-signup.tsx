@@ -21,13 +21,13 @@ export function NewsletterSignup() {
       aria-labelledby="newsletter-title"
       className="scroll-mt-[var(--nav-h)]"
     >
-      <div className="mx-auto max-w-shell px-6 md:px-10">
+      <div className="mx-auto max-w-shell px-6 md:px-12 lg:px-20">
         <div className="grid gap-10 border-t border-hairline py-20 md:py-28 lg:grid-cols-12 lg:gap-6">
           <div className="lg:col-span-5">
             <p className="label text-charcoal">The list</p>
             <h2
               id="newsletter-title"
-              className="mt-4 font-display text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]"
+              className="mt-4 font-display text-balance text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]"
             >
               Know when the next run is cut.
             </h2>

@@ -313,7 +313,95 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
-#### Cinematic animations + order system + UX polish pass (2026-08-25, tenth pass)
+#### Nav pages, footer redesign, 5-tile collage, dark/light toggle, new features (2026-08-26, eleventh pass)
+
+Nine items from the client's revision brief. `tsc --noEmit` after every change; `next lint` and
+`next build` clean at the end. 120 routes compiled (brief asked for 117+); first-load JS: `/` 151 kB,
+`/product/[id]` 154 kB, everything else 138–147 kB — all under the 200 kB ceiling. No browser was
+spawned, per the brief's instruction — verified by code inspection, grep and build output only; the
+"no horizontal overflow 320→1920" item is asserted from reading the new/changed components' CSS
+(relative sizing, viewport-capped modals, no fixed pixel widths that exceed 320px), not a rendered
+screenshot.
+
+**Built:**
+1. Hero collage: 5 tiles (up from 3), one per fabric (lawn/chiffon/silk/cotton/organza — the brief's
+   own 5, "net" deliberately excluded), 2 larger left + 3 smaller right, hand-placed percentage
+   positions (not a formula) so the box fills edge to edge. All the previous pass's cinematic
+   animations — clip-in entrance, per-tile scroll parallax, alternating Ken Burns, hover reveal —
+   carried over unchanged, just extended across five tiles instead of three.
+2. Atelier section: the real product photograph replaced with `AtelierAbstract` — an inline SVG of
+   four overlapping cloth-fold ribbons (purple-700→purple-500 gradients) crossed by three dashed
+   thread lines (SKILL.md §5's own stitch-line motif), zero network bytes. The wrapping wrapper
+   (clip-reveal on scroll, element-relative parallax, hover-scale layer) is the previous pass's,
+   untouched — only the innermost content changed from a photo to this SVG.
+3. Nav links repointed from same-page anchors to five real routes: `/shop` (the existing `ProductGrid`
+   component, unchanged, on its own URL), `/collections` (new — one card per fabric, linking to
+   `/shop?category=<slug>`, the grid's own existing filter param), `/new-in` (the existing
+   `FeaturedProducts` component on its own URL), `/atelier` (already existed), `/stockists` (new
+   placeholder, same pattern as `/atelier`'s). Active-link state moved from an `IntersectionObserver`
+   scrollspy (which only made sense for same-page anchors) to `usePathname()`. The home page's own
+   inline sections are untouched — these are new addresses for existing behaviour, not replacements.
+4. Footer rebuilt: 4 columns (brand+social, Shop, Info, Support), `bg-ink`/`text-paper`, mono column
+   headings, a `clip-path` hover underline on every link (the brief's literal technique, where most
+   of this codebase uses a `scaleX` transform for the same visual — kept literal here since asked for
+   specifically), social icons at 24px with the brief's hover scale+colour. `/about` and
+   `/bank-transfer` are new pages, built because the brief names them as footer links and neither
+   existed; "Materials" points at `/collections` rather than a second fabric-browse page.
+5. `ThemeToggle` rebuilt as a 48×24px animated pill (Sun/Moon, spring-eased sliding indicator, a
+   `clip-path`-free radial ripple flash on toggle, skipped entirely under reduced motion) with a
+   `showLabel` prop — icon-only in the nav (unchanged position), labelled in the new footer's bottom
+   bar, both driven by the same component and the same `next-themes` call.
+6. Nav button animations: search icon hover scale+rotate(15°), wishlist heart hover scale(1.2) plus a
+   timed purple-300 fill flash, bag icon hover scale+bounce (layered on top of the previous pass's
+   count-increase bounce, not replacing it), mobile menu items slide 8px on hover with a purple dot
+   appearing to their left.
+7. PDP gallery: the primary image capped at `max-h-[50vh]` (mobile) / `70vh` (`md`+) instead of an
+   uncapped `aspect-[4/5]`, which could exceed the viewport on a shorter screen — `object-cover`
+   handles the resulting box shape without distortion. Thumbnails grew to the brief's literal 80×80px
+   (from 80×64).
+8. Spacing: horizontal section padding swept from `px-6 md:px-10` to `px-6 md:px-12 lg:px-20` across
+   19 files (script-assisted, not hand-edited one by one — see deviations); `text-balance` added to
+   every clamp-sized H1/H2 tier sitewide (19 matches); the main product grid's gap simplified from an
+   asymmetric `gap-x-3 gap-y-8`/`gap-x-6 gap-y-14` split to the brief's literal even `gap-4`/`gap-6`.
+9. Four features: **Notify Me** — a sold-out product now shows "Notify Me" instead of a dead
+   "Join the waitlist" link, opening an email-capture modal that posts to the new
+   `POST /api/waitlist` (file-based, same pattern as orders) and confirms with the ring motif.
+   **Share** — a `Share2` button on the PDP copies the page URL and shows a bottom-centre
+   "Link copied!" toast (slides up + fades in, fades out after 2s). **Mobile sticky bar** — now
+   appears only once the real Add to Bag button has scrolled out of view (`IntersectionObserver`),
+   not always-on as before. **Related products** — "More from this fabric" now sorts by descending
+   total stock on hand (the same stock-as-sales-proxy `TopSelling` already uses) and shows 4 instead
+   of 3.
+
+**Deviations, disclosed rather than silently resolved:**
+- **The footer inverting to dark is a second, disclosed exception to SKILL.md §6's "exactly one dark
+  section per page."** That rule was written when only the atelier existed as a candidate; this brief
+  explicitly asks for a dark footer too. SKILL.md §6 now records both exceptions by name and warns
+  against extending the pattern further by precedent alone — see that section directly.
+- **The horizontal-padding sweep (item 8) was a scripted find-and-replace across 19 files, not a
+  manual per-section audit.** `md:px-10` → `md:px-12 lg:px-20` is an unambiguous, safe substitution
+  given the specific string involved, but this means the change was verified by grep count and a
+  full `tsc`/`build`, not by reading each of the 19 call sites individually.
+- **Item 8's vertical-rhythm uniformity ("py-20 between major sections") was not attempted.** Several
+  sections' `py-*` values were deliberately tuned in earlier passes with documented reasoning (the
+  atelier's `py-24`/`py-32`, for one); forcing a single `py-20` everywhere risked undoing that
+  reasoning for a cosmetic-consistency gain judged not worth it against everything else in this pass.
+  Same for `FeaturedProducts`' side column, which stays flexbox rather than CSS Grid rows — an
+  earlier pass explicitly chose flexbox there specifically to avoid grid's equal-height forcing (see
+  that component's own comment); "cards use grid rows, not flexbox" was applied to the main product
+  grid, which already used CSS Grid, and left this one deliberate exception alone.
+- **Instagram/Facebook are hand-drawn SVGs, not `lucide-react` icons.** The installed version (1.33)
+  ships no brand/social glyphs — most icon sets dropped them over trademark licensing — which the
+  brief's own wording anticipated ("lucide or simple SVG").
+- **`/#collection`, `/#new-in` and similar in-page anchors elsewhere on the site were not swept to
+  the new `/shop`/`/new-in` routes wholesale.** The ones reached from the home page itself (the
+  atelier's "Shop the edit" CTA, the featured rail's "View all N pieces" link) stay as same-page
+  anchors deliberately — they're a home-page-internal "return to shopping" gesture, not a
+  cross-page navigation, and turning them into full navigations would be a different, larger UX
+  change than this item asked for. A handful reached from other pages (the cart's empty state, the
+  wishlist page, `/track`'s no-results state) were updated to `/shop` for consistency while already
+  touching those files; the rest were left as `/#collection`-style links, which still resolve
+  correctly (they just take the reader to `/` first) rather than being broken.
 
 Eight items from the client's revision brief, built in priority order. `tsc --noEmit` after every
 change; `next lint` and `next build` clean at the end (one stale-`.next`-cache false build failure

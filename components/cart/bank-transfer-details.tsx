@@ -64,8 +64,9 @@ export function BankTransferDetails() {
   return (
     <div>
       <p className="text-sm leading-relaxed text-charcoal">
-        Transfer the order total to the account below, then send the receipt
-        on WhatsApp to confirm — the same thread every order is settled in.
+        Transfer the order total to the account below. Your order status
+        updates once the transfer is confirmed — check it any time from
+        Track order.
       </p>
       <dl className="mt-6 border-t border-hairline">
         <DetailRow label="Bank" value={BANK_NAME} />

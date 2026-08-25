@@ -26,10 +26,11 @@ const EASE_IN = [0.16, 1, 0.3, 1] as const;
  * invented for this.
  */
 const LINKS = [
-  { href: "/#collection", label: "Shop" },
-  { href: "/#collection", label: "Collections" },
-  { href: "/#new-in", label: "New In" },
-  { href: "/#atelier", label: "Atelier" },
+  { href: "/shop", label: "Shop" },
+  { href: "/collections", label: "Collections" },
+  { href: "/new-in", label: "New In" },
+  { href: "/atelier", label: "Atelier" },
+  { href: "/stockists", label: "Stockists" },
 ];
 
 export function MobileNav() {
@@ -113,12 +114,22 @@ export function MobileNav() {
                     <ul className="space-y-2">
                       {LINKS.map((link) => (
                         <li key={link.label}>
+                          {/* Hover: an 8px slide plus a purple dot appearing
+                              to the left (client brief, 2026-08-26) — the dot
+                              sits in reserved space so the slide never
+                              changes the row's own width/wrapping. */}
                           <Link
                             href={link.href}
                             onClick={close}
-                            className="block py-3 font-display text-4xl font-extrabold tracking-[-0.02em] transition-colors duration-200 ease-state hover:text-purple-500"
+                            className="group flex items-center gap-3 py-3 font-display text-4xl font-extrabold tracking-[-0.02em] transition-colors duration-200 ease-state hover:text-purple-500"
                           >
-                            {link.label}
+                            <span
+                              aria-hidden="true"
+                              className="h-2 w-2 shrink-0 rounded-full bg-purple-500 opacity-0 transition-opacity duration-200 ease-state group-hover:opacity-100"
+                            />
+                            <span className="transition-transform duration-200 ease-state group-hover:translate-x-2">
+                              {link.label}
+                            </span>
                           </Link>
                         </li>
                       ))}
@@ -137,7 +148,7 @@ export function MobileNav() {
                     <ul className="mt-12 space-y-1 border-t border-hairline pt-8">
                       <li>
                         <Link
-                          href="/#collection"
+                          href="/shop"
                           onClick={close}
                           className="label flex min-h-[48px] items-center gap-3 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
                         >

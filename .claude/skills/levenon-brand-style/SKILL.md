@@ -205,11 +205,21 @@ Standard page rhythm, top to bottom:
 3. Stitch divider — dashed purple rule.
 4. Product grid — paper, hairline-bordered cards, mono prices, mouse-tilt 3D on hover.
 5. **Dark signature section (the atelier)** — inverts to `--ink` background, `--paper` text,
-   `--purple-300` thread sculpture. **Exactly one per page.** This is the rhythm beat.
+   `--purple-300` thread sculpture. This is the rhythm beat.
 6. Newsletter — paper, quiet, directly after the atelier rather than before it. It is the last
    soft ask before the footer, not a second paper block sandwiched against the grid with the
    rhythm beat still to come.
-7. Footer — paper, hairline top border, mono links, wordmark with the purple ring "e".
+7. **Footer** — also inverts (`bg-ink`/`text-paper`), per an explicit later brief (2026-08-26).
+   Mono column headings, Inter 14px links with a purple-500 underline that draws in on hover,
+   wordmark with the purple ring "e".
+
+**On "exactly one per page":** the atelier was originally the *only* section allowed to invert,
+stated as a hard rule so the beat wouldn't be diluted by repetition. The footer inverting too is a
+second, disclosed exception, not that rule quietly rewritten — the atelier is still the one
+inversion *mid-page*, arriving as a beat inside the reading flow; the footer inverting is a
+different kind of signal, the page closing rather than a rhythm change partway through it. Do not
+add a third dark section reasoning from precedent ("the footer got an exception, so can this") —
+each exception here was a named, explicit brief, not a pattern to extend.
 
 ### No dead viewports
 

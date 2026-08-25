@@ -114,6 +114,14 @@ const config: Config = {
           "0%": { transform: "scale(1)" },
           "100%": { transform: "scale(1.06)" },
         },
+        // Theme toggle's press ripple (client brief, 2026-08-26) — a radial
+        // flash expanding from the toggle to nothing. `pointer-events-none`
+        // on the element itself (not this keyframe) is what keeps it from
+        // blocking interaction.
+        "theme-ripple": {
+          "0%": { transform: "scale(0.3)", opacity: "0.5" },
+          "100%": { transform: "scale(2.4)", opacity: "0" },
+        },
       },
       animation: {
         "thread-spin": "thread-spin 2.4s linear infinite",
@@ -126,6 +134,7 @@ const config: Config = {
         "scroll-draw": "scroll-draw 2.2s cubic-bezier(0.16, 1, 0.3, 1) infinite",
         "ken-burns": "ken-burns 8s ease-in-out infinite alternate",
         "ken-burns-reverse": "ken-burns 8s ease-in-out infinite alternate-reverse",
+        "theme-ripple": "theme-ripple 500ms ease-out",
       },
     },
   },

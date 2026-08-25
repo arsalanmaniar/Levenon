@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { m } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
@@ -9,62 +9,37 @@ import { cn } from "@/lib/cn";
 const BRAND_EASE = [0.16, 1, 0.3, 1] as const;
 
 /*
- * "Shop" and "Collections" both point at the one grid this site has — see
- * the note in `site-nav.tsx`. Both share `sectionId: "collection"` here too,
- * so either one lights up together while that section is in view.
+ * Real routes (client brief, 2026-08-26) — these used to be same-page hash
+ * anchors into the home page's own sections; each now has its own page (see
+ * `app/shop`, `app/collections`, `app/new-in`, `app/atelier`,
+ * `app/stockists`). The home page keeps its own inline sections unchanged —
+ * this only changes where the nav sends a reader.
  */
 const links = [
-  { href: "/#collection", label: "Shop", sectionId: "collection" },
-  { href: "/#collection", label: "Collections", sectionId: "collection" },
-  { href: "/#new-in", label: "New In", sectionId: "new-in" },
-  { href: "/#atelier", label: "Atelier", sectionId: "atelier" },
+  { href: "/shop", label: "Shop" },
+  { href: "/collections", label: "Collections" },
+  { href: "/new-in", label: "New In" },
+  { href: "/atelier", label: "Atelier" },
+  { href: "/stockists", label: "Stockists" },
 ];
 
-const SECTION_IDS = ["collection", "new-in", "atelier"];
-
 /**
- * Nav links (client brief, 2026-08-24): Manrope 500, a staggered load-in, and
- * an active state driven by which section is actually in view.
+ * Nav links: Manrope 500, a staggered load-in, and an active state.
  *
- * Split out of `SiteNav` (which stays a server component) because the active
- * state needs a scrollspy — these anchors are same-page hash links, not
- * distinct routes, so `usePathname()` alone could never tell them apart.
- *
- * Section ids only exist on `/` — on every other route `getElementById`
- * returns null for all three and the observer is simply never created, so
- * nothing here lights up falsely elsewhere on the site.
+ * Active state now comes from `usePathname()` — a real route match — rather
+ * than the previous pass's `IntersectionObserver` scrollspy, which only made
+ * sense while these were anchors into one page's own sections. Still a
+ * client component: `usePathname()` needs one, and so does the load-in
+ * stagger.
  */
 export function NavLinks() {
-  const [activeId, setActiveId] = useState<string | null>(null);
+  const pathname = usePathname();
   const reducedMotion = usePrefersReducedMotion();
-
-  useEffect(() => {
-    const targets = SECTION_IDS.map((id) => document.getElementById(id)).filter(
-      (el): el is HTMLElement => el !== null,
-    );
-    if (targets.length === 0) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-        if (visible[0]) setActiveId(visible[0].target.id);
-      },
-      // A band through the middle of the viewport, not the whole thing — a
-      // section only counts "active" once it's actually where the reader is
-      // looking, not the instant its top edge appears at the bottom.
-      { rootMargin: "-40% 0px -40% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
-    );
-
-    targets.forEach((target) => observer.observe(target));
-    return () => observer.disconnect();
-  }, []);
 
   return (
     <ul className="hidden items-center gap-6 md:flex lg:gap-10">
       {links.map((link, index) => {
-        const active = activeId === link.sectionId;
+        const active = pathname === link.href;
         return (
           <m.li
             key={link.label}
@@ -74,7 +49,7 @@ export function NavLinks() {
           >
             <Link
               href={link.href}
-              aria-current={active ? "true" : undefined}
+              aria-current={active ? "page" : undefined}
               className={cn(
                 "group inline-flex min-h-[44px] items-center font-display text-[13px] font-medium uppercase tracking-[0.08em] transition-colors duration-200 ease-state",
                 active ? "text-purple-500" : "text-charcoal hover:text-ink",

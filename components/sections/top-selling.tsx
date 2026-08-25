@@ -28,11 +28,11 @@ export async function TopSelling() {
 
   return (
     <section id="top-selling" className="scroll-mt-[var(--nav-h)]">
-      <div className="mx-auto max-w-shell px-6 pb-20 pt-4 md:px-10 md:pb-28 md:pt-6">
+      <div className="mx-auto max-w-shell px-6 pb-20 pt-4 md:px-12 lg:px-20 md:pb-28 md:pt-6">
         <Reveal>
           <div className="border-b border-hairline pb-6">
             <p className="label text-charcoal">Top Selling</p>
-            <h2 className="mt-4 font-display text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
+            <h2 className="mt-4 font-display text-balance text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
               Most loved this season.
             </h2>
           </div>

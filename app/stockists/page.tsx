@@ -4,18 +4,17 @@ import { SiteNav } from "@/components/sections/site-nav";
 import { SiteFooter } from "@/components/sections/site-footer";
 
 export const metadata: Metadata = {
-  title: "The Atelier",
-  description: "A closer look at the Levenon atelier — coming soon.",
-  alternates: { canonical: "/atelier" },
+  title: "Stockists",
+  description: "Find Levenon near you — coming soon.",
+  alternates: { canonical: "/stockists" },
 };
 
 /**
- * Placeholder route (client brief, 2026-08-24) so "Explore the Atelier" has
- * somewhere real to land. The dark signature section on `/` (`#atelier`)
- * still carries the actual atelier story — this is a standalone page for a
- * future, fuller version of it, not a duplicate of that content.
+ * Placeholder route (client brief, 2026-08-26), same pattern as `/atelier`:
+ * there is no stockist list anywhere in this codebase to render honestly, so
+ * this states that plainly rather than inventing store names or addresses.
  */
-export default function AtelierPage() {
+export default function StockistsPage() {
   return (
     <>
       <SiteNav />
@@ -40,20 +39,20 @@ export default function AtelierPage() {
             />
           </svg>
 
-          <p className="label mt-8 text-charcoal">Inside the atelier</p>
-          <h1 className="mt-5 font-display text-balance text-[clamp(2.5rem,6vw,4rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
-            The Atelier — Coming Soon
+          <p className="label mt-8 text-charcoal">Find us</p>
+          <h1 className="mt-5 text-balance font-display text-balance text-[clamp(2.5rem,6vw,4rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
+            Coming Soon — Find Levenon near you
           </h1>
           <p className="mt-6 max-w-[46ch] text-lg leading-relaxed text-charcoal">
-            The full story of how each piece is cut is still being written.
-            In the meantime, the collection speaks for itself.
+            Levenon is online-only for now. A stockist list will land here
+            once there is one to show.
           </p>
 
           <Link
-            href="/#collection"
+            href="/shop"
             className="label mt-10 inline-flex min-h-[48px] items-center rounded-full bg-ink px-7 text-paper transition-colors duration-200 ease-state hover:bg-purple-700"
           >
-            Shop Collection
+            Shop the collection
           </Link>
         </div>
       </main>
