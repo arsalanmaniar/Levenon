@@ -1,22 +1,11 @@
-import Image from "next/image";
 import { BackgroundBeams } from "@/components/ui/background-beams";
 import { HeroAurora } from "@/components/ui/hero-aurora";
 import { ScrollIndicator } from "@/components/ui/scroll-indicator";
 import { ThreadButton } from "@/components/ui/thread-button";
 import { ShimmerButton } from "@/components/ui/shimmer-button";
 import { Reveal } from "@/components/ui/reveal";
+import { HeroCollage } from "@/components/sections/hero-collage";
 import { getCollectionSummary, listProducts } from "@/lib/server/products";
-
-/**
- * Slight rotation, per tile — CSS only, matches the client brief's literal
- * `-3deg / 0 / +3deg` fan.
- */
-const COLLAGE_ROTATION = ["-rotate-3", "rotate-0", "rotate-3"];
-const COLLAGE_OFFSET = [
-  "left-0 top-0 z-0",
-  "left-[14%] top-[10%] z-10",
-  "left-[28%] top-[20%] z-20",
-];
 
 const FOOTNOTES = ["Three pieces, uncut", "Hand embroidery", "Come back daily"];
 
@@ -183,41 +172,10 @@ export async function Hero() {
             column. Replaces the R3F sculpture (client brief, 2026-08-24):
             three real product photographs, fanned and overlapping, so the
             hero reads as "fashion product" on first paint rather than as a
-            3D demo. */}
+            3D demo. Cinematic entrance/parallax/Ken Burns live in the client
+            island below (client brief, 2026-08-25). */}
         <div className="relative order-2 lg:order-none lg:col-span-6 lg:col-start-7 lg:row-span-2 lg:row-start-1">
-          <div className="relative mx-auto w-full max-w-[420px] py-6 pl-8 sm:max-w-[460px] lg:max-w-[480px] lg:py-0">
-            {/* Thread motif — a single hairline-width purple rule down the
-                collage's left edge, CSS only. */}
-            <div
-              aria-hidden="true"
-              className="absolute bottom-6 left-0 top-6 w-px bg-purple-500 lg:bottom-0 lg:top-0"
-            />
-
-            <div className="relative aspect-[4/5] w-full">
-              {collage.map((product, index) => {
-                const image = product.images[0];
-                return (
-                  <div
-                    key={product.id}
-                    className={`absolute h-[64%] w-[64%] overflow-hidden border border-hairline bg-paper shadow-[0_24px_48px_-20px_rgba(20,15,10,0.4)] ${COLLAGE_ROTATION[index]} ${COLLAGE_OFFSET[index]}`}
-                  >
-                    <Image
-                      src={image.url}
-                      alt={image.alt || product.name}
-                      fill
-                      sizes="(min-width: 1024px) 480px, (min-width: 640px) 60vw, 80vw"
-                      priority={index === 0}
-                      className="object-cover"
-                    />
-                  </div>
-                );
-              })}
-            </div>
-
-            <p className="mt-6 pl-2 font-mono text-xs tracking-wide text-charcoal">
-              48 pieces. 6 fabrics. One edit.
-            </p>
-          </div>
+          <HeroCollage products={collage} />
         </div>
       </div>
 

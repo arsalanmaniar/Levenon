@@ -4,6 +4,7 @@ import { siteDescription, siteName, siteUrl } from "@/lib/site";
 import { SmoothScroll } from "@/components/providers/smooth-scroll";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { PageTransition } from "@/components/providers/page-transition";
+import { LoadingScreen } from "@/components/providers/loading-screen";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
@@ -98,6 +99,9 @@ export default function RootLayout({
         {/* Outermost: every `m` element below needs the feature bundle. */}
         <ThemeProvider>
         <MotionProvider>
+          {/* First-load only, sessionStorage-gated — see the component for
+              why it needs no cart/wishlist context. */}
+          <LoadingScreen />
           {/* Separate providers: clearing one must never touch the other. */}
           <WishlistProvider>
             <RecentlyViewedProvider>

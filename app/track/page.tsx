@@ -5,7 +5,7 @@ import { TrackForm } from "@/components/orders/track-form";
 
 export const metadata: Metadata = {
   title: "Track an order",
-  description: "Find an order placed with Levenon using your WhatsApp number.",
+  description: "Find an order placed with Levenon using the phone number you checked out with.",
   alternates: { canonical: "/track" },
   // Personal order data. Nothing on this page belongs in an index, and a
   // crawler following links out of it has no business here either.
@@ -28,8 +28,8 @@ export default function TrackPage() {
             Track an order
           </h1>
           <p className="mt-6 max-w-measure text-sm leading-relaxed text-charcoal">
-            Orders are placed over WhatsApp, so the number you messaged from
-            is the reference.
+            The phone number you checked out with is the reference — every
+            order placed with it shows up here, live.
           </p>
           <TrackForm />
         </div>

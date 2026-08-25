@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import {
   useCallback,
   useEffect,
@@ -11,61 +12,77 @@ import {
   useState,
 } from "react";
 import { AnimatePresence, m } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { useModalBehaviour } from "@/hooks/use-modal-behaviour";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { formatPrice, type Product } from "@/lib/types";
 import { cn } from "@/lib/cn";
 
 const DEBOUNCE_MS = 250;
 const MAX_RESULTS = 6;
-// Brand entrance curve; the panel only ever fades and rises a few pixels.
+// Brand entrance curve.
 const EASE = [0.16, 1, 0.3, 1] as const;
 
 type Status = "idle" | "loading" | "ready" | "error";
 
 /**
- * Instant search in the nav.
+ * Search, redesigned as a full-viewport overlay (client brief, 2026-08-25) —
+ * replaces the earlier small nav-anchored dropdown.
  *
  * Queries `/api/products?q=` — the same route that reads the `listProducts`
  * seam — so there is no second search implementation and no external service.
  * Input is debounced at 250ms and every in-flight request is abortable, so a
  * fast typist never sees an older response overwrite a newer one.
  *
- * Keyboard model follows the combobox pattern: ↑/↓ move the active option,
- * Enter opens it, Escape closes the panel (and on a second press, collapses the
- * field), Tab out closes.
+ * Modal mechanics (Escape, scroll lock, focus trap, inert background) come
+ * from `useModalBehaviour`, the same hook the size guide and filter drawer
+ * use — this is the fourth surface to need them, not a hand-rolled fifth
+ * copy. Portaled to `<body>` for the same reason `MobileNav` is: a
+ * `position: fixed` overlay inside a `sticky` nav ancestor can be clipped by
+ * that ancestor's own stacking/overflow context in some browsers.
  */
 export function SearchBar() {
   const router = useRouter();
   const reducedMotion = usePrefersReducedMotion();
 
-  const [expanded, setExpanded] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const [term, setTerm] = useState("");
   const [results, setResults] = useState<Product[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [activeIndex, setActiveIndex] = useState(-1);
 
   const rootRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const listId = `search-results-${useId().replace(/:/g, "")}`;
   const trimmed = term.trim();
 
-  const collapse = useCallback(() => {
+  const close = useCallback(() => {
     abortRef.current?.abort();
-    setExpanded(false);
+    setOpen(false);
     setTerm("");
     setResults([]);
     setStatus("idle");
     setActiveIndex(-1);
   }, []);
 
+  useModalBehaviour({
+    open,
+    onClose: close,
+    panelRef,
+    rootRef,
+    initialFocusRef: inputRef,
+  });
 
   // Debounced fetch. The timer and the request are both torn down on change,
   // so nothing races and nothing leaks.
   useEffect(() => {
-    if (!expanded) return;
+    if (!open) return;
 
     if (trimmed.length === 0) {
       abortRef.current?.abort();
@@ -99,32 +116,17 @@ export function SearchBar() {
     }, DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [trimmed, expanded]);
+  }, [trimmed, open]);
 
-  // Close on outside click.
-  useEffect(() => {
-    if (!expanded) return;
-    const onPointerDown = (event: PointerEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) collapse();
-    };
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [expanded, collapse]);
-
-  const open = useCallback((product: Product) => {
-    collapse();
-    router.push(`/product/${product.slug}`);
-  }, [collapse, router]);
+  const goTo = useCallback(
+    (product: Product) => {
+      close();
+      router.push(`/product/${product.slug}`);
+    },
+    [close, router],
+  );
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      // First Escape clears a query; a second collapses the field.
-      if (trimmed.length > 0) setTerm("");
-      else collapse();
-      return;
-    }
-
     if (results.length === 0) return;
 
     if (event.key === "ArrowDown") {
@@ -135,102 +137,112 @@ export function SearchBar() {
       setActiveIndex((index) => (index <= 0 ? results.length - 1 : index - 1));
     } else if (event.key === "Enter" && activeIndex >= 0) {
       event.preventDefault();
-      open(results[activeIndex]);
+      goTo(results[activeIndex]);
     }
   };
 
-  const showPanel = expanded && (trimmed.length > 0 || status === "idle");
-
   return (
-    <div ref={rootRef} className="relative">
-      {!expanded ? (
-        <button
-          type="button"
-          onClick={() => {
-            setExpanded(true);
-            // Focus after the field exists.
-            window.setTimeout(() => inputRef.current?.focus(), 0);
-          }}
-          className="label inline-flex min-h-[44px] items-center gap-2 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
-        >
-          <Search
-            aria-hidden="true"
-            strokeWidth={1.5}
-            // Visible on mobile (icon-only, no label there); hidden from
-            // `sm` where the text label takes over, since that band is the
-            // exact width the nav has no room to spare (three centre links
-            // plus the full right cluster measured to overflow by 24px at
-            // 768px before this existed); visible again from `lg`, where the
-            // nav has real breathing room for icon + label together.
-            className="block h-5 w-5 sm:hidden lg:block"
-          />
-          <span className="hidden sm:inline">Search</span>
-          <span className="sr-only sm:hidden">Search the collection</span>
-        </button>
-      ) : (
-        <div className="flex items-center gap-2 border-b border-hairline pb-1 focus-within:border-purple-500">
-          <Search aria-hidden="true" strokeWidth={1.5} className="h-5 w-5 text-charcoal" />
-          <input
-            ref={inputRef}
-            type="search"
-            value={term}
-            onChange={(event) => setTerm(event.target.value)}
-            onKeyDown={onKeyDown}
-            onBlur={(event) => {
-              // Blur to something outside the widget closes it; clicking a
-              // result must not close the panel before the click lands.
-              if (!rootRef.current?.contains(event.relatedTarget as Node)) {
-                collapse();
-              }
-            }}
-            placeholder="Search the collection"
-            aria-label="Search the collection"
-            role="combobox"
-            aria-expanded={showPanel}
-            aria-controls={listId}
-            aria-autocomplete="list"
-            aria-activedescendant={
-              activeIndex >= 0 ? `${listId}-option-${activeIndex}` : undefined
-            }
-            className="label w-[180px] bg-transparent py-2 text-ink placeholder:text-charcoal focus:outline-none md:w-[240px]"
-          />
-          <button
-            type="button"
-            onClick={collapse}
-            className="label px-2 text-charcoal transition-colors duration-200 ease-state hover:text-purple-500"
-          >
-            Close
-            <span className="sr-only"> search</span>
-          </button>
-        </div>
-      )}
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="label inline-flex min-h-[44px] items-center gap-2 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
+      >
+        <Search
+          aria-hidden="true"
+          size={18}
+          strokeWidth={1.5}
+          // Visible on mobile (icon-only, no label there); hidden from `sm`
+          // where the text label takes over; visible again from `lg`.
+          className="block sm:hidden lg:block"
+        />
+        <span className="hidden sm:inline">Search</span>
+        <span className="sr-only sm:hidden">Search the collection</span>
+      </button>
 
-      <AnimatePresence>
-        {showPanel && (
-          <m.div
-            initial={reducedMotion ? false : { opacity: 0, y: -6 }}
-            animate={reducedMotion ? {} : { opacity: 1, y: 0 }}
-            exit={reducedMotion ? {} : { opacity: 0, y: -6 }}
-            transition={{ duration: reducedMotion ? 0 : 0.24, ease: EASE }}
-            className="absolute right-0 top-[calc(100%+12px)] z-50 w-[min(92vw,420px)] border border-hairline bg-paper shadow-thread"
-          >
-            <SearchPanel
-              listId={listId}
-              term={trimmed}
-              status={status}
-              results={results}
-              activeIndex={activeIndex}
-              onHover={setActiveIndex}
-              onSelect={open}
-            />
-          </m.div>
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <div ref={rootRef} className="fixed inset-0 z-[120]">
+                <m.div
+                  aria-hidden="true"
+                  onClick={close}
+                  className="absolute inset-0 bg-ink/30"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: reducedMotion ? 0 : 0.25 }}
+                />
+
+                <m.div
+                  ref={panelRef}
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Search"
+                  className="absolute inset-x-0 top-0 max-h-full overflow-y-auto overscroll-contain bg-paper"
+                  initial={reducedMotion ? { opacity: 0 } : { y: "-100%" }}
+                  animate={reducedMotion ? { opacity: 1 } : { y: 0 }}
+                  exit={reducedMotion ? { opacity: 0 } : { y: "-100%" }}
+                  transition={{ duration: reducedMotion ? 0 : 0.45, ease: EASE }}
+                >
+                  <div className="relative mx-auto flex h-[120px] max-w-shell items-center px-6 md:px-10">
+                    <Search
+                      aria-hidden="true"
+                      size={22}
+                      strokeWidth={1.5}
+                      className="shrink-0 text-charcoal"
+                    />
+                    <input
+                      ref={inputRef}
+                      type="search"
+                      value={term}
+                      onChange={(event) => setTerm(event.target.value)}
+                      onKeyDown={onKeyDown}
+                      placeholder="Search fabrics, styles…"
+                      aria-label="Search the collection"
+                      role="combobox"
+                      aria-expanded={trimmed.length > 0}
+                      aria-controls={listId}
+                      aria-autocomplete="list"
+                      aria-activedescendant={
+                        activeIndex >= 0 ? `${listId}-option-${activeIndex}` : undefined
+                      }
+                      className="ml-4 h-full flex-1 border-b border-hairline bg-transparent text-2xl text-ink placeholder:text-charcoal focus:border-purple-500 focus:outline-none md:text-[28px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={close}
+                      className="label ml-4 inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-full text-charcoal transition-colors duration-200 ease-state hover:text-purple-500"
+                    >
+                      <X aria-hidden="true" size={20} strokeWidth={1.5} />
+                      <span className="sr-only">Close search</span>
+                    </button>
+                  </div>
+
+                  <div className="mx-auto max-w-shell border-t border-hairline px-6 pb-16 pt-8 md:px-10">
+                    <SearchResults
+                      listId={listId}
+                      term={trimmed}
+                      status={status}
+                      results={results}
+                      activeIndex={activeIndex}
+                      onHover={setActiveIndex}
+                      onSelect={goTo}
+                      reducedMotion={reducedMotion}
+                    />
+                  </div>
+                </m.div>
+              </div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
-    </div>
+    </>
   );
 }
 
-function SearchPanel({
+function SearchResults({
   listId,
   term,
   status,
@@ -238,6 +250,7 @@ function SearchPanel({
   activeIndex,
   onHover,
   onSelect,
+  reducedMotion,
 }: {
   listId: string;
   term: string;
@@ -246,10 +259,11 @@ function SearchPanel({
   activeIndex: number;
   onHover: (index: number) => void;
   onSelect: (product: Product) => void;
+  reducedMotion: boolean;
 }) {
   if (term.length === 0) {
     return (
-      <div className="flex flex-col items-center px-6 py-10 text-center">
+      <div className="flex flex-col items-center py-10 text-center">
         <ThreadRing />
         <p className="label mt-6 text-charcoal">Search the collection</p>
         <p className="mt-3 max-w-[30ch] text-sm leading-relaxed text-charcoal">
@@ -261,12 +275,12 @@ function SearchPanel({
   }
 
   if (status === "loading") {
-    return <p className="label px-5 py-6 text-charcoal">Searching…</p>;
+    return <p className="label py-6 text-charcoal">Searching…</p>;
   }
 
   if (status === "error") {
     return (
-      <p className="px-5 py-6 text-sm leading-relaxed text-charcoal">
+      <p className="py-6 text-sm leading-relaxed text-charcoal">
         Search is not responding. The collection is still on the rail —{" "}
         <Link href="/#collection" className="text-purple-500 underline">
           browse it instead
@@ -278,11 +292,11 @@ function SearchPanel({
 
   if (results.length === 0) {
     return (
-      <div className="px-5 py-8">
+      <div className="py-8">
         <p className="label text-charcoal">No pieces match “{term}”</p>
         <p className="mt-3 max-w-[34ch] text-sm leading-relaxed text-charcoal">
-          The season is short — twelve pieces, not twelve hundred. Try a broader
-          word, or see everything.
+          The season is short — twelve pieces, not twelve hundred. Try a
+          broader word, or see everything.
         </p>
         <Link
           href="/#collection"
@@ -295,71 +309,63 @@ function SearchPanel({
   }
 
   return (
-    <ul id={listId} role="listbox" aria-label="Search results" className="max-h-[60vh] overflow-y-auto overscroll-contain">
+    <ul
+      id={listId}
+      role="listbox"
+      aria-label="Search results"
+      className="grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3"
+    >
       {results.map((product, index) => (
-        <li
+        <m.li
           key={product.id}
           id={`${listId}-option-${index}`}
           role="option"
           aria-selected={index === activeIndex}
           onPointerEnter={() => onHover(index)}
+          initial={reducedMotion ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: reducedMotion ? 0 : index * 0.05 }}
         >
           <button
             type="button"
-            // Pointer down rather than click: the input's blur handler would
-            // otherwise tear the panel down before a click completes.
+            // Pointer down rather than click: on the old dropdown this beat
+            // the input's blur handler; kept for the same reason even though
+            // this overlay no longer closes on blur.
             onPointerDown={(event) => {
               event.preventDefault();
               onSelect(product);
             }}
             className={cn(
-              "flex w-full items-center gap-4 border-b border-hairline px-4 py-3 text-left transition-colors duration-150 ease-state last:border-b-0",
-              index === activeIndex ? "bg-purple-500/5" : "hover:bg-purple-500/5",
+              "block w-full text-left",
+              index === activeIndex && "ring-1 ring-purple-500",
             )}
           >
-            <SearchThumb product={product} />
-
-            <span className="min-w-0 flex-1">
-              <span className="block truncate font-display text-sm font-extrabold tracking-[-0.02em] text-ink">
-                {product.name}
-              </span>
-              <span className="label mt-1 block text-charcoal">
-                {product.category.name}
-              </span>
-            </span>
-
-            <span className="label whitespace-nowrap text-ink">
-              {formatPrice(product)}
-            </span>
+            <div className="relative aspect-[4/5] w-full overflow-hidden border border-hairline bg-paper">
+              {product.images[0] ? (
+                <Image
+                  src={product.images[0].url}
+                  alt=""
+                  fill
+                  sizes="(min-width: 640px) 33vw, 50vw"
+                  className="object-cover"
+                />
+              ) : (
+                <div className="flex h-full items-center justify-center">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6 text-purple-500" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="7" strokeWidth="1.25" />
+                    <circle cx="12" cy="12" r="4" strokeWidth="1" strokeDasharray="2 3" strokeOpacity="0.6" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            <p className="mt-3 truncate font-display text-sm font-bold tracking-[-0.02em] text-ink">
+              {product.name}
+            </p>
+            <p className="label mt-1 text-charcoal">{formatPrice(product)}</p>
           </button>
-        </li>
+        </m.li>
       ))}
     </ul>
-  );
-}
-
-/** Thumbnail: real photography when it exists, thread motif until then. */
-function SearchThumb({ product }: { product: Product }) {
-  const image = product.images[0];
-
-  return (
-    <span className="relative grid h-12 w-12 shrink-0 place-items-center overflow-hidden border border-hairline bg-paper">
-      {image ? (
-        <Image
-          src={image.url}
-          alt=""
-          width={48}
-          height={48}
-          sizes="48px"
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 text-purple-500" fill="none" stroke="currentColor">
-          <circle cx="12" cy="12" r="7" strokeWidth="1.25" />
-          <circle cx="12" cy="12" r="4" strokeWidth="1" strokeDasharray="2 3" strokeOpacity="0.6" />
-        </svg>
-      )}
-    </span>
   );
 }
 

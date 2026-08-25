@@ -2,8 +2,8 @@
 
 import { m } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { ORDER_STATUS_SEQUENCE, statusIndex } from "@/lib/orders/orders-data";
-import type { OrderStatus } from "@/lib/orders/orders-data";
+import { ORDER_STATUS_SEQUENCE, orderStatusIndex } from "@/lib/orders/order-types";
+import type { OrderStatus } from "@/lib/orders/order-types";
 import { cn } from "@/lib/cn";
 
 // Brand entrance: rise + fade, expo-out. Never scale, never slide from a side.
@@ -40,6 +40,11 @@ function StepNode({ reached }: { reached: boolean }) {
   );
 }
 
+/** "dispatched" → "Dispatched" — the store keeps statuses lowercase (client brief, 2026-08-25). */
+function displayStatus(status: OrderStatus): string {
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 function StepBody({
   status,
   state,
@@ -50,7 +55,7 @@ function StepBody({
   return (
     <div className="-mt-[3px] min-w-0">
       <p className={cn("label", state === "pending" ? "text-charcoal" : "text-ink")}>
-        {status}
+        {displayStatus(status)}
       </p>
       <p className="label mt-2 text-charcoal">{CUE[state]}</p>
     </div>
@@ -58,9 +63,9 @@ function StepBody({
 }
 
 /**
- * Vertical progress through the four order statuses.
+ * Vertical progress through the order statuses.
  *
- * Reads as a real ordered list, because that is what it is: four steps, in
+ * Reads as a real ordered list, because that is what it is: five steps, in
  * sequence, one of them current. The current step is marked `aria-current`
  * *and* carries a text cue, so nothing here depends on seeing the purple.
  *
@@ -79,7 +84,7 @@ export function OrderTimeline({
   className?: string;
 }) {
   const reducedMotion = usePrefersReducedMotion();
-  const current = statusIndex(status);
+  const current = orderStatusIndex(status);
 
   return (
     <ol aria-label={`Progress of order ${orderId}`} className={cn("mt-6", className)}>

@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import { m, useAnimationControls } from "framer-motion";
 import { useWishlist } from "./wishlist-provider";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
 import type { Product } from "@/lib/types";
 
@@ -8,9 +11,11 @@ import type { Product } from "@/lib/types";
  * Save toggle, used on cards and on the detail page.
  *
  * Both read the same provider, so the two stay in sync without any wiring at
- * the call sites. No pulse or scale animation: the brand does not bounce, and
- * the state change is carried by fill + colour, which reads instantly and costs
- * nothing under reduced motion.
+ * the call sites. The state change is carried primarily by fill + colour,
+ * which reads instantly and costs nothing under reduced motion — the brief
+ * pulse below (client brief, 2026-08-25: "on wishlist add → scale(1.3)
+ * pulse") is layered on top of that, not instead of it, and is skipped
+ * outright under reduced motion rather than run at zero duration.
  *
  * The heart is decorative; the button carries the label, and `aria-pressed`
  * carries the state rather than colour alone.
@@ -26,10 +31,25 @@ export function WishlistHeart({
   variant?: "card" | "inline";
 }) {
   const { has, toggle } = useWishlist();
+  const reducedMotion = usePrefersReducedMotion();
   const saved = has(product.id);
 
+  // Pulses once on the false→true transition specifically, not on every
+  // render where `saved` happens to already be true — a keyframes array
+  // passed straight to `animate` would otherwise replay each time this
+  // component re-renders for an unrelated reason (this reads shared
+  // wishlist context, so it re-renders more often than just its own clicks).
+  const controls = useAnimationControls();
+  const wasSaved = useRef(saved);
+  useEffect(() => {
+    if (saved && !wasSaved.current && !reducedMotion) {
+      controls.start({ scale: [1, 1.3, 1], transition: { duration: 0.3 } });
+    }
+    wasSaved.current = saved;
+  }, [saved, reducedMotion, controls]);
+
   return (
-    <button
+    <m.button
       type="button"
       aria-pressed={saved}
       onClick={(event) => {
@@ -38,6 +58,9 @@ export function WishlistHeart({
         event.stopPropagation();
         toggle(product);
       }}
+      whileHover={reducedMotion ? undefined : { scale: 1.15 }}
+      animate={controls}
+      transition={{ duration: 0.2 }}
       className={cn(
         "inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full transition-colors duration-200 ease-state",
         // Solid `bg-paper` rather than `bg-paper/90 backdrop-blur-sm`: this
@@ -68,6 +91,6 @@ export function WishlistHeart({
       <span className="sr-only">
         {saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
       </span>
-    </button>
+    </m.button>
   );
 }

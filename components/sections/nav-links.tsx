@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { m } from "framer-motion";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
+
+const BRAND_EASE = [0.16, 1, 0.3, 1] as const;
 
 /*
  * "Shop" and "Collections" both point at the one grid this site has — see
@@ -32,6 +36,7 @@ const SECTION_IDS = ["collection", "new-in", "atelier"];
  */
 export function NavLinks() {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     const targets = SECTION_IDS.map((id) => document.getElementById(id)).filter(
@@ -61,16 +66,17 @@ export function NavLinks() {
       {links.map((link, index) => {
         const active = activeId === link.sectionId;
         return (
-          <li
+          <m.li
             key={link.label}
-            className="animate-nav-item-fade-in motion-reduce:animate-none"
-            style={{ animationDelay: `${index * 80}ms` }}
+            initial={reducedMotion ? false : { x: 10, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.4, delay: index * 0.08, ease: BRAND_EASE }}
           >
             <Link
               href={link.href}
               aria-current={active ? "true" : undefined}
               className={cn(
-                "group inline-flex min-h-[44px] items-center font-display text-sm font-medium tracking-wide transition-colors duration-200 ease-state",
+                "group inline-flex min-h-[44px] items-center font-display text-[13px] font-medium uppercase tracking-[0.08em] transition-colors duration-200 ease-state",
                 active ? "text-purple-500" : "text-charcoal hover:text-ink",
               )}
             >
@@ -87,7 +93,7 @@ export function NavLinks() {
                 />
               </span>
             </Link>
-          </li>
+          </m.li>
         );
       })}
     </ul>

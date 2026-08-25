@@ -8,7 +8,7 @@ import { Trash2 } from "lucide-react";
 import { useCart } from "./cart-provider";
 import { ShimmerAction } from "@/components/ui/shimmer-button";
 import { PaymentModal } from "./payment-modal";
-import { BankTransferDetails } from "./bank-transfer-details";
+import { CheckoutModal } from "./checkout-modal";
 import { DiscountField } from "./discount-field";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { formatMinor, type CartTotals } from "@/lib/cart/types";
@@ -40,7 +40,7 @@ const FOCUSABLE =
  * Under reduced motion nothing slides: the panel is simply present or absent.
  */
 export function CartDrawer() {
-  const { lines, totals, isOpen, closeCart, setQuantity, remove } = useCart();
+  const { lines, totals, isOpen, closeCart, setQuantity, remove, clear } = useCart();
   const reducedMotion = usePrefersReducedMotion();
 
   /*
@@ -53,11 +53,12 @@ export function CartDrawer() {
   const [discount, setDiscount] = useState<DiscountCode | null>(null);
   const summary = summariseOrder(totals, discount);
 
-  // Payment placeholders (client brief, 2026-08-24, replacing WhatsApp
-  // checkout): no gateway exists yet, so "Pay by Card" opens an honest
-  // "coming soon" panel rather than a real charge flow.
-  const [cardModalOpen, setCardModalOpen] = useState(false);
-  const [bankModalOpen, setBankModalOpen] = useState(false);
+  // Checkout (client brief, 2026-08-25, replacing the earlier "coming soon"
+  // placeholders): both buttons open the same `CheckoutModal`, which decides
+  // what it shows and what it sends to `POST /api/orders` from
+  // `paymentMethod`. The order is placed for real either way — "card" just
+  // means the confirmation says payment is still being collected by hand.
+  const [checkoutMethod, setCheckoutMethod] = useState<"card" | "bank_transfer" | null>(null);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -240,16 +241,18 @@ export function CartDrawer() {
                               setQuantity(line.variantSku, quantity)
                             }
                           />
-                          <button
+                          <m.button
                             type="button"
                             onClick={() => remove(line.variantSku)}
+                            whileHover={reducedMotion ? undefined : { scale: 1.15 }}
+                            transition={{ duration: 0.2 }}
                             className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-charcoal transition-colors duration-200 ease-state hover:text-purple-500"
                           >
                             <Trash2 aria-hidden="true" strokeWidth={1.5} className="h-4 w-4" />
                             <span className="sr-only">
                               Remove {line.name}, size {line.size}
                             </span>
-                          </button>
+                          </m.button>
                         </div>
 
                         {line.quantity >= line.maxQuantity && (
@@ -317,14 +320,14 @@ export function CartDrawer() {
                   <div className="mt-6 space-y-3">
                     <ShimmerAction
                       type="button"
-                      onClick={() => setCardModalOpen(true)}
+                      onClick={() => setCheckoutMethod("card")}
                       className="w-full py-4"
                     >
                       Pay by Card
                     </ShimmerAction>
                     <button
                       type="button"
-                      onClick={() => setBankModalOpen(true)}
+                      onClick={() => setCheckoutMethod("bank_transfer")}
                       className="label inline-flex min-h-[48px] w-full items-center justify-center rounded-full border border-hairline px-6 py-4 text-ink transition-colors duration-200 ease-state hover:border-purple-500 hover:text-purple-500"
                     >
                       Bank Transfer
@@ -336,23 +339,18 @@ export function CartDrawer() {
           </m.div>
 
           <PaymentModal
-            open={cardModalOpen}
-            onClose={() => setCardModalOpen(false)}
-            title="Pay by card"
+            open={checkoutMethod !== null}
+            onClose={() => setCheckoutMethod(null)}
+            title={checkoutMethod === "card" ? "Pay by card" : "Bank transfer"}
           >
-            <p className="text-sm leading-relaxed text-charcoal">
-              Card payments are coming soon. For now, orders are settled by
-              bank transfer — send the receipt on WhatsApp once you&rsquo;ve
-              paid and the order is confirmed.
-            </p>
-          </PaymentModal>
-
-          <PaymentModal
-            open={bankModalOpen}
-            onClose={() => setBankModalOpen(false)}
-            title="Bank transfer details"
-          >
-            <BankTransferDetails />
+            {checkoutMethod && (
+              <CheckoutModal
+                paymentMethod={checkoutMethod}
+                lines={lines}
+                summary={summary}
+                onOrderPlaced={clear}
+              />
+            )}
           </PaymentModal>
         </div>
       )}

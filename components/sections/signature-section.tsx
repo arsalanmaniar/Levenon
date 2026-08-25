@@ -38,19 +38,17 @@ export async function SignatureSection() {
         </div>
 
         {/*
-          Text column fades in from the right on scroll (Priority 4), a
-          scoped exception to SKILL.md §7's "never slide from off-screen
-          sides" — documented there directly rather than broken silently.
-          The offset stays small (24px, `Reveal`'s own `from="right"`) so it
-          still reads as the brand's usual rise-and-fade, just off a
-          different edge, not an off-screen slide-in.
+          Text column: each line rises and fades in, 0.1s apart (client
+          brief, 2026-08-25). This retires the previous pass's "slide from
+          the right" scoped exception in favour of the brand's standard
+          `Reveal` direction — SKILL.md §7 has been updated to match.
         */}
         <div className="order-1 lg:order-2 lg:col-span-6 lg:pl-8">
-          <Reveal from="right">
+          <Reveal>
             <p className="label text-purple-300">Inside the atelier</p>
           </Reveal>
 
-          <Reveal from="right" delay={0.08}>
+          <Reveal delay={0.1}>
             {/* Three lines, not two — the brief's own line-breaking ("THE
                 CLOTH, / BEFORE / THE CUT."). Set larger and tighter than
                 before so it carries the section the way the hero headline
@@ -64,7 +62,7 @@ export async function SignatureSection() {
             </h2>
           </Reveal>
 
-          <Reveal from="right" delay={0.16}>
+          <Reveal delay={0.2}>
             <p className="mt-8 max-w-[46ch] text-lg leading-relaxed text-paper/70">
               Every panel is checked on the roll — front, back, sleeve, daman —
               before it is folded. What reaches you is uncut, so nothing about
@@ -72,11 +70,11 @@ export async function SignatureSection() {
             </p>
           </Reveal>
 
-          <Reveal from="right" delay={0.2}>
+          <Reveal delay={0.3}>
             <StitchDivider invert className="mt-10 max-w-[280px]" />
           </Reveal>
 
-          <Reveal from="right" delay={0.24}>
+          <Reveal delay={0.4}>
             <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-3">
               {[
                 { value: "3", label: "Pieces per suit" },
@@ -107,7 +105,7 @@ export async function SignatureSection() {
             return naturally back into shopping") is what this now does,
             without adding a new section to carry it.
           */}
-          <Reveal from="right" delay={0.28}>
+          <Reveal delay={0.5}>
             <div className="mt-12">
               <ThreadButton href="/#collection" tone="solid-invert" icon>
                 Shop the edit

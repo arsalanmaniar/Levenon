@@ -15,3 +15,9 @@ tsconfig.tsbuildinfo
 # Database dumps. LevenonIdraak.sql is 293 MB and contains customer PII,
 # order history and personal access tokens — it must never be committed.
 *.sql
+
+# Orders placed through the web checkout (lib/orders/order-store.ts) — real
+# customer names, phone numbers, emails and addresses. The interim file-based
+# store this writes to must never be committed, same reasoning as the SQL
+# dumps above.
+/data/orders.json

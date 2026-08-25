@@ -1,16 +1,36 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { Heart } from "lucide-react";
+import { m, useAnimationControls } from "framer-motion";
 import { useWishlist } from "./wishlist-provider";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 /**
  * Nav wishlist link with a live count, sitting alongside the cart badge.
  *
  * A link rather than a button: unlike the bag, the wishlist has a real page.
+ *
+ * On a count increase (client brief, 2026-08-25): the heart glyph pulses
+ * (scale 1→1.3→1) and the badge pops — same pattern as `CartButton`, watching
+ * `count` rather than the toggle itself, so it fires regardless of which
+ * card's heart was clicked.
  */
 export function WishlistButton() {
   const { count } = useWishlist();
+  const reducedMotion = usePrefersReducedMotion();
+  const heartControls = useAnimationControls();
+  const badgeControls = useAnimationControls();
+  const previousCount = useRef(count);
+
+  useEffect(() => {
+    if (count > previousCount.current && !reducedMotion) {
+      heartControls.start({ scale: [1, 1.3, 1], transition: { duration: 0.3 } });
+      badgeControls.start({ scale: [1, 1.2, 1], transition: { duration: 0.3 } });
+    }
+    previousCount.current = count;
+  }, [count, reducedMotion, heartControls, badgeControls]);
 
   return (
     <Link
@@ -29,9 +49,17 @@ export function WishlistButton() {
       className="label inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-2 text-ink transition-colors duration-200 ease-state hover:text-purple-500 sm:min-w-0 sm:justify-start"
     >
       {/* Same sm..lg hide as SearchBar's icon — see the comment there. */}
-      <Heart aria-hidden="true" strokeWidth={1.5} className="block h-5 w-5 sm:hidden lg:block" />
+      <m.span
+        animate={heartControls}
+        whileHover={reducedMotion ? undefined : { scale: 1.15 }}
+        transition={{ duration: 0.2 }}
+        className="block sm:hidden lg:block"
+      >
+        <Heart aria-hidden="true" size={18} strokeWidth={1.5} />
+      </m.span>
       <span className="hidden sm:inline">Saved</span>
-      <span
+      <m.span
+        animate={badgeControls}
         aria-hidden="true"
         className={
           count > 0
@@ -40,7 +68,7 @@ export function WishlistButton() {
         }
       >
         {count}
-      </span>
+      </m.span>
       <span className="sr-only">
         {count === 1 ? "1 piece saved" : `${count} pieces saved`}
       </span>

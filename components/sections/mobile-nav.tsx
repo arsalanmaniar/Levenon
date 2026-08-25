@@ -64,7 +64,7 @@ export function MobileNav() {
         aria-expanded={open}
         className="label inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-ink md:hidden"
       >
-        <Menu aria-hidden="true" strokeWidth={1.5} className="h-5 w-5" />
+        <Menu aria-hidden="true" size={20} strokeWidth={1.5} />
         <span className="sr-only">Open menu</span>
       </button>
 
@@ -104,7 +104,7 @@ export function MobileNav() {
                       onClick={close}
                       className="label -mr-2 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-charcoal transition-colors duration-200 ease-state hover:text-purple-500"
                     >
-                      <X aria-hidden="true" strokeWidth={1.5} className="h-5 w-5" />
+                      <X aria-hidden="true" size={20} strokeWidth={1.5} />
                       <span className="sr-only">Close menu</span>
                     </button>
                   </header>
@@ -141,7 +141,7 @@ export function MobileNav() {
                           onClick={close}
                           className="label flex min-h-[48px] items-center gap-3 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
                         >
-                          <Search aria-hidden="true" strokeWidth={1.5} className="h-5 w-5" />
+                          <Search aria-hidden="true" size={18} strokeWidth={1.5} />
                           Search the collection
                         </Link>
                       </li>
@@ -151,7 +151,7 @@ export function MobileNav() {
                           onClick={close}
                           className="label flex min-h-[48px] items-center gap-3 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
                         >
-                          <Heart aria-hidden="true" strokeWidth={1.5} className="h-5 w-5" />
+                          <Heart aria-hidden="true" size={18} strokeWidth={1.5} />
                           Wishlist
                           <span className="text-purple-500">{wishlistCount}</span>
                         </Link>
@@ -169,7 +169,7 @@ export function MobileNav() {
                           }}
                           className="label flex min-h-[48px] w-full items-center gap-3 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
                         >
-                          <ShoppingBag aria-hidden="true" strokeWidth={1.5} className="h-5 w-5" />
+                          <ShoppingBag aria-hidden="true" size={18} strokeWidth={1.5} />
                           Bag
                           <span className="text-purple-500">{totals.itemCount}</span>
                         </button>

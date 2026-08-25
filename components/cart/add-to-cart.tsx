@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Phone } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
+import { AnimatePresence, m } from "framer-motion";
 import { useCart } from "./cart-provider";
 import { cn } from "@/lib/cn";
 import { ShimmerAction } from "@/components/ui/shimmer-button";
-import { buildOrderMessage } from "@/lib/cart/checkout";
-import { shopWhatsAppUrl } from "@/lib/whatsapp";
-import { calculateTotals, lineFromVariant } from "@/lib/cart/types";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { SIZE_ORDER, isInStock, type Product, type Size } from "@/lib/types";
 
 /**
@@ -16,20 +15,33 @@ import { SIZE_ORDER, isInStock, type Product, type Size } from "@/lib/types";
  * Sold-out sizes are shown but not selectable — a customer should see that the
  * piece exists in L and is gone, not silently find L missing. Availability comes
  * from variant stock, never from a flag on the product.
+ *
+ * Root cause of the reported "Add to Bag doesn't work" (client brief,
+ * 2026-08-25, deep investigation): the dispatch chain itself was never
+ * broken — `handleAdd` → `addVariant` → `dispatch({type:"add"})` then
+ * `dispatch({type:"open"})` is correct end to end, confirmed by reading the
+ * reducer directly. What *was* thin: clicking without a size selected did
+ * (and does) nothing but flip a quiet grey status line below the size
+ * chips — easy to miss, and indistinguishable from "the button doesn't do
+ * anything" to someone not looking there. The fix below is a louder, harder
+ * to miss version of the same existing guard, not a new code path.
  */
 export function AddToCart({ product }: { product: Product }) {
   const { addVariant, quantityOf } = useCart();
+  const reducedMotion = usePrefersReducedMotion();
   const [selectedSize, setSelectedSize] = useState<Size | null>(null);
   const [attempted, setAttempted] = useState(false);
   const [quantity, setQuantity] = useState(1);
-  // Transient success state, purely for the micro-interaction. The cart is the
-  // source of truth; this only says "that click landed".
-  const [justAdded, setJustAdded] = useState(false);
-  const addedTimer = useRef<number | null>(null);
+  // Button state machine (client brief, 2026-08-25): idle → adding →
+  // added → idle. "Adding" is held briefly even though the dispatch itself
+  // is synchronous — a state a reader can never actually perceive is the
+  // same, from their side, as no state at all.
+  const [status, setStatus] = useState<"idle" | "adding" | "added">("idle");
+  const statusTimer = useRef<number | null>(null);
 
   useEffect(
     () => () => {
-      if (addedTimer.current) window.clearTimeout(addedTimer.current);
+      if (statusTimer.current) window.clearTimeout(statusTimer.current);
     },
     [],
   );
@@ -51,31 +63,22 @@ export function AddToCart({ product }: { product: Product }) {
 
   function handleAdd() {
     if (!selectedVariant) {
-      // No native validation bubble — the hint below the picker is the message.
+      // The defensive check the brief asks for — this already existed as a
+      // quiet status-line change; `attempted` now also drives the louder
+      // red text + shake below, so a size-less click is unmissable.
       setAttempted(true);
       return;
     }
-    addVariant(product, selectedVariant, quantity);
 
-    setJustAdded(true);
-    setQuantity(1);
-    if (addedTimer.current) window.clearTimeout(addedTimer.current);
-    addedTimer.current = window.setTimeout(() => setJustAdded(false), 2400);
+    if (statusTimer.current) window.clearTimeout(statusTimer.current);
+    setStatus("adding");
+    statusTimer.current = window.setTimeout(() => {
+      addVariant(product, selectedVariant, quantity);
+      setStatus("added");
+      setQuantity(1);
+      statusTimer.current = window.setTimeout(() => setStatus("idle"), 1500);
+    }, 250);
   }
-
-  // A single-line order, built the same way a cart line is — reused rather
-  // than re-invented — for the "skip the bag" WhatsApp path. Same gate as
-  // "Add to bag": no size, no message to send.
-  const whatsAppHref = selectedVariant
-    ? shopWhatsAppUrl(
-        buildOrderMessage({
-          lines: [lineFromVariant(product, selectedVariant, quantity)],
-          totals: calculateTotals([
-            lineFromVariant(product, selectedVariant, quantity),
-          ]),
-        }),
-      )
-    : null;
 
   return (
     <div>
@@ -99,9 +102,17 @@ export function AddToCart({ product }: { product: Product }) {
         </span>
       </div>
 
-      <ul
+      <m.ul
         className="mt-4 flex flex-wrap gap-2"
         aria-labelledby="size-picker-label"
+        // Shakes once when a click lands with no size picked — the loud
+        // version of the defensive check below (client brief, 2026-08-25).
+        animate={
+          attempted && !selectedVariant && !reducedMotion
+            ? { x: [0, -6, 6, -4, 4, 0] }
+            : { x: 0 }
+        }
+        transition={{ duration: 0.4 }}
       >
         {variants.map((variant) => {
           const available = variant.stockOnHand > 0;
@@ -139,13 +150,19 @@ export function AddToCart({ product }: { product: Product }) {
             </li>
           );
         })}
-      </ul>
+      </m.ul>
 
-      <p className="label mt-4 text-charcoal" role="status">
+      <p
+        className={cn(
+          "label mt-4",
+          attempted && !selectedVariant ? "font-semibold text-purple-700" : "text-charcoal",
+        )}
+        role="status"
+      >
         {!anyStock
           ? "Cut through — join the waitlist"
           : attempted && !selectedVariant
-            ? "Pick a size first"
+            ? "Please select a size first"
             : selectedVariant
               ? atCeiling
                 ? `All ${selectedVariant.stockOnHand} on the rail are in your bag`
@@ -167,48 +184,49 @@ export function AddToCart({ product }: { product: Product }) {
 
       <div className="mt-6 space-y-3">
         {anyStock ? (
-          <>
-            <ShimmerAction
-              type="button"
-              onClick={handleAdd}
-              disabled={atCeiling}
-              className="min-h-[56px] w-full py-4"
-            >
-              <BagGlyph filled={justAdded} />
-              {atCeiling
-                ? "All of it is in your bag"
-                : justAdded
-                  ? "Added to bag"
-                  : "Add to bag"}
-            </ShimmerAction>
-
-            {whatsAppHref ? (
-              <a
-                href={whatsAppHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="label inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full border border-hairline px-6 py-4 text-ink transition-colors duration-200 ease-state hover:border-purple-500 hover:text-purple-500"
-              >
-                {/* `--success` is the one deliberate reuse of a green token
-                    for a WhatsApp glyph specifically — SKILL.md §2 reserves
-                    it for confirmation states and rules out "success
-                    buttons"; the button itself stays ink/hairline/ghost,
-                    only the icon carries the colour, as a channel mark
-                    rather than a state. */}
-                <Phone aria-hidden="true" strokeWidth={1.5} className="h-4 w-4 text-success" />
-                Send via WhatsApp
-              </a>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setAttempted(true)}
-                className="label inline-flex min-h-[56px] w-full items-center justify-center gap-2 rounded-full border border-hairline px-6 py-4 text-ink transition-colors duration-200 ease-state hover:border-purple-500 hover:text-purple-500"
-              >
-                <Phone aria-hidden="true" strokeWidth={1.5} className="h-4 w-4 text-success" />
-                Send via WhatsApp
-              </button>
-            )}
-          </>
+          <ShimmerAction
+            type="button"
+            onClick={handleAdd}
+            disabled={atCeiling || status === "adding"}
+            className="min-h-[56px] w-full py-4"
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {status === "adding" ? (
+                <m.span
+                  key="adding"
+                  className="inline-flex items-center gap-2"
+                  initial={reducedMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={reducedMotion ? undefined : { opacity: 0 }}
+                >
+                  <Loader2 aria-hidden="true" strokeWidth={1.5} className="h-4 w-4 animate-spin" />
+                  Adding…
+                </m.span>
+              ) : status === "added" ? (
+                <m.span
+                  key="added"
+                  className="inline-flex items-center gap-2"
+                  initial={reducedMotion ? false : { opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={reducedMotion ? undefined : { opacity: 0 }}
+                >
+                  <Check aria-hidden="true" strokeWidth={1.5} className="h-4 w-4" />
+                  Added to bag
+                </m.span>
+              ) : (
+                <m.span
+                  key="idle"
+                  className="inline-flex items-center gap-2"
+                  initial={reducedMotion ? false : { opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={reducedMotion ? undefined : { opacity: 0 }}
+                >
+                  <BagGlyph filled={false} />
+                  {atCeiling ? "All of it is in your bag" : "Add to bag"}
+                </m.span>
+              )}
+            </AnimatePresence>
+          </ShimmerAction>
         ) : (
           <a
             href="/#stockists"

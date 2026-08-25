@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/ui/wordmark";
-import { NavShrink } from "@/components/ui/nav-shrink";
+import { NavFrame } from "./nav-frame";
 import { NavLinks } from "./nav-links";
 import { MobileNav } from "./mobile-nav";
 import { CartButton } from "@/components/cart/cart-button";
@@ -11,45 +11,51 @@ import { SearchBar } from "@/components/search/search-bar";
 /**
  * Paper nav, hairline bottom border, mono links. The hover state is the ring
  * motif at its quietest: a hairline purple rule sewn under the label.
+ *
+ * The row's own scroll-shrink and mount-in choreography live in `NavFrame` —
+ * see that file for why `--nav-h` itself is untouched.
  */
 export function SiteNav() {
   return (
     <header className="nav-frost sticky top-0 z-50 border-b border-hairline bg-paper">
-      <nav
-        aria-label="Primary"
-        className="mx-auto flex h-[var(--nav-h)] max-w-shell items-center justify-between px-6 lg:px-10"
-      >
-        <Link
-          href="/"
-          className="flex items-center rounded-full py-2 pr-2"
-          aria-label="Levenon — home"
-        >
-          <NavShrink>
-            <Wordmark />
-          </NavShrink>
-        </Link>
-
-        {/*
-          `gap-6` at `md`, opening to `gap-10` at `lg`: at exactly 768px the
-          four centre links plus the full right cluster (search, wishlist,
-          bag, theme toggle) measured wider than the viewport — a real
-          overflow (`right=849` against 768), not a hypothetical one. `lg`
-          already had the room to spare, so only the crowded `md`–`lg` range
-          needed tightening.
-        */}
-        <NavLinks />
-
-        {/* Right cluster order is explicit: Search, Wishlist, Bag, then the
-            theme toggle last — a later brief's specific ordering, swapped
-            from the previous pass's toggle-first arrangement. */}
-        <div className="flex items-center gap-1 sm:gap-4 md:gap-3 lg:gap-6">
-          <SearchBar />
-          <WishlistButton />
-          <CartButton />
-          <ThemeToggle />
-          <MobileNav />
-        </div>
-      </nav>
+      <NavFrame
+        logo={
+          <Link
+            href="/"
+            className="flex items-center rounded-full py-2 pr-2"
+            aria-label="Levenon — home"
+          >
+            {/* ~20px tall (client brief, 2026-08-25) — this is the supplied
+                logo artwork, not type, so "Manrope 800" doesn't apply to it;
+                see Wordmark's own doc comment for why it stays a raster
+                asset rather than being redrawn as text. */}
+            <Wordmark className="text-[1.1rem]" />
+          </Link>
+        }
+        links={
+          /*
+            `gap-6` at `md`, opening to `gap-10` at `lg`: at exactly 768px the
+            four centre links plus the full right cluster (search, wishlist,
+            bag, theme toggle) measured wider than the viewport — a real
+            overflow (`right=849` against 768), not a hypothetical one. `lg`
+            already had the room to spare, so only the crowded `md`–`lg` range
+            needed tightening.
+          */
+          <NavLinks />
+        }
+        actions={
+          /* Right cluster order is explicit: Search, Wishlist, Bag, then the
+              theme toggle last — a later brief's specific ordering, swapped
+              from the previous pass's toggle-first arrangement. */
+          <>
+            <SearchBar />
+            <WishlistButton />
+            <CartButton />
+            <ThemeToggle />
+            <MobileNav />
+          </>
+        }
+      />
     </header>
   );
 }

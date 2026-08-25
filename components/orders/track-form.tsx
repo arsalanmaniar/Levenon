@@ -1,16 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState } from "react";
 import { ShimmerAction } from "@/components/ui/shimmer-button";
 import { OrderTimeline } from "@/components/orders/order-timeline";
-import { ORDER_TRACKING_MESSAGE, shopWhatsAppUrl } from "@/lib/whatsapp";
 import { formatMinor } from "@/lib/cart/types";
-import {
-  formatOrderDate,
-  isPakistaniMobile,
-  lookupOrders,
-} from "@/lib/orders/orders-data";
-import type { Order } from "@/lib/orders/orders-data";
+import type { StoredOrder } from "@/lib/orders/order-types";
+import { formatOrderDate, isPakistaniMobile } from "@/lib/orders/orders-data";
 import { cn } from "@/lib/cn";
 
 /*
@@ -19,6 +15,7 @@ import { cn } from "@/lib/cn";
  */
 const EMPTY_MESSAGE = "Enter the number you ordered from";
 const MALFORMED_MESSAGE = "Pakistani mobiles only — 03XX XXXXXXX or +92 3XX XXXXXXX";
+const ERROR_MESSAGE = "Couldn't reach the order book — try again in a moment";
 /*
  * The idle hint carries the accepted formats, not another restatement of what
  * the field is for. The heading, the intro sentence and the label already said
@@ -26,9 +23,6 @@ const MALFORMED_MESSAGE = "Pakistani mobiles only — 03XX XXXXXXX or +92 3XX XX
  * thing a reader cannot guess.
  */
 const HINT_MESSAGE = "03XX XXXXXXX or +92 3XX XXXXXXX";
-
-// The tracking opener lives in `lib/whatsapp.ts` with every other pre-filled
-// message, so the shop's voice stays consistent across entry points.
 
 /** The ring from the wordmark's "e" — same construction as the empty bag. */
 function Ring() {
@@ -53,16 +47,8 @@ function Ring() {
   );
 }
 
-/**
- * Nothing came back.
- *
- * The copy does not say the order does not exist, because that is not what we
- * know — the lookup is a stub and no real order table has been asked. It says
- * we cannot trace it here yet and hands the reader to a human on WhatsApp.
- */
+/** Nothing came back for this number. */
 function NoOrders() {
-  const href = shopWhatsAppUrl(ORDER_TRACKING_MESSAGE);
-
   return (
     <div className="mt-12 border border-hairline px-6 py-12 text-center md:px-10 md:py-16">
       <div className="flex justify-center">
@@ -71,70 +57,59 @@ function NoOrders() {
 
       <p className="label mt-8 text-charcoal">Nothing to show</p>
       <h2 className="mx-auto mt-4 max-w-[24ch] font-display text-2xl font-extrabold leading-[1.05] tracking-[-0.02em]">
-        We cannot trace this number here yet
+        No orders on this number yet
       </h2>
       <p className="mx-auto mt-4 max-w-[46ch] text-sm leading-relaxed text-charcoal">
-        Tracking is not connected to the shop&rsquo;s order book, so an order
-        placed from this number will not appear on this page. That is a gap on
-        our side, not a missing order. Send the number on WhatsApp and it gets
-        traced by hand.
+        Every order placed at checkout is findable here the moment it&rsquo;s
+        placed — if you&rsquo;ve just ordered, the confirmation page you
+        landed on also has this number on it.
       </p>
 
-      {href ? (
-        <a
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="label mt-8 inline-flex min-h-[48px] items-center rounded-full bg-ink px-6 text-paper transition-colors duration-200 ease-state hover:bg-purple-700"
-        >
-          Ask on WhatsApp
-          <span className="sr-only">— opens WhatsApp in a new tab</span>
-        </a>
-      ) : (
-        <p className="mx-auto mt-8 max-w-[46ch] text-sm leading-relaxed text-charcoal">
-          No shop WhatsApp number is configured, so there is no link to give
-          you. Set{" "}
-          <code className="font-mono text-ink">NEXT_PUBLIC_WHATSAPP_NUMBER</code>{" "}
-          to a full international number and rebuild.
-        </p>
-      )}
+      <Link
+        href="/#collection"
+        className="label mt-8 inline-flex min-h-[48px] items-center rounded-full bg-ink px-6 text-paper transition-colors duration-200 ease-state hover:bg-purple-700"
+      >
+        Shop Collection
+      </Link>
     </div>
   );
 }
 
-function OrderCard({ order }: { order: Order }) {
+function OrderCard({ order }: { order: StoredOrder }) {
   return (
     <li className="border border-hairline p-6 md:p-8">
       <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
         <h3 className="font-display text-xl font-extrabold tracking-[-0.02em]">
-          {order.id}
+          <Link href={`/order/${order.id}`} className="hover:text-purple-500">
+            Order {order.id.slice(0, 8)}
+          </Link>
         </h3>
-        <p className="label text-charcoal">
-          Placed {formatOrderDate(order.placedAt)}
-        </p>
+        <p className="label text-charcoal">Placed {formatOrderDate(order.createdAt)}</p>
       </div>
 
-      <p className="label mt-3 text-purple-500">Status — {order.status}</p>
+      <p className="label mt-3 text-purple-500">
+        Status — {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+      </p>
 
       <div className="mt-8 grid gap-10 md:grid-cols-2 md:gap-12">
         <OrderTimeline status={order.status} orderId={order.id} className="mt-0" />
 
         <div>
           <ul className="divide-y divide-hairline border-y border-hairline">
-            {order.lines.map((line) => (
+            {order.items.map((item) => (
               <li
-                key={`${order.id}-${line.name}`}
+                key={item.variantSku}
                 className="flex items-baseline justify-between gap-6 py-4"
               >
                 <div className="min-w-0">
-                  <p className="text-sm leading-relaxed text-ink">{line.name}</p>
+                  <p className="text-sm leading-relaxed text-ink">{item.name}</p>
                   <p className="label mt-2 text-charcoal">
-                    {line.size} · {line.quantity} ×{" "}
-                    {formatMinor(line.unitPriceMinor, order.currency)}
+                    {item.size} · {item.quantity} ×{" "}
+                    {formatMinor(item.unitPriceMinor, order.currency)}
                   </p>
                 </div>
                 <span className="label whitespace-nowrap text-ink">
-                  {formatMinor(line.unitPriceMinor * line.quantity, order.currency)}
+                  {formatMinor(item.unitPriceMinor * item.quantity, order.currency)}
                 </span>
               </li>
             ))}
@@ -146,6 +121,13 @@ function OrderCard({ order }: { order: Order }) {
               {formatMinor(order.totalMinor, order.currency)}
             </span>
           </div>
+
+          <Link
+            href={`/order/${order.id}`}
+            className="label mt-6 inline-flex min-h-[44px] items-center text-ink transition-colors duration-200 ease-state hover:text-purple-500"
+          >
+            View full order →
+          </Link>
         </div>
       </div>
     </li>
@@ -155,9 +137,10 @@ function OrderCard({ order }: { order: Order }) {
 /**
  * The tracking form and its results.
  *
- * One field, because one field is all the lookup takes today. Submission is
- * synchronous against the stub in `lib/orders/orders-data.ts`; when that
- * becomes a server call, only the handler below changes.
+ * One field, because one field is all the lookup takes. Submission fetches
+ * `GET /api/orders?phone=` (client brief, 2026-08-25) — the fixture stub this
+ * used to call against was retired the same pass; see
+ * `lib/orders/order-store.ts` for what backs the real lookup now.
  *
  * The line under the field is the single status channel — hint, validation
  * error and result count all land there, it is always in the DOM, and it is
@@ -171,9 +154,10 @@ export function TrackForm() {
 
   const [value, setValue] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [results, setResults] = useState<Order[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<StoredOrder[] | null>(null);
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const phone = value.trim();
 
@@ -192,7 +176,18 @@ export function TrackForm() {
     }
 
     setError(null);
-    setResults(lookupOrders(phone));
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/orders?phone=${encodeURIComponent(phone)}`);
+      if (!response.ok) throw new Error(String(response.status));
+      const data = (await response.json()) as { orders: StoredOrder[] };
+      setResults(data.orders);
+    } catch {
+      setError(ERROR_MESSAGE);
+      setResults(null);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const summary =
@@ -206,7 +201,7 @@ export function TrackForm() {
     <div className="mt-12">
       <form noValidate onSubmit={handleSubmit} className="max-w-[34rem]">
         <label htmlFor={inputId} className="label block text-charcoal">
-          WhatsApp number
+          Phone number
         </label>
 
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
@@ -236,8 +231,8 @@ export function TrackForm() {
             )}
           />
 
-          <ShimmerAction type="submit" className="shrink-0">
-            Find my orders
+          <ShimmerAction type="submit" disabled={loading} className="shrink-0">
+            {loading ? "Searching…" : "Find my orders"}
           </ShimmerAction>
         </div>
 

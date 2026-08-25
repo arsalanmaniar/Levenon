@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { m } from "framer-motion";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
 
 type Tone = "solid" | "outline" | "solid-invert" | "outline-invert";
@@ -48,10 +52,14 @@ type ThreadButtonProps = {
  * screenshot review, not by reading the class list. Seven units still reads as
  * a considered, roomy pill; eight did not fit the layout it sits in.
  */
+// `duration-[250ms]`, not the shared `duration-200`, on the colour/border
+// transition specifically (client brief, 2026-08-25: "0.25s" for the ghost
+// button's fill and border transition). Press feedback moved off
+// `active:scale-[0.98]` onto Framer's `whileTap` below, same reasoning as
+// `ShimmerButton`.
 const base =
   "group label inline-flex min-h-[48px] items-center justify-center gap-2 rounded-full px-7 " +
-  "transition-[color,background-color,border-color,transform] duration-200 ease-state " +
-  "active:scale-[0.98] motion-reduce:active:scale-100";
+  "transition-[color,background-color,border-color] duration-[250ms] ease-state";
 
 const tones: Record<Tone, string> = {
   solid: "bg-ink text-paper hover:bg-purple-700",
@@ -61,6 +69,8 @@ const tones: Record<Tone, string> = {
   "outline-invert":
     "border border-paper/25 text-paper hover:border-paper hover:bg-paper hover:text-ink",
 };
+
+const MotionLink = m(Link);
 
 /**
  * The only button shape on the site: a pill, because the pill echoes the ring.
@@ -74,8 +84,17 @@ export function ThreadButton({
   className,
   icon = false,
 }: ThreadButtonProps) {
+  const reducedMotion = usePrefersReducedMotion();
+
   return (
-    <Link href={href} scroll={scroll} className={cn(base, tones[tone], className)}>
+    <MotionLink
+      href={href}
+      scroll={scroll}
+      className={cn(base, tones[tone], className)}
+      whileHover={reducedMotion ? undefined : { scale: 1.02 }}
+      whileTap={reducedMotion ? undefined : { scale: 0.97 }}
+      transition={{ duration: 0.2 }}
+    >
       {children}
       {icon && (
         <ArrowRight
@@ -84,6 +103,6 @@ export function ThreadButton({
           className="h-4 w-4 transition-transform duration-200 ease-state group-hover:translate-x-0.5"
         />
       )}
-    </Link>
+    </MotionLink>
   );
 }

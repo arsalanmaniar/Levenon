@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { m } from "framer-motion";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
 
 /**
@@ -12,6 +16,12 @@ import { cn } from "@/lib/cn";
  * and it inherits the reduced-motion floor in globals.css for free.
  *
  * Tones mirror ThreadButton so the two can sit side by side without a seam.
+ *
+ * Press/hover feedback (client brief, 2026-08-25): `whileHover`/`whileTap`,
+ * not the earlier `active:scale-[0.98]` CSS pseudo-class — a literal,
+ * site-wide instruction to move every primary button's physical feedback
+ * onto Framer Motion. Gated behind `usePrefersReducedMotion`, same as every
+ * other animation in this codebase.
  */
 type Tone = "solid" | "outline" | "solid-invert";
 
@@ -21,8 +31,7 @@ type Tone = "solid" | "outline" | "solid-invert";
 const base =
   "group relative isolate inline-flex min-h-[48px] items-center justify-center gap-2 " +
   "overflow-hidden rounded-full px-7 label " +
-  "transition-[color,background-color,border-color,transform] duration-200 ease-state " +
-  "active:scale-[0.98] motion-reduce:active:scale-100";
+  "transition-[color,background-color,border-color] duration-200 ease-state";
 
 const tones: Record<Tone, string> = {
   solid: "bg-ink text-paper hover:bg-purple-700",
@@ -30,6 +39,8 @@ const tones: Record<Tone, string> = {
     "border border-hairline text-ink hover:border-purple-500 hover:text-purple-500",
   "solid-invert": "bg-paper text-ink hover:bg-purple-300",
 };
+
+const MotionLink = m(Link);
 
 /** The sweep itself. Sits above the fill, below the label. */
 function Sheen({ tone }: { tone: Tone }) {
@@ -65,8 +76,17 @@ export function ShimmerButton({
   scroll?: boolean;
   icon?: boolean;
 }) {
+  const reducedMotion = usePrefersReducedMotion();
+
   return (
-    <Link href={href} scroll={scroll} className={cn(base, tones[tone], className)}>
+    <MotionLink
+      href={href}
+      scroll={scroll}
+      className={cn(base, tones[tone], className)}
+      whileHover={reducedMotion ? undefined : { scale: 1.02 }}
+      whileTap={reducedMotion ? undefined : { scale: 0.97 }}
+      transition={{ duration: 0.2 }}
+    >
       <Sheen tone={tone} />
       {children}
       {icon && (
@@ -76,9 +96,18 @@ export function ShimmerButton({
           className="h-4 w-4 transition-transform duration-200 ease-state group-hover:translate-x-0.5"
         />
       )}
-    </Link>
+    </MotionLink>
   );
 }
+
+// Framer Motion redefines these DOM event handlers with its own signatures
+// (an `AnimationDefinition`, not a DOM `AnimationEvent`) — omitted from the
+// spread type below so a native handler can never be passed where Framer's
+// is expected. Nothing in this codebase currently passes any of them.
+type NativeButtonProps = Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "onAnimationStart" | "onAnimationEnd" | "onAnimationIteration" | "onDrag" | "onDragStart" | "onDragEnd"
+>;
 
 /** Same treatment for real buttons (add to bag, filter apply). */
 export function ShimmerAction({
@@ -90,9 +119,11 @@ export function ShimmerAction({
   children: React.ReactNode;
   tone?: Tone;
   className?: string;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+} & NativeButtonProps) {
+  const reducedMotion = usePrefersReducedMotion();
+
   return (
-    <button
+    <m.button
       {...props}
       className={cn(
         base,
@@ -100,10 +131,13 @@ export function ShimmerAction({
         "disabled:cursor-not-allowed disabled:bg-charcoal/30 disabled:hover:bg-charcoal/30",
         className,
       )}
+      whileHover={reducedMotion || props.disabled ? undefined : { scale: 1.02 }}
+      whileTap={reducedMotion || props.disabled ? undefined : { scale: 0.97 }}
+      transition={{ duration: 0.2 }}
     >
       {/* No sheen while disabled — a shimmering dead button reads as broken. */}
       {!props.disabled && <Sheen tone={tone} />}
       {children}
-    </button>
+    </m.button>
   );
 }

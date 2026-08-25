@@ -282,10 +282,10 @@ Two consequences that follow from this and must not be re-broken by a future cha
 - **Durations:** micro-interactions 150–250ms, reveals 600–900ms, sculpture idle rotation
   is continuous and slow (a full turn measured in tens of seconds, never seconds).
 - **Reveals:** text and cards enter with a small translate-up (16–24px) + fade. Never scale-in,
-  never blur-in, never slide from off-screen sides. **Narrow, disclosed exception (2026-08-23):**
-  the atelier/signature section's copy column slides in from the right (`Reveal`'s `from="right"`
-  direction) on `whileInView`, per an explicit brief. Scoped to that one section — every other
-  `Reveal` on the site still only rises and fades.
+  never blur-in, never slide from off-screen sides. The atelier/signature section's copy column
+  briefly carried a scoped exception (2026-08-23) sliding in from the right instead; a later brief
+  (2026-08-25) retired it in favour of the standard rise-and-fade, so `Reveal`'s `from="right"`
+  direction is currently unused sitewide but kept on the component for any future scoped need.
 - **Card tilt:** max ±8° rotation, damped/eased toward the pointer, returns to rest on leave.
   Real perspective (`transform-style: preserve-3d`), not a flat CSS shadow fake.
 - **`prefers-reduced-motion: reduce` is non-negotiable.** Under it: no parallax, no scroll-linked

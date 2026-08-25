@@ -1,10 +1,5 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/ui/wordmark";
-import {
-  shopWhatsAppUrl,
-  SUPPORT_MESSAGE,
-  WHATSAPP_ARIA_LABEL,
-} from "@/lib/whatsapp";
 
 /**
  * Footer columns.
@@ -53,10 +48,6 @@ const columns = [
       { href: "/shipping", label: "Shipping" },
       { href: "/returns", label: "Returns" },
       { href: "/contact", label: "Contact" },
-      // Resolved at render (see `whatsAppHref` below) rather than stored here,
-      // because it is an external link with a pre-filled message and must
-      // disappear entirely if no number is configured.
-      { href: null, label: "WhatsApp" },
     ],
   },
   {
@@ -70,8 +61,6 @@ const columns = [
 ];
 
 export function SiteFooter() {
-  const whatsAppHref = shopWhatsAppUrl(SUPPORT_MESSAGE);
-
   return (
     <footer
       id="stockists"
@@ -97,29 +86,10 @@ export function SiteFooter() {
               <div key={column.title}>
                 <h2 className="label text-charcoal">{column.title}</h2>
                 <ul className="mt-5 space-y-0.5">
-                  {column.links.map((link) => {
-                    /*
-                       A null `href` marks the WhatsApp row, which is external,
-                       carries a pre-filled message, and is dropped entirely
-                       when no number is configured — the same rule every other
-                       WhatsApp entry point follows.
-                    */
-                    const isWhatsApp = link.href === null;
-                    if (isWhatsApp && !whatsAppHref) return null;
-                    const Tag = isWhatsApp ? "a" : Link;
-                    const linkProps = isWhatsApp
-                      ? {
-                          href: whatsAppHref as string,
-                          target: "_blank",
-                          rel: "noopener noreferrer",
-                          "aria-label": `${WHATSAPP_ARIA_LABEL} — opens in a new tab`,
-                        }
-                      : { href: link.href as string };
-
-                    return (
+                  {column.links.map((link) => (
                     <li key={link.label}>
-                      <Tag
-                        {...linkProps}
+                      <Link
+                        href={link.href}
                         className="group inline-flex min-h-[40px] items-center text-sm text-ink transition-colors duration-200 ease-state hover:text-purple-500"
                       >
                         <span className="relative">
@@ -130,10 +100,9 @@ export function SiteFooter() {
                               plain link list. */}
                           <span className="absolute -bottom-0.5 left-0 h-px w-full origin-left scale-x-0 bg-purple-500 transition-transform duration-300 ease-enter group-hover:scale-x-100" />
                         </span>
-                      </Tag>
+                      </Link>
                     </li>
-                    );
-                  })}
+                  ))}
                 </ul>
               </div>
             ))}

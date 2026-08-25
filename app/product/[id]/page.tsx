@@ -14,7 +14,6 @@ import { StitchDivider } from "@/components/ui/stitch-divider";
 import { AddToCart } from "@/components/cart/add-to-cart";
 import { MobileAddBar } from "@/components/cart/mobile-add-bar";
 import { SizeGuide } from "@/components/products/size-guide";
-import { ProductEnquiryLink } from "@/components/products/product-enquiry-link";
 import { RecentlyViewedStrip } from "@/components/recently-viewed/recently-viewed-strip";
 import { WishlistHeart } from "@/components/wishlist/wishlist-heart";
 import { StarRating } from "@/components/reviews/stars";
@@ -207,21 +206,8 @@ export default async function ProductPage({ params }: Params) {
               <Reveal delay={0.12}>
                 <div id="add-to-cart" className="mt-8 scroll-mt-[calc(var(--nav-h)+1rem)]">
                   <AddToCart product={product} />
-                  {/*
-                    Sits with the size selector, where the question is asked.
-
-                    The WhatsApp enquiry link is deliberately quiet text beside
-                    the size guide rather than a third button: `AddToCart`
-                    already renders a full-width "Send via WhatsApp", but that
-                    one *places an order*. This one asks a question about the
-                    piece, which is a different intent and belongs at a
-                    different weight — two identical-looking WhatsApp buttons
-                    stacked would make the shopper choose between things they
-                    cannot tell apart.
-                  */}
                   <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
                     <SizeGuide />
-                    <ProductEnquiryLink productName={product.name} />
                   </div>
                 </div>
               </Reveal>
@@ -279,11 +265,12 @@ export default async function ProductPage({ params }: Params) {
                         content: (
                           <div className="space-y-4">
                             <p>
-                              Orders are confirmed over WhatsApp once you check
-                              out — that is also where dispatch time and courier
-                              charges for your city are agreed, since they vary
-                              across Pakistan and this is a small-run shop, not a
-                              courier network with a fixed table.
+                              Every order gets a confirmation page and a status
+                              you can check any time — dispatch time and
+                              courier charges for your city are confirmed
+                              there, since they vary across Pakistan and this
+                              is a small-run shop, not a courier network with
+                              a fixed table.
                             </p>
                             <p>
                               Full detail on{" "}
