@@ -44,7 +44,7 @@ export default function AtelierPage() {
           <h1 className="mt-5 font-display text-balance text-[clamp(2.5rem,6vw,4rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
             The Atelier — Coming Soon
           </h1>
-          <p className="mt-6 max-w-[46ch] text-lg leading-relaxed text-charcoal">
+          <p className="mt-6 max-w-[46ch] text-body leading-relaxed text-charcoal">
             The full story of how each piece is cut is still being written.
             In the meantime, the collection speaks for itself.
           </p>

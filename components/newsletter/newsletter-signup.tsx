@@ -27,7 +27,7 @@ export function NewsletterSignup() {
             <p className="label text-charcoal">The list</p>
             <h2
               id="newsletter-title"
-              className="mt-4 font-display text-balance text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]"
+              className="mt-4 font-display text-balance text-h2 font-extrabold leading-[1.02] tracking-[-0.03em]"
             >
               Know when the next run is cut.
             </h2>

@@ -104,7 +104,7 @@ export function CheckoutModal({
   if (step === "success" && orderId && confirmed) {
     return (
       <div>
-        <p className="text-sm leading-relaxed text-charcoal">
+        <p className="text-body leading-relaxed text-charcoal">
           Order placed — {formatMinor(confirmed.totalMinor, confirmed.currency)}. A
           confirmation is waiting at the link below.
         </p>
@@ -114,7 +114,7 @@ export function CheckoutModal({
             <BankTransferDetails />
           </div>
         ) : (
-          <p className="mt-6 border border-dashed border-hairline p-4 text-sm leading-relaxed text-charcoal">
+          <p className="mt-6 border border-dashed border-hairline p-4 text-body leading-relaxed text-charcoal">
             Card payment is coming soon. Your order is recorded and marked{" "}
             <span className="text-ink">pending</span> — we will be in touch to
             confirm payment.

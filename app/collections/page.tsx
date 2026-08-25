@@ -41,7 +41,7 @@ export default async function CollectionsPage() {
           <h1 className="mt-5 max-w-[20ch] text-balance font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
             Collections
           </h1>
-          <p className="mt-6 max-w-measure text-lg leading-relaxed text-charcoal">
+          <p className="mt-6 max-w-measure text-body leading-relaxed text-charcoal">
             Six cloths, cut in small runs. Pick one to see everything on the
             rail in it.
           </p>
@@ -72,7 +72,7 @@ export default async function CollectionsPage() {
                     <p className="label text-paper/70">
                       {category.tagline ?? "Levenon"}
                     </p>
-                    <h2 className="mt-2 font-display text-2xl font-extrabold tracking-[-0.02em] text-paper">
+                    <h2 className="mt-2 font-display text-h3 font-extrabold tracking-[-0.02em] text-paper">
                       {category.name}
                     </h2>
                     <span className="label mt-3 inline-flex items-center gap-2 text-paper/80 transition-colors duration-200 ease-state group-hover:text-purple-300">

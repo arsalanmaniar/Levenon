@@ -59,7 +59,7 @@ function NoOrders() {
       <h2 className="mx-auto mt-4 max-w-[24ch] font-display text-2xl font-extrabold leading-[1.05] tracking-[-0.02em]">
         No orders on this number yet
       </h2>
-      <p className="mx-auto mt-4 max-w-[46ch] text-sm leading-relaxed text-charcoal">
+      <p className="mx-auto mt-4 max-w-[46ch] text-body leading-relaxed text-charcoal">
         Every order placed at checkout is findable here the moment it&rsquo;s
         placed — if you&rsquo;ve just ordered, the confirmation page you
         landed on also has this number on it.
@@ -79,7 +79,7 @@ function OrderCard({ order }: { order: StoredOrder }) {
   return (
     <li className="border border-hairline p-6 md:p-8">
       <div className="flex flex-wrap items-baseline justify-between gap-x-8 gap-y-2">
-        <h3 className="font-display text-xl font-extrabold tracking-[-0.02em]">
+        <h3 className="font-display text-h3 font-extrabold tracking-[-0.02em]">
           <Link href={`/order/${order.id}`} className="hover:text-purple-500">
             Order {order.id.slice(0, 8)}
           </Link>
@@ -117,7 +117,7 @@ function OrderCard({ order }: { order: StoredOrder }) {
 
           <div className="mt-6 flex items-baseline justify-between gap-6">
             <span className="label text-charcoal">Total</span>
-            <span className="font-display text-xl font-extrabold tracking-[-0.02em]">
+            <span className="font-display text-h3 font-extrabold tracking-[-0.02em]">
               {formatMinor(order.totalMinor, order.currency)}
             </span>
           </div>

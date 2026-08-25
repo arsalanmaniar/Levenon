@@ -74,7 +74,7 @@ export function PdpAccordion({ sections }: { sections: AccordionSection[] }) {
                   transition={{ duration: reducedMotion ? 0 : 0.35, ease: EASE }}
                   className="overflow-hidden"
                 >
-                  <div className="max-w-measure pb-6 text-sm leading-relaxed text-charcoal">
+                  <div className="max-w-measure pb-6 text-body leading-relaxed text-charcoal">
                     {section.content}
                   </div>
                 </m.div>

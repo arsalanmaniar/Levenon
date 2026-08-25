@@ -40,7 +40,7 @@ export function WishlistContents() {
         </svg>
 
         <p className="label mt-8 text-charcoal">Nothing saved yet</p>
-        <p className="mt-4 max-w-[36ch] text-sm leading-relaxed text-charcoal">
+        <p className="mt-4 max-w-[36ch] text-body leading-relaxed text-charcoal">
           Save a piece from the collection and it waits here for the session.
         </p>
 
@@ -92,16 +92,16 @@ export function WishlistContents() {
                 </div>
 
                 <div className="mt-4 flex items-baseline justify-between gap-4">
-                  <h2 className="font-display text-lg font-extrabold tracking-[-0.02em]">
+                  <h2 className="font-display text-card-name font-extrabold tracking-[-0.02em]">
                     {product.name}
                   </h2>
-                  <span className="font-display text-base font-semibold tracking-tight text-purple-500 whitespace-nowrap">
+                  <span className="font-display text-card-price font-semibold tracking-tight text-purple-500 whitespace-nowrap">
                     {formatPrice(product)}
                   </span>
                 </div>
               </Link>
 
-              <p className="mt-2 max-w-measure text-sm leading-relaxed text-charcoal">
+              <p className="mt-2 max-w-measure text-body leading-relaxed text-charcoal">
                 {product.blurb}
               </p>
 

@@ -4,6 +4,7 @@ import { SiteNav } from "@/components/sections/site-nav";
 import { Hero } from "@/components/sections/hero";
 import { FeaturedProducts } from "@/components/sections/featured-products";
 import { TopSelling } from "@/components/sections/top-selling";
+import { FabricExplorer } from "@/components/sections/fabric-explorer";
 import { ProductGrid } from "@/components/sections/product-grid";
 import { ProductGridFallback } from "@/components/sections/product-grid-fallback";
 import { SignatureSection } from "@/components/sections/signature-section";
@@ -67,6 +68,10 @@ export default function HomePage({
         {/* Top Selling (client brief, 2026-08-24) — between New Arrivals and
             the full collection grid. */}
         <TopSelling />
+
+        {/* Explore by Fabric (client brief, 2026-08-27) — between Top
+            Selling and the full collection grid. */}
+        <FabricExplorer />
 
         <div className="mx-auto max-w-shell px-6 md:px-12 lg:px-20">
           <StitchDivider />

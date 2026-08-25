@@ -97,7 +97,7 @@ export async function Hero() {
           */}
           <h1
             style={{ animationDelay: "150ms" }}
-            className="mt-6 animate-hero-fade-up font-display text-balance text-[clamp(4rem,9vw,6.875rem)] font-extrabold leading-[0.92] tracking-[-3px] motion-reduce:animate-none"
+            className="mt-6 animate-hero-fade-up font-display text-balance text-hero font-extrabold leading-[0.92] tracking-[-3px] motion-reduce:animate-none"
           >
             Unstitched.
             <br />
@@ -110,7 +110,7 @@ export async function Hero() {
             directly under the headline. */}
         <div className="relative z-10 order-3 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-2 lg:self-start lg:pr-8">
           <Reveal delay={0.35}>
-            <p className="mt-7 max-w-measure text-lg leading-relaxed text-charcoal">
+            <p className="mt-7 max-w-measure text-body leading-relaxed text-charcoal">
               Three pieces, uncut — shirt, trouser and dupatta. We choose the
               cloth and set the embroidery; the fit is decided by your own
               tailor, not by us.

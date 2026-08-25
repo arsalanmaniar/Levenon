@@ -63,7 +63,7 @@ function DetailRow({
 export function BankTransferDetails() {
   return (
     <div>
-      <p className="text-sm leading-relaxed text-charcoal">
+      <p className="text-body leading-relaxed text-charcoal">
         Transfer the order total to the account below. Your order status
         updates once the transfer is confirmed — check it any time from
         Track order.

@@ -49,7 +49,7 @@ export function ActiveFilterChips({
             >
               {chip.label}
               <span className="sr-only">— remove filter</span>
-              <span aria-hidden="true" className="text-[13px] leading-none">
+              <span aria-hidden="true" className="text-nav leading-none">
                 &times;
               </span>
             </Link>

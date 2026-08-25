@@ -90,14 +90,14 @@ export function NotifyMe({
           <div className="flex flex-col items-center py-4 text-center">
             <Ring />
             <p className="label mt-6 text-charcoal">We&rsquo;ll let you know</p>
-            <p className="mt-3 max-w-[32ch] text-sm leading-relaxed text-charcoal">
+            <p className="mt-3 max-w-[32ch] text-body leading-relaxed text-charcoal">
               We&rsquo;ll email {email} the moment {productName} is back on
               the rail.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
-            <p className="text-sm leading-relaxed text-charcoal">
+            <p className="text-body leading-relaxed text-charcoal">
               {productName} is cut through. Leave your email and we&rsquo;ll
               tell you the moment it&rsquo;s back.
             </p>

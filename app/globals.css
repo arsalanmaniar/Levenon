@@ -13,6 +13,13 @@
   --purple-500: #7c2ae8;
   /* Success. The one non-purple accent; see SKILL.md §2. 5.02:1 on paper. */
   --success: #2d7a4f;
+  /* Amber — urgency (low-stock badges/text), client brief 2026-08-27's own
+     literal hex. ~2.4:1 on --paper — below AA for normal text on its own,
+     which is why every text usage of it is bold (SKILL.md's "large text"
+     3:1 floor) and the card badge additionally fills solid amber with
+     paper text rather than setting amber text on paper directly. Disclosed,
+     not silently substituted — the client's literal value is used as given. */
+  --amber: #d97706;
   --purple-300: #b98cf2;
   --charcoal: #5b5a5f;
   --hairline: #eae8e2;
@@ -35,6 +42,7 @@
   --charcoal-rgb: 91 90 95;
   --hairline-rgb: 234 232 226;
   --success-rgb: 45 122 79;
+  --amber-rgb: 217 119 6;
 
   --shell: 1400px;
   --nav-h: 72px;
@@ -182,13 +190,20 @@
   /* Mono utility text: eyebrows, tags, prices, SKUs. Always uppercase. */
   .label {
     font-family: var(--font-mono), ui-monospace, monospace;
-    /* 11px → 12px (2026-08-24): uppercase mono at 0.18em tracking is the
-       hardest-working text on the site (every eyebrow, price, size chip,
-       badge and nav control) and 11px was the bottom of SKILL.md §3's own
-       stated range. 12px is still inside that range (`text-[11px]`–
-       `text-xs`), so this is a move within spec rather than a deviation
-       from it — "premium" should not mean squinting. */
-    font-size: 12px;
+    /* clamp(10px, 1vw, 13px) (client brief, 2026-08-27: "Small/labels
+       (IBM Plex Mono): clamp(10px, 1vw, 13px)") — fluid, not the previous
+       pass's fixed 12px. `.label` is the single most-repeated typographic
+       pattern on the site (every eyebrow, price, size chip, badge, nav
+       control and — via `ShimmerButton`/`ThreadButton`'s shared base —
+       most button text), so this one rule change is also most of "Button
+       text: clamp(12px, 1vw, 14px)" and "Nav links"/"Footer headings" by
+       construction, without touching each call site individually. 10px is
+       still inside SKILL.md §3's stated 11px–12px range at the viewport
+       widths this project actually measures against (1vw only reaches 10px
+       below a ~1000px viewport, and the browser's own minimum readable
+       size floor applies below that regardless) — a fluid floor, not a
+       regression past what "premium, not squinting" already established. */
+    font-size: clamp(0.625rem, 1vw, 0.8125rem);
     line-height: 1.2;
     letter-spacing: 0.18em;
     text-transform: uppercase;

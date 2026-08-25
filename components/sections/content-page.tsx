@@ -35,7 +35,7 @@ export function ContentPage({
           <h1 className="mt-5 font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
             {title}
           </h1>
-          <p className="mt-6 text-lg leading-relaxed text-charcoal">{intro}</p>
+          <p className="mt-6 text-body leading-relaxed text-charcoal">{intro}</p>
 
           <div className="mt-12 space-y-10">{children}</div>
         </article>

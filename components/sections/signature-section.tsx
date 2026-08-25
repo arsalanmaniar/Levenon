@@ -1,32 +1,44 @@
 import { ThreadButton } from "@/components/ui/thread-button";
 import { Reveal } from "@/components/ui/reveal";
 import { StitchDivider } from "@/components/ui/stitch-divider";
-import { AtelierAbstract } from "@/components/sections/atelier-abstract";
-import { getCollectionSummary } from "@/lib/server/products";
+import { AtelierSwatchStack } from "@/components/sections/atelier-swatch-stack";
+import { getCollectionSummary, listProducts } from "@/lib/server/products";
+
+// Three fabrics, distinct from the hero collage's own five categories where
+// possible, so the two sections don't repeat photography.
+const SWATCH_CATEGORIES = ["silk", "net", "organza"];
 
 /**
  * The single dark section on the page — the rhythm beat (SKILL.md §6).
  *
- * Roles invert: ink ground, paper type, purple-300 thread. The real textile
- * photograph from the previous pass is now an abstract fabric-fold SVG
- * (client brief, 2026-08-26) — see `atelier-abstract.tsx`.
+ * Roles invert: ink ground, paper type, purple-300 thread. Left side
+ * (client brief, 2026-08-27): a split composition — a large decorative "01",
+ * three real fabric swatches, a mono caption — replacing the previous
+ * pass's abstract SVG. Right side text/stats/CTA is unchanged, per the
+ * brief's own explicit "already built — do not change."
  */
 export async function SignatureSection() {
   const { pieceCount } = await getCollectionSummary();
+  const catalogue = await listProducts();
+  const withPhotos = catalogue.filter((product) => product.images[0]);
+  const swatches = SWATCH_CATEGORIES.map((slug) =>
+    withPhotos.find((product) => product.category.slug === slug),
+  ).filter((product): product is NonNullable<typeof product> => Boolean(product));
+  for (const product of withPhotos) {
+    if (swatches.length >= 3) break;
+    if (!swatches.includes(product)) swatches.push(product);
+  }
 
   return (
     <section
       id="atelier"
       className="dark-section atelier-drift relative scroll-mt-[var(--nav-h)] overflow-hidden bg-ink text-paper"
     >
+      {/* 40/60 split (client brief, 2026-08-27) via the nearest whole
+          columns on the locked 12-column grid — `lg:col-span-5`/`7`. */}
       <div className="mx-auto grid max-w-shell gap-12 px-6 py-24 md:px-12 lg:px-20 md:py-32 lg:grid-cols-12 lg:items-center lg:gap-16">
-        <div className="relative order-2 lg:order-1 lg:col-span-6">
-          {/* 400×500 (client brief) as the aspect ratio + max size, scaling
-              down responsively below that rather than a rigid box that would
-              break on narrow viewports. */}
-          <div className="relative mx-auto aspect-[4/5] w-full max-w-[400px] border border-paper/10 lg:mx-0">
-            <AtelierAbstract />
-          </div>
+        <div className="relative order-2 lg:order-1 lg:col-span-5">
+          <AtelierSwatchStack products={swatches} />
         </div>
 
         {/*
@@ -35,7 +47,7 @@ export async function SignatureSection() {
           the right" scoped exception in favour of the brand's standard
           `Reveal` direction — SKILL.md §7 has been updated to match.
         */}
-        <div className="order-1 lg:order-2 lg:col-span-6 lg:pl-8">
+        <div className="order-1 lg:order-2 lg:col-span-7 lg:pl-8">
           <Reveal>
             <p className="label text-purple-300">Inside the atelier</p>
           </Reveal>

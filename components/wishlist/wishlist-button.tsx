@@ -91,8 +91,8 @@ export function WishlistButton() {
         aria-hidden="true"
         className={
           count > 0
-            ? "grid h-5 w-5 place-items-center rounded-full border border-purple-500 text-[10px] leading-none text-purple-500"
-            : "grid h-5 w-5 place-items-center rounded-full border border-hairline text-[10px] leading-none"
+            ? "grid h-5 w-5 place-items-center rounded-full border border-purple-500 text-[clamp(0.5625rem,0.9vw,0.6875rem)] leading-none text-purple-500"
+            : "grid h-5 w-5 place-items-center rounded-full border border-hairline text-[clamp(0.5625rem,0.9vw,0.6875rem)] leading-none"
         }
       >
         {count}

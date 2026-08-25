@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { useCart } from "@/components/cart/cart-provider";
 import { WishlistHeart } from "@/components/wishlist/wishlist-heart";
+import { LowStockBadge } from "./low-stock-badge";
 import {
   FEATURED_LEAD_IMAGE_SIZES,
   FEATURED_SIDE_IMAGE_SIZES,
@@ -85,6 +86,11 @@ export function QuickAddCard({
           </span>
 
           <WishlistHeart product={product} className="absolute right-4 top-4" />
+
+          <LowStockBadge
+            stockOnHand={product.variants.reduce((sum, variant) => sum + variant.stockOnHand, 0)}
+            className="absolute bottom-4 left-4"
+          />
         </div>
 
         {/* Same stack-then-row treatment as `ProductCard` — see the overflow
@@ -93,12 +99,12 @@ export function QuickAddCard({
           <h3
             className={cn(
               "font-display font-bold tracking-[-0.02em]",
-              large ? "text-xl" : "text-base",
+              large ? "text-h3" : "text-card-name",
             )}
           >
             {product.name}
           </h3>
-          <span className="font-display text-base font-semibold tracking-tight text-purple-500 sm:whitespace-nowrap">
+          <span className="font-display text-card-price font-semibold tracking-tight text-purple-500 sm:whitespace-nowrap">
             {formatPrice(product)}
           </span>
         </div>
@@ -119,7 +125,7 @@ export function QuickAddCard({
             of the `label` above deliberately — a full sentence set in
             uppercase mono at 0.18em tracking is unreadable. */}
         {large && product.blurb ? (
-          <p className="mt-3 max-w-[52ch] text-sm leading-relaxed text-charcoal">
+          <p className="mt-3 max-w-[52ch] text-body leading-relaxed text-charcoal">
             {product.blurb}
           </p>
         ) : null}

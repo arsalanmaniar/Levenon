@@ -15,7 +15,7 @@ export function ProductGridFallback() {
         <div className="flex flex-wrap items-end justify-between gap-6 border-b border-hairline pb-8">
           <div>
             <p className="label text-charcoal">The collection</p>
-            <h2 className="mt-4 font-display text-balance text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
+            <h2 className="mt-4 font-display text-balance text-h2 font-extrabold leading-[1.02] tracking-[-0.03em]">
               This season, in full
             </h2>
           </div>

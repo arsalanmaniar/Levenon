@@ -98,7 +98,7 @@ export function PaymentModal({
             transition={{ duration: reducedMotion ? 0 : 0.3, ease: EASE_IN }}
           >
             <div className="flex items-center justify-between gap-4">
-              <h3 className="font-display text-xl font-extrabold tracking-[-0.02em]">
+              <h3 className="font-display text-h3 font-extrabold tracking-[-0.02em]">
                 {title}
               </h3>
               <button

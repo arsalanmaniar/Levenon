@@ -50,7 +50,7 @@ export async function FeaturedProducts() {
           <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b border-hairline pb-6">
             <div>
               <p className="label text-charcoal">New Arrivals</p>
-              <h2 className="mt-4 font-display text-balance text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
+              <h2 className="mt-4 font-display text-balance text-h2 font-extrabold leading-[1.02] tracking-[-0.03em]">
                 Just landed.
               </h2>
             </div>
@@ -73,7 +73,7 @@ export async function FeaturedProducts() {
         {/* Editorial standfirst — one sentence, set at reading size against
             the measure, not another block of small grey UI text. */}
         <Reveal delay={0.06}>
-          <p className="mt-8 max-w-[46ch] text-lg leading-relaxed text-charcoal">
+          <p className="mt-8 max-w-[46ch] text-body leading-relaxed text-charcoal">
             Six cloths, cut in small runs. These four opened the season — the
             lead piece is where the embroidery is heaviest.
           </p>

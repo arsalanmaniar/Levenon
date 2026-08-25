@@ -313,7 +313,98 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
-#### Nav pages, footer redesign, 5-tile collage, dark/light toggle, new features (2026-08-26, eleventh pass)
+#### Responsive type, footer logo fix, atelier redesign, social icons, live counter, fabric explorer, search history (2026-08-27, twelfth pass)
+
+Eight items from the client's revision brief. `tsc --noEmit` after every change; `next lint` and
+`next build` clean at the end. 120 routes compiled (no new routes this pass); first-load JS: `/`
+153 kB, `/product/[id]` 157 kB, everything else 140–150 kB — all under the 200 kB ceiling. No browser
+was spawned, per the brief's instruction — verified by code inspection, grep and build output only;
+"no horizontal overflow 320→1920" is asserted from reading the changed components' CSS, not a
+rendered screenshot.
+
+**Built:**
+1. Fluid typography: `.label`'s font-size (globals.css) moved from a fixed 12px to
+   `clamp(10px, 1vw, 13px)` — the single highest-leverage change, since `.label` is the most-repeated
+   typographic pattern on the site (every eyebrow, price, badge, and — via `ShimmerButton`/
+   `ThreadButton`'s shared base — most button text). Ten new Tailwind `fontSize` tokens
+   (`hero`/`h2`/`h3`/`body`/`nav`/`card-name`/`card-price`/`footer-heading`/`footer-link`/`btn`,
+   tailwind.config.ts) cover the tiers `.label` doesn't. Swept sitewide via targeted find-and-replace
+   on the repeated fixed-size patterns (Section H2/H3 clamp variants, nav links, card names/prices,
+   footer heading/links, the two dominant body-paragraph patterns) plus every literal `text-[Npx]`
+   arbitrary value found by grep, including two that were introduced by this same pass's own items 4
+   and 7 and caught on the second verification sweep.
+2. Footer logo: root-caused, not just re-skinned. The footer is always `bg-ink`; in light site-theme
+   `[data-theme="dark"]` is absent, so `Wordmark`'s CSS-background swap served the *light* asset (ink
+   text, a purple ring) onto the footer's always-dark background — ink-on-ink, the reported
+   "broken/distorted" logo. `Wordmark` gained a `surface` prop; `surface="dark"` forces the
+   dark-background asset regardless of site theme *and* flattens it to a solid `--paper` silhouette
+   via `filter: brightness(0) invert(1)`, since both raster assets bake a purple ring into their
+   pixels and neither ring colour reads reliably against `--ink` — this is the only way to recolour a
+   flat raster without exporting a second asset. Sized to the brief's clamp(24px, 3vw, 36px).
+3. Search icon: a radial circle now grows in behind it on hover (CSS transition, not a one-shot
+   keyframe, so it also fades back out on hover-end) and stays on at a fixed 32px while the overlay is
+   open; the icon itself morphs Search↔X via `AnimatePresence` (rotate+scale, 0.3s) tied to the
+   overlay's own open state, replacing the plain instant swap.
+4. Atelier left side rebuilt as a split composition: a decorative "01" (Manrope 800, purple-700/20%,
+   `aria-hidden`) fading in first, three real fabric-photo swatches (rounded, purple-500 border,
+   diagonal fan, hover scale + a name tooltip) clipping in staggered — same entrance curve as the hero
+   collage's own tiles — and the mono caption below. Column split moved to `lg:col-span-5`/`7` (the
+   nearest whole columns to 40/60 on the locked 12-column grid). The right side (heading, body, stats,
+   CTA) is byte-for-byte what the previous pass built — the brief's own "already built — do not
+   change" — only its column span changed to make room. The previous pass's abstract-SVG left side is
+   now superseded and was deleted.
+5. Social icons: real inline SVGs with actual brand colours (Instagram's gradient, Facebook's
+   `#1877F2`, TikTok) replace the previous pass's mono hairline glyphs, in a new shared
+   `components/ui/social-icons.tsx` — hover scale(1.2) + a brand-coloured `drop-shadow`, 0.25s. Also
+   now in a new fixed left-edge sidebar (`lg`+ only, mounted once in the root layout, needs no
+   provider context), vertically centred in the viewport, alongside the footer's own instance.
+6. Live product counter: a new `--amber` token (the brief's own literal `#D97706`) backs a pulsing
+   "Only X left" badge (`0 < stockOnHand ≤ 5`) on every product-card surface, filled amber with *ink*
+   text rather than amber text — amber-600 measures ~2.4:1 against both `--paper` and white,
+   regardless of which side of the pair carries the colour, so amber text on a light ground would
+   have shipped genuinely unreadable badges; ink-on-amber is the same principle caution signage uses
+   and actually reads. The PDP gained a new stock line below the size selector (amber + bold at
+   ≤3, a waitlist link at 0) and a "N people viewing this right now" indicator — explicitly fake per
+   the brief's own words, refreshing every 30s with a crossfade number transition.
+7. New `FabricExplorer` section, home page, between Top Selling and the full grid: a `snap-x`
+   horizontal strip of six real-photo category cards linking to `/shop?category=<slug>` — the same
+   filter param `/collections` already uses, not a second filtering path. 1.5 cards visible on mobile
+   via `w-[66.6667vw]` (exactly 1.5 fit the viewport width), the full row from `sm`.
+8. Search overlay: recent searches (last 5, `sessionStorage`, pill tags with a remove `×`, a
+   "Clear all") above a static "Trending searches" row, both shown only in the empty-query state,
+   above the previous pass's own "Search the collection" prompt. A search is saved on Enter (with or
+   without a result highlighted) and on clicking a result — "Enter/click" in the brief's own wording
+   read as covering both submission paths, not only the literal pill click.
+
+**Deviations, disclosed rather than silently resolved:**
+- **Item 1's sweep was not exhaustive.** ~40 scattered `text-sm`/`text-base`/`text-xs` instances in
+  lower-repetition contexts (form microcopy, one-off status text, stat callouts) were left as Tailwind
+  fixed-scale classes — the highest-leverage, most-repeated patterns (everything the brief names by
+  tier) are fluid; a handful of one-off instances in less prominent corners were judged not worth the
+  remaining time against the other seven items still to build. Two genuinely bespoke display sizes
+  (the atelier's "01" and a card price digit) are `text-[clamp(...)]` arbitrary values rather than
+  named tokens, since they don't map to any of the brief's ten named tiers.
+- **Item 4's low-stock badge position ("bottom-left... above 'Unstitched'") was read as establishing
+  the badge's own position, not as an instruction to move "Unstitched" itself.** A recent, explicit,
+  named prior brief moved "Unstitched" to top-left specifically ("top-left, not bottom") for reasons
+  stated at the time; reversing that on an ambiguous phrase in a later, unrelated item risked
+  silently undoing a deliberate decision the badge's own literal position requirement (bottom-left)
+  doesn't actually require reversing.
+- **The sidebar's TikTok icon may read poorly when the atelier or footer sections scroll behind it.**
+  `tone="dark"` (a black icon, correct against the page's ordinary `--paper` background) doesn't
+  adapt when a dark section passes underneath a `position: fixed` sidebar — doing so would need
+  scroll-position tracking against every dark section on the page, judged disproportionate to this
+  one icon's contrast in two specific scroll positions.
+- **Amber's contrast is below WCAG AA for normal text** (`#D97706` is the brief's own literal value,
+  ~2.4:1 against both `--paper` and white). The card badge works around this with ink-on-amber
+  instead of amber-on-paper; the PDP's "N pieces remaining" text is amber as literally asked, bold to
+  claim the 3:1 large-text floor rather than the 4.5:1 normal-text one — disclosed, not silently
+  changed to a different colour.
+- **The "N people viewing this right now" count is explicitly fabricated**, per the brief's own
+  words ("fake but realistic"). Stated here and in the component's own doc comment rather than only
+  in code, since this project's established practice elsewhere (`/contact`, `/returns`) is unusually
+  careful about not inventing real-sounding facts — this one instance is treated as the common,
+  low-stakes exception the brief explicitly asked for, not a silent departure from that practice.
 
 Nine items from the client's revision brief. `tsc --noEmit` after every change; `next lint` and
 `next build` clean at the end. 120 routes compiled (brief asked for 117+); first-load JS: `/` 151 kB,

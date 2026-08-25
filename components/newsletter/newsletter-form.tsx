@@ -102,10 +102,10 @@ export function NewsletterForm() {
         <div className="flex justify-center">
           <Ring />
         </div>
-        <h3 className="mt-8 font-display text-2xl font-extrabold tracking-[-0.02em] text-success">
+        <h3 className="mt-8 font-display text-h3 font-extrabold tracking-[-0.02em] text-success">
           You&rsquo;re on the list
         </h3>
-        <p className="mx-auto mt-4 max-w-[38ch] text-sm leading-relaxed text-charcoal">
+        <p className="mx-auto mt-4 max-w-[38ch] text-body leading-relaxed text-charcoal">
           Watch for a note confirming it. The next send goes out when the
           following run leaves the table.
         </p>

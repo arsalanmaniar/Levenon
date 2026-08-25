@@ -23,6 +23,11 @@ const MAX_RESULTS = 6;
 // Brand entrance curve.
 const EASE = [0.16, 1, 0.3, 1] as const;
 
+const RECENT_KEY = "levenon-recent-searches";
+const MAX_RECENT = 5;
+// Static, per the brief's own literal list (client brief, 2026-08-27).
+const TRENDING_SEARCHES = ["Lawn suits", "Chiffon", "Embroidered", "Digital print", "Festive"];
+
 type Status = "idle" | "loading" | "ready" | "error";
 
 /**
@@ -53,6 +58,7 @@ export function SearchBar() {
   const [results, setResults] = useState<Product[]>([]);
   const [status, setStatus] = useState<Status>("idle");
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -78,6 +84,66 @@ export function SearchBar() {
     rootRef,
     initialFocusRef: inputRef,
   });
+
+  // Read on open, not on mount — this stays correct even if another tab (or
+  // this one, earlier in the session) changed sessionStorage in between.
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const raw = sessionStorage.getItem(RECENT_KEY);
+      setRecentSearches(raw ? (JSON.parse(raw) as string[]) : []);
+    } catch {
+      setRecentSearches([]);
+    }
+  }, [open]);
+
+  const saveSearch = useCallback((value: string) => {
+    const clean = value.trim();
+    if (!clean) return;
+    setRecentSearches((previous) => {
+      const next = [
+        clean,
+        ...previous.filter((entry) => entry.toLowerCase() !== clean.toLowerCase()),
+      ].slice(0, MAX_RECENT);
+      try {
+        sessionStorage.setItem(RECENT_KEY, JSON.stringify(next));
+      } catch {
+        // Private browsing / storage disabled — the search still runs, it
+        // just won't be remembered next time.
+      }
+      return next;
+    });
+  }, []);
+
+  const removeSearch = useCallback((value: string) => {
+    setRecentSearches((previous) => {
+      const next = previous.filter((entry) => entry !== value);
+      try {
+        sessionStorage.setItem(RECENT_KEY, JSON.stringify(next));
+      } catch {
+        /* see saveSearch */
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSearches = useCallback(() => {
+    setRecentSearches([]);
+    try {
+      sessionStorage.removeItem(RECENT_KEY);
+    } catch {
+      /* see saveSearch */
+    }
+  }, []);
+
+  /** A pill (recent or trending) — runs the search and saves it, same as pressing Enter. */
+  const runSearch = useCallback(
+    (value: string) => {
+      setTerm(value);
+      saveSearch(value);
+    },
+    [saveSearch],
+  );
 
   // Debounced fetch. The timer and the request are both torn down on change,
   // so nothing races and nothing leaks.
@@ -120,13 +186,32 @@ export function SearchBar() {
 
   const goTo = useCallback(
     (product: Product) => {
+      // Captured before `close()` clears `term` — "click" (a result, here)
+      // is one of the two save triggers the brief names alongside Enter.
+      if (trimmed) saveSearch(trimmed);
       close();
       router.push(`/product/${product.slug}`);
     },
-    [close, router],
+    [close, router, trimmed, saveSearch],
   );
 
   const onKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && results.length > 0 && activeIndex >= 0) {
+      event.preventDefault();
+      saveSearch(trimmed);
+      goTo(results[activeIndex]);
+      return;
+    }
+    // Enter with no result highlighted still saves the typed term (client
+    // brief: "Saves search term to sessionStorage on Enter/click") — the
+    // search itself is already running via the debounced effect, this only
+    // remembers it.
+    if (event.key === "Enter" && trimmed.length > 0) {
+      event.preventDefault();
+      saveSearch(trimmed);
+      return;
+    }
+
     if (results.length === 0) return;
 
     if (event.key === "ArrowDown") {
@@ -135,9 +220,6 @@ export function SearchBar() {
     } else if (event.key === "ArrowUp") {
       event.preventDefault();
       setActiveIndex((index) => (index <= 0 ? results.length - 1 : index - 1));
-    } else if (event.key === "Enter" && activeIndex >= 0) {
-      event.preventDefault();
-      goTo(results[activeIndex]);
     }
   };
 
@@ -145,22 +227,64 @@ export function SearchBar() {
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="label inline-flex min-h-[44px] items-center gap-2 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
+        onClick={() => (open ? close() : setOpen(true))}
+        aria-expanded={open}
+        className="group label inline-flex min-h-[44px] items-center gap-2 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
       >
-        <m.span
-          // Hover: scale(1.15) + rotate(15deg), 0.2s (client brief,
-          // 2026-08-26). Visible on mobile (icon-only, no label there);
-          // hidden from `sm` where the text label takes over; visible
-          // again from `lg`.
-          whileHover={reducedMotion ? undefined : { scale: 1.15, rotate: 15 }}
-          transition={{ duration: 0.2 }}
-          className="block sm:hidden lg:block"
-        >
-          <Search aria-hidden="true" size={18} strokeWidth={1.5} />
-        </m.span>
-        <span className="hidden sm:inline">Search</span>
-        <span className="sr-only sm:hidden">Search the collection</span>
+        <span className="relative block sm:hidden lg:block">
+          {/* The radial circle (client brief, 2026-08-27): grows in on
+              hover (0→24px, 0.25s, peaking at 15% opacity) via a plain CSS
+              transition rather than a one-shot keyframe, so it naturally
+              reverses — fades back out — on hover-end too, not just on
+              entry. While the overlay is open it stays on, at a fixed 32px,
+              regardless of hover. */}
+          <span
+            aria-hidden="true"
+            className={cn(
+              "pointer-events-none absolute left-1/2 top-1/2 -z-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-purple-500 transition-all duration-[250ms] ease-out",
+              open
+                ? "h-8 w-8 opacity-15"
+                : "h-0 w-0 opacity-0 group-hover:h-6 group-hover:w-6 group-hover:opacity-15",
+            )}
+          />
+          <m.span
+            // Hover: scale(1.15) + rotate(15deg), 0.2s (client brief,
+            // 2026-08-26).
+            whileHover={reducedMotion || open ? undefined : { scale: 1.15, rotate: 15 }}
+            transition={{ duration: 0.2 }}
+            className="relative block"
+          >
+            <AnimatePresence mode="wait" initial={false}>
+              {open ? (
+                <m.span
+                  key="x"
+                  className="block"
+                  initial={reducedMotion ? false : { rotate: -90, scale: 0.6, opacity: 0 }}
+                  animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                  exit={reducedMotion ? undefined : { rotate: 90, scale: 0.6, opacity: 0 }}
+                  transition={{ duration: reducedMotion ? 0 : 0.3, ease: EASE }}
+                >
+                  <X aria-hidden="true" size={18} strokeWidth={1.5} />
+                </m.span>
+              ) : (
+                <m.span
+                  key="search"
+                  className="block"
+                  initial={reducedMotion ? false : { rotate: 90, scale: 0.6, opacity: 0 }}
+                  animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                  exit={reducedMotion ? undefined : { rotate: -90, scale: 0.6, opacity: 0 }}
+                  transition={{ duration: reducedMotion ? 0 : 0.3, ease: EASE }}
+                >
+                  <Search aria-hidden="true" size={18} strokeWidth={1.5} />
+                </m.span>
+              )}
+            </AnimatePresence>
+          </m.span>
+        </span>
+        <span className="hidden sm:inline">{open ? "Close" : "Search"}</span>
+        <span className="sr-only sm:hidden">
+          {open ? "Close search" : "Search the collection"}
+        </span>
       </button>
 
       {mounted &&
@@ -211,7 +335,7 @@ export function SearchBar() {
                       aria-activedescendant={
                         activeIndex >= 0 ? `${listId}-option-${activeIndex}` : undefined
                       }
-                      className="ml-4 h-full flex-1 border-b border-hairline bg-transparent text-2xl text-ink placeholder:text-charcoal focus:border-purple-500 focus:outline-none md:text-[28px]"
+                      className="ml-4 h-full flex-1 border-b border-hairline bg-transparent text-[clamp(1.25rem,3vw,1.75rem)] text-ink placeholder:text-charcoal focus:border-purple-500 focus:outline-none"
                     />
                     <button
                       type="button"
@@ -233,6 +357,10 @@ export function SearchBar() {
                       onHover={setActiveIndex}
                       onSelect={goTo}
                       reducedMotion={reducedMotion}
+                      recentSearches={recentSearches}
+                      onRunSearch={runSearch}
+                      onRemoveSearch={removeSearch}
+                      onClearSearches={clearSearches}
                     />
                   </div>
                 </m.div>
@@ -254,6 +382,10 @@ function SearchResults({
   onHover,
   onSelect,
   reducedMotion,
+  recentSearches,
+  onRunSearch,
+  onRemoveSearch,
+  onClearSearches,
 }: {
   listId: string;
   term: string;
@@ -263,16 +395,73 @@ function SearchResults({
   onHover: (index: number) => void;
   onSelect: (product: Product) => void;
   reducedMotion: boolean;
+  recentSearches: string[];
+  onRunSearch: (value: string) => void;
+  onRemoveSearch: (value: string) => void;
+  onClearSearches: () => void;
 }) {
   if (term.length === 0) {
     return (
-      <div className="flex flex-col items-center py-10 text-center">
-        <ThreadRing />
-        <p className="label mt-6 text-charcoal">Search the collection</p>
-        <p className="mt-3 max-w-[30ch] text-sm leading-relaxed text-charcoal">
-          Try a piece, a category, or a SKU — &ldquo;coat&rdquo;, &ldquo;knit&rdquo;,
-          &ldquo;LV-OW-01&rdquo;.
-        </p>
+      <div>
+        {recentSearches.length > 0 && (
+          <div className="border-b border-hairline pb-8">
+            <div className="flex items-center justify-between">
+              <p className="label text-charcoal">Recent searches</p>
+              <button
+                type="button"
+                onClick={onClearSearches}
+                className="text-body text-charcoal underline decoration-hairline underline-offset-4 transition-colors duration-200 ease-state hover:text-purple-500 hover:decoration-purple-500"
+              >
+                Clear all
+              </button>
+            </div>
+            <ul className="mt-4 flex flex-wrap gap-2">
+              {recentSearches.map((entry) => (
+                <li key={entry}>
+                  <span className="group inline-flex items-center gap-1.5 rounded-full border border-hairline py-1.5 pl-4 pr-1.5 text-body text-ink transition-colors duration-200 ease-state hover:border-purple-500">
+                    <button type="button" onClick={() => onRunSearch(entry)} className="hover:text-purple-500">
+                      {entry}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRemoveSearch(entry)}
+                      aria-label={`Remove "${entry}" from recent searches`}
+                      className="inline-flex h-6 w-6 items-center justify-center rounded-full text-charcoal transition-colors duration-200 ease-state hover:bg-hairline hover:text-ink"
+                    >
+                      <X aria-hidden="true" size={12} strokeWidth={1.5} />
+                    </button>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className={cn(recentSearches.length > 0 ? "pt-8" : "")}>
+          <p className="label text-charcoal">Trending searches</p>
+          <ul className="mt-4 flex flex-wrap gap-2">
+            {TRENDING_SEARCHES.map((entry) => (
+              <li key={entry}>
+                <button
+                  type="button"
+                  onClick={() => onRunSearch(entry)}
+                  className="rounded-full border border-purple-500 px-4 py-1.5 text-body text-ink transition-colors duration-200 ease-state hover:bg-purple-500 hover:text-paper"
+                >
+                  {entry}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="flex flex-col items-center py-10 text-center">
+          <ThreadRing />
+          <p className="label mt-6 text-charcoal">Search the collection</p>
+          <p className="mt-3 max-w-[30ch] text-body leading-relaxed text-charcoal">
+            Try a piece, a category, or a SKU — &ldquo;coat&rdquo;, &ldquo;knit&rdquo;,
+            &ldquo;LV-OW-01&rdquo;.
+          </p>
+        </div>
       </div>
     );
   }
@@ -283,7 +472,7 @@ function SearchResults({
 
   if (status === "error") {
     return (
-      <p className="py-6 text-sm leading-relaxed text-charcoal">
+      <p className="py-6 text-body leading-relaxed text-charcoal">
         Search is not responding. The collection is still on the rail —{" "}
         <Link href="/#collection" className="text-purple-500 underline">
           browse it instead
@@ -297,7 +486,7 @@ function SearchResults({
     return (
       <div className="py-8">
         <p className="label text-charcoal">No pieces match “{term}”</p>
-        <p className="mt-3 max-w-[34ch] text-sm leading-relaxed text-charcoal">
+        <p className="mt-3 max-w-[34ch] text-body leading-relaxed text-charcoal">
           The season is short — twelve pieces, not twelve hundred. Try a
           broader word, or see everything.
         </p>

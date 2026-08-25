@@ -149,7 +149,7 @@ export function ReviewList({
       )}
 
       <div className="mt-16 border-t border-hairline pt-16">
-        <h3 className="font-display text-2xl font-extrabold tracking-[-0.02em]">
+        <h3 className="font-display text-h3 font-extrabold tracking-[-0.02em]">
           Write a review
         </h3>
         <p className="mt-4 max-w-measure text-base leading-relaxed text-charcoal">

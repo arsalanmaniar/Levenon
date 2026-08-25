@@ -1,32 +1,7 @@
 import Link from "next/link";
 import { Wordmark } from "@/components/ui/wordmark";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-
-/**
- * Hand-drawn, not `lucide-react` — the installed version (1.33) ships no
- * brand/social glyphs (most icon sets dropped them over trademark
- * licensing), which the brief's own wording anticipated ("lucide or simple
- * SVG"). Single-path, hairline stroke, matching every other icon's
- * `strokeWidth={1.5}` weight on this site.
- */
-function InstagramGlyph(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" {...props}>
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4.2" />
-      <circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
-
-function FacebookGlyph(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true" {...props}>
-      <path d="M15.5 8.5h-2a1.5 1.5 0 0 0-1.5 1.5v2h3.3l-.4 3H12v7" strokeLinejoin="round" strokeLinecap="round" />
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-    </svg>
-  );
-}
+import { FacebookIcon, InstagramIcon, SocialLink, TikTokIcon } from "@/components/ui/social-icons";
 
 /**
  * Footer, redesigned to the client brief (2026-08-26): four columns, dark
@@ -88,17 +63,13 @@ const columns = [
   },
 ];
 
-const SOCIALS = [
-  { label: "Instagram", Icon: InstagramGlyph },
-  { label: "Facebook", Icon: FacebookGlyph },
-];
 
 /** One footer link — the underline draws in via `clip-path`, left to right, per the brief. */
 function FooterLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="group inline-flex min-h-[40px] items-center text-sm text-charcoal transition-colors duration-200 ease-state hover:text-paper"
+      className="group inline-flex min-h-[40px] items-center text-footer-link text-charcoal transition-colors duration-200 ease-state hover:text-paper"
     >
       <span className="relative">
         {label}
@@ -118,29 +89,43 @@ export function SiteFooter() {
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {/* Col 1 — brand statement + social. */}
           <div>
-            <Wordmark className="text-[2.25rem]" />
-            <p className="mt-6 max-w-[34ch] text-base leading-relaxed text-paper/70">
+            {/* `surface="dark"` (client brief, 2026-08-27) — the footer is
+                always dark regardless of site theme, so the wordmark must
+                always render its dark-surface form too, not follow
+                `data-theme`. See `Wordmark`'s own doc comment for the bug
+                this fixes. Size: clamp(24px, 3vw, 36px), the brief's own
+                figures — larger than the nav's own ~20px instance. */}
+            <Wordmark surface="dark" className="text-[clamp(1.5rem,3vw,2.25rem)]" />
+            <p className="mt-6 max-w-[34ch] text-body leading-relaxed text-paper/70">
               Unstitched. Yours to finish.
             </p>
-            <ul className="mt-6 flex items-center gap-4">
-              {SOCIALS.map(({ label, Icon }) => (
-                <li key={label}>
-                  <a
-                    href="#"
-                    aria-label={label}
-                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-paper/70 transition-[color,transform] duration-200 ease-state hover:scale-[1.15] hover:text-purple-300"
-                  >
-                    <Icon aria-hidden="true" className="h-6 w-6" />
-                  </a>
-                </li>
-              ))}
+            {/* Branded, coloured icons (client brief, 2026-08-27) — real
+                Instagram/Facebook/TikTok colours, not the mono hairline
+                glyphs of the previous pass. `#` placeholders throughout, as
+                the brief explicitly asks for. */}
+            <ul className="mt-6 flex items-center gap-3">
+              <li>
+                <SocialLink href="#" label="Instagram" brand="instagram">
+                  <InstagramIcon className="h-7 w-7" />
+                </SocialLink>
+              </li>
+              <li>
+                <SocialLink href="#" label="Facebook" brand="facebook">
+                  <FacebookIcon className="h-7 w-7" />
+                </SocialLink>
+              </li>
+              <li>
+                <SocialLink href="#" label="TikTok" brand="tiktok">
+                  <TikTokIcon tone="light" className="h-7 w-7" />
+                </SocialLink>
+              </li>
             </ul>
           </div>
 
           {/* Col 2–4 — link columns, equal width, tops aligned by the grid itself. */}
           {columns.map((column) => (
             <div key={column.title}>
-              <h2 className="border-b border-paper/20 pb-4 font-mono text-xs uppercase tracking-[0.18em] text-paper/60">
+              <h2 className="border-b border-paper/20 pb-4 font-mono text-footer-heading uppercase tracking-[0.18em] text-paper/60">
                 {column.title}
               </h2>
               <ul className="mt-5 space-y-0.5">

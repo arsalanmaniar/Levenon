@@ -43,7 +43,7 @@ export default function StockistsPage() {
           <h1 className="mt-5 text-balance font-display text-balance text-[clamp(2.5rem,6vw,4rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
             Coming Soon — Find Levenon near you
           </h1>
-          <p className="mt-6 max-w-[46ch] text-lg leading-relaxed text-charcoal">
+          <p className="mt-6 max-w-[46ch] text-body leading-relaxed text-charcoal">
             Levenon is online-only for now. A stockist list will land here
             once there is one to show.
           </p>

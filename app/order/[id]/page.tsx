@@ -49,7 +49,7 @@ export default async function OrderConfirmationPage({
           <h1 className="mt-5 font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
             Thank you, {order.customer.name.split(" ")[0]}.
           </h1>
-          <p className="mt-6 max-w-measure text-sm leading-relaxed text-charcoal">
+          <p className="mt-6 max-w-measure text-body leading-relaxed text-charcoal">
             Placed {formatOrderDate(order.createdAt)}. Bookmark this page, or
             find it again any time from{" "}
             <Link
@@ -106,7 +106,7 @@ export default async function OrderConfirmationPage({
                 )}
                 <div className="flex items-baseline justify-between border-t border-hairline pt-3">
                   <span className="label text-charcoal">Total</span>
-                  <span className="font-display text-xl font-extrabold tracking-[-0.02em]">
+                  <span className="font-display text-h3 font-extrabold tracking-[-0.02em]">
                     {formatMinor(order.totalMinor, order.currency)}
                   </span>
                 </div>
@@ -130,7 +130,7 @@ export default async function OrderConfirmationPage({
                 </div>
               ) : (
                 <div className="mt-8 border border-dashed border-hairline p-4">
-                  <p className="text-sm leading-relaxed text-charcoal">
+                  <p className="text-body leading-relaxed text-charcoal">
                     Card payment is coming soon — this order is recorded and
                     marked <span className="text-ink">pending</span> while we
                     confirm payment with you directly.

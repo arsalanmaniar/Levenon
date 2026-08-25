@@ -79,10 +79,10 @@ export async function ProductGrid({
             <div>
               <p className="label text-charcoal">The collection</p>
               {/* Rewritten per the client's revision brief (2026-08-24). */}
-              <h2 className="mt-4 font-display text-balance text-[clamp(2rem,4.5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
+              <h2 className="mt-4 font-display text-balance text-h2 font-extrabold leading-[1.02] tracking-[-0.03em]">
                 The Edit — Unstitched, yours to finish
               </h2>
-              <p className="mt-4 max-w-[46ch] text-lg leading-relaxed text-charcoal">
+              <p className="mt-4 max-w-[46ch] text-body leading-relaxed text-charcoal">
                 Each piece is raw cloth. You choose the tailor, the fit, the
                 finish. We choose the fabric.
               </p>

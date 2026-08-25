@@ -25,6 +25,8 @@ const config: Config = {
         // silently drops every /opacity modifier — the systemic bug found and
         // fixed in the SEO pass. Same colour, same `text-success` class name.
         success: "rgb(var(--success-rgb) / <alpha-value>)",
+        // Urgency accent (client brief, 2026-08-27) — low-stock badges/text.
+        amber: "rgb(var(--amber-rgb) / <alpha-value>)",
         purple: {
           300: "rgb(var(--purple-300-rgb) / <alpha-value>)",
           500: "rgb(var(--purple-500-rgb) / <alpha-value>)",
@@ -35,6 +37,27 @@ const config: Config = {
         display: ["var(--font-display)", "system-ui", "sans-serif"],
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "ui-monospace", "monospace"],
+      },
+      /*
+       * Fluid type tiers (client brief, 2026-08-27: "replace all fixed font
+       * sizes with clamp() values" — named tiers, one utility per tier).
+       * `.label` in globals.css already covers "Small/labels" (and, by
+       * construction, most button/nav/footer text built on it); these are
+       * the tiers that had no single shared rule to fix in one place.
+       * Section H3 has no existing call site on the site yet — added so one
+       * exists the moment a component needs it, per the brief's own naming.
+       */
+      fontSize: {
+        hero: "clamp(2.5rem, 7vw, 6.875rem)", // 40px – 110px
+        h2: "clamp(1.75rem, 4vw, 3.5rem)", // 28px – 56px
+        h3: "clamp(1.25rem, 2.5vw, 2.25rem)", // 20px – 36px
+        body: "clamp(0.875rem, 1.2vw, 1rem)", // 14px – 16px
+        nav: "clamp(0.6875rem, 1vw, 0.8125rem)", // 11px – 13px
+        "card-name": "clamp(0.8125rem, 1.2vw, 1rem)", // 13px – 16px
+        "card-price": "clamp(0.8125rem, 1.2vw, 0.9375rem)", // 13px – 15px
+        "footer-heading": "clamp(0.6875rem, 1vw, 0.8125rem)", // 11px – 13px
+        "footer-link": "clamp(0.75rem, 1vw, 0.875rem)", // 12px – 14px
+        btn: "clamp(0.75rem, 1vw, 0.875rem)", // 12px – 14px
       },
       letterSpacing: {
         label: "0.18em",
@@ -122,6 +145,13 @@ const config: Config = {
           "0%": { transform: "scale(0.3)", opacity: "0.5" },
           "100%": { transform: "scale(2.4)", opacity: "0" },
         },
+        // Low-stock badge pulse (client brief, 2026-08-27) — `motion-reduce`
+        // usage at every call site turns this off entirely rather than
+        // slowing it, per SKILL.md §7.
+        "low-stock-pulse": {
+          "0%, 100%": { opacity: "0.7" },
+          "50%": { opacity: "1" },
+        },
       },
       animation: {
         "thread-spin": "thread-spin 2.4s linear infinite",
@@ -135,6 +165,7 @@ const config: Config = {
         "ken-burns": "ken-burns 8s ease-in-out infinite alternate",
         "ken-burns-reverse": "ken-burns 8s ease-in-out infinite alternate-reverse",
         "theme-ripple": "theme-ripple 500ms ease-out",
+        "low-stock-pulse": "low-stock-pulse 2s ease-in-out infinite",
       },
     },
   },

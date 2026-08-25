@@ -6,6 +6,7 @@ import { m, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { GRID_IMAGE_SIZES, ProductMedia } from "./product-media";
 import { cn } from "@/lib/cn";
 import { WishlistHeart } from "@/components/wishlist/wishlist-heart";
+import { LowStockBadge } from "./low-stock-badge";
 import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { useMediaQuery } from "@/hooks/use-media-query";
@@ -38,6 +39,7 @@ export function ProductCard({
   const sizes = allSizes(product);
   const stocked = new Set(availableSizes(product));
   const inStock = isInStock(product);
+  const totalStock = product.variants.reduce((sum, variant) => sum + variant.stockOnHand, 0);
   // Shared subscription — one listener for the whole grid, not one per card.
   const finePointer = useMediaQuery("(pointer: fine)");
 
@@ -158,6 +160,11 @@ export function ProductCard({
               </span>
             </span>
 
+            {/* Bottom-left (client brief, 2026-08-27) — see LowStockBadge's
+                own doc comment for why it's filled amber/ink, not amber
+                text. Renders nothing when stock is 0 or > 5. */}
+            <LowStockBadge stockOnHand={totalStock} className="absolute bottom-4 left-4" />
+
             {/* Sits outside the Link's flow so saving never navigates. */}
             <WishlistHeart product={product} className="absolute bottom-4 right-4" />
           </CardSpotlight>
@@ -172,18 +179,18 @@ export function ProductCard({
             caught by an overflow sweep rather than by eye.
           */}
           <div className="mt-4 flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4">
-            <h3 className="font-display text-lg font-bold tracking-[-0.02em]">
+            <h3 className="font-display text-card-name font-bold tracking-[-0.02em]">
               {product.name}
             </h3>
             {/* Manrope 600/16px, purple-500 (client brief, 2026-08-24) — the
                 price now reads as the card's second-loudest element after
                 the name, not a quiet mono aside. */}
-            <span className="font-display text-base font-semibold tracking-tight text-purple-500 sm:whitespace-nowrap">
+            <span className="font-display text-card-price font-semibold tracking-tight text-purple-500 sm:whitespace-nowrap">
               {formatPrice(product)}
             </span>
           </div>
 
-          <p className="mt-2 max-w-measure text-sm leading-relaxed text-charcoal">
+          <p className="mt-2 max-w-measure text-body leading-relaxed text-charcoal">
             {product.blurb}
           </p>
 

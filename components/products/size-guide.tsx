@@ -123,7 +123,7 @@ export function SizeGuide() {
 
               <div className="px-6 py-6">
                 <div className="flex items-center justify-between gap-4">
-                  <p className="max-w-measure text-sm leading-relaxed text-charcoal">
+                  <p className="max-w-measure text-body leading-relaxed text-charcoal">
                     Every piece here is unstitched cloth, so none of it has a
                     finished size — these are the body measurements to hand your
                     tailor. Measure over what you would wear underneath.
@@ -256,7 +256,7 @@ function HowToMeasure() {
               {step.art}
             </div>
             <h4 className="label mt-4 text-ink">{step.title}</h4>
-            <p className="mt-2 text-sm leading-relaxed text-charcoal">
+            <p className="mt-2 text-body leading-relaxed text-charcoal">
               {step.copy}
             </p>
           </li>

@@ -14,6 +14,7 @@ import { StitchDivider } from "@/components/ui/stitch-divider";
 import { AddToCart } from "@/components/cart/add-to-cart";
 import { MobileAddBar } from "@/components/cart/mobile-add-bar";
 import { SizeGuide } from "@/components/products/size-guide";
+import { StockUrgency } from "@/components/products/stock-urgency";
 import { RecentlyViewedStrip } from "@/components/recently-viewed/recently-viewed-strip";
 import { WishlistHeart } from "@/components/wishlist/wishlist-heart";
 import { ShareButton } from "@/components/products/share-button";
@@ -222,6 +223,12 @@ export default async function ProductPage({ params }: Params) {
                   <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-3">
                     <SizeGuide />
                   </div>
+                  <StockUrgency
+                    stockOnHand={product.variants.reduce(
+                      (sum, variant) => sum + variant.stockOnHand,
+                      0,
+                    )}
+                  />
                 </div>
               </Reveal>
 
@@ -321,7 +328,7 @@ export default async function ProductPage({ params }: Params) {
           <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4 border-b border-hairline pb-6">
             <h2
               id="reviews-heading"
-              className="font-display text-balance text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold leading-[1.05] tracking-[-0.03em]"
+              className="font-display text-balance text-h2 font-extrabold leading-[1.05] tracking-[-0.03em]"
             >
               Reviews
             </h2>
@@ -340,7 +347,7 @@ export default async function ProductPage({ params }: Params) {
 
         {related.length > 0 && (
           <section className="mx-auto max-w-shell px-6 pb-24 md:px-12 lg:px-20 md:pb-32">
-            <h2 className="border-b border-hairline pb-6 font-display text-balance text-[clamp(1.75rem,4vw,2.5rem)] font-extrabold leading-[1.05] tracking-[-0.03em]">
+            <h2 className="border-b border-hairline pb-6 font-display text-balance text-h2 font-extrabold leading-[1.05] tracking-[-0.03em]">
               More from this fabric
             </h2>
             <SpotlightSurface>

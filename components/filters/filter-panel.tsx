@@ -74,7 +74,7 @@ export function FilterPanel({
       )}
     >
       {layout === "inline" && (
-        <h3 className="flex w-full items-center gap-2 font-display text-xl font-extrabold tracking-[-0.02em]">
+        <h3 className="flex w-full items-center gap-2 font-display text-h3 font-extrabold tracking-[-0.02em]">
           <SlidersHorizontal aria-hidden="true" strokeWidth={1.5} className="h-5 w-5 text-purple-500" />
           Refine
         </h3>

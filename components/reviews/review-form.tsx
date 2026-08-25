@@ -145,7 +145,7 @@ export function ReviewForm({
         <div className="flex justify-center">
           <Ring />
         </div>
-        <h4 className="mt-8 font-display text-2xl font-extrabold tracking-[-0.02em] text-success">
+        <h4 className="mt-8 font-display text-h3 font-extrabold tracking-[-0.02em] text-success">
           Your review has been posted.
         </h4>
         {/*
@@ -154,7 +154,7 @@ export function ReviewForm({
          * still a stub. If a moderation queue is ever added, this copy has to
          * change with it, not after it.
          */}
-        <p className="mx-auto mt-4 max-w-[42ch] text-sm leading-relaxed text-charcoal">
+        <p className="mx-auto mt-4 max-w-[42ch] text-body leading-relaxed text-charcoal">
           It is on the page now, at the top of the list. Thank you for saying
           how the cloth turned out.
         </p>

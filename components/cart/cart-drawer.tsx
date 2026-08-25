@@ -297,7 +297,7 @@ export function CartDrawer() {
                       </div>
                       <div className="mt-4 flex items-baseline justify-between border-t border-hairline pt-4">
                         <span className="label text-charcoal">Total</span>
-                        <span className="font-display text-xl font-extrabold tracking-[-0.02em]">
+                        <span className="font-display text-h3 font-extrabold tracking-[-0.02em]">
                           {formatMinor(summary.totalMinor, summary.currency)}
                         </span>
                       </div>
@@ -305,7 +305,7 @@ export function CartDrawer() {
                   ) : (
                     <div className="flex items-baseline justify-between">
                       <span className="label text-charcoal">Subtotal</span>
-                      <span className="font-display text-xl font-extrabold tracking-[-0.02em]">
+                      <span className="font-display text-h3 font-extrabold tracking-[-0.02em]">
                         {totals.currency
                           ? formatMinor(totals.subtotalMinor, totals.currency)
                           : "—"}
@@ -381,7 +381,7 @@ function EmptyBag({ onClose }: { onClose: () => void }) {
       </svg>
 
       <p className="label mt-8 text-charcoal">Your bag is empty</p>
-      <p className="mt-4 max-w-[32ch] text-sm leading-relaxed text-charcoal">
+      <p className="mt-4 max-w-[32ch] text-body leading-relaxed text-charcoal">
         The season is short and every piece is cut in a small run. Start with the
         collection.
       </p>
