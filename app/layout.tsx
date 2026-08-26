@@ -6,6 +6,7 @@ import { MotionProvider } from "@/components/providers/motion-provider";
 import { PageTransition } from "@/components/providers/page-transition";
 import { LoadingScreen } from "@/components/providers/loading-screen";
 import { AnnouncementBar } from "@/components/providers/announcement-bar";
+import { CustomCursor } from "@/components/providers/custom-cursor";
 import { ToastProvider } from "@/components/providers/toast-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CartProvider } from "@/components/cart/cart-provider";
@@ -98,19 +99,30 @@ export default function RootLayout({
           Skip to content
         </a>
         <SmoothScroll />
-        {/* Above every page's own `<SiteNav>` — each page renders its own
-            nav rather than the root layout owning it, so this is the one
-            place that reliably sits above all of them. `SiteNav` reads the
-            `--announcement-h` CSS var this writes for its own `sticky`
-            offset (client brief, 2026-08-30, Item 2/5); the two components
-            never talk to each other directly. */}
-        <AnnouncementBar />
-        {/* Outermost: every `m` element below needs the feature bundle. */}
+        {/* Outermost: every `m` element below needs the feature bundle —
+            `AnnouncementBar` and `CustomCursor` included, both moved inside
+            here after a real bug: `AnnouncementBar` was previously mounted
+            *above* `MotionProvider` despite using `m`/`AnimatePresence`
+            directly, so its rotating-message fade and its dismiss
+            transition were both silently running with no `LazyMotion`
+            feature bundle behind them — confirmed via a local dev server
+            (not a hard crash, `strict` mode's fallback is just "no
+            animation", which is exactly why it shipped unnoticed). */}
         <ThemeProvider>
         <MotionProvider>
+          {/* Above every page's own `<SiteNav>` — each page renders its own
+              nav rather than the root layout owning it, so this is the one
+              place that reliably sits above all of them. `SiteNav` reads
+              the `--announcement-h` CSS var this writes for its own
+              `sticky` offset (client brief, 2026-08-30, Item 2/5); the two
+              components never talk to each other directly. */}
+          <AnnouncementBar />
           {/* First-load only, sessionStorage-gated — see the component for
               why it needs no cart/wishlist context. */}
           <LoadingScreen />
+          {/* Fine-pointer, non-reduced-motion only — renders nothing
+              otherwise (user request, 2026-08-31). */}
+          <CustomCursor />
           {/* Above Wishlist/Cart so both providers' own actions can call
               `useToast()` directly (client brief, 2026-08-28) — every
               add/remove entry point gets a toast for free, rather than

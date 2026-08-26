@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { m } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { useMagneticHover } from "@/hooks/use-magnetic-hover";
 import { cn } from "@/lib/cn";
 
 /**
@@ -82,15 +83,18 @@ export function ShimmerButton({
   icon?: boolean;
 }) {
   const reducedMotion = usePrefersReducedMotion();
+  const magnetic = useMagneticHover();
 
   return (
     <MotionLink
       href={href}
       scroll={scroll}
       className={cn(base, tones[tone], className)}
+      style={magnetic.style}
       whileHover={reducedMotion ? undefined : { scale: 1.02 }}
       whileTap={reducedMotion ? undefined : { scale: 0.97 }}
       transition={{ duration: 0.2 }}
+      {...magnetic.handlers}
     >
       <Sheen tone={tone} />
       {children}
@@ -126,6 +130,7 @@ export function ShimmerAction({
   className?: string;
 } & NativeButtonProps) {
   const reducedMotion = usePrefersReducedMotion();
+  const magnetic = useMagneticHover();
 
   return (
     <m.button
@@ -136,9 +141,11 @@ export function ShimmerAction({
         "disabled:cursor-not-allowed disabled:bg-charcoal/30 disabled:hover:bg-charcoal/30",
         className,
       )}
+      style={props.disabled ? undefined : magnetic.style}
       whileHover={reducedMotion || props.disabled ? undefined : { scale: 1.02 }}
       whileTap={reducedMotion || props.disabled ? undefined : { scale: 0.97 }}
       transition={{ duration: 0.2 }}
+      {...(props.disabled ? undefined : magnetic.handlers)}
     >
       {/* No sheen while disabled — a shimmering dead button reads as broken. */}
       {!props.disabled && <Sheen tone={tone} />}

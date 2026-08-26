@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { m } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { useMagneticHover } from "@/hooks/use-magnetic-hover";
 import { cn } from "@/lib/cn";
 
 type Tone = "solid" | "outline" | "solid-invert" | "outline-invert";
@@ -86,15 +87,18 @@ export function ThreadButton({
   icon = false,
 }: ThreadButtonProps) {
   const reducedMotion = usePrefersReducedMotion();
+  const magnetic = useMagneticHover();
 
   return (
     <MotionLink
       href={href}
       scroll={scroll}
       className={cn(base, tones[tone], className)}
+      style={magnetic.style}
       whileHover={reducedMotion ? undefined : { scale: 1.02 }}
       whileTap={reducedMotion ? undefined : { scale: 0.97 }}
       transition={{ duration: 0.2 }}
+      {...magnetic.handlers}
     >
       {children}
       {icon && (

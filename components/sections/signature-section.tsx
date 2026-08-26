@@ -1,37 +1,66 @@
 import { ThreadButton } from "@/components/ui/thread-button";
 import { Reveal } from "@/components/ui/reveal";
 import { StitchDivider } from "@/components/ui/stitch-divider";
-import { AtelierFeatureImage } from "@/components/sections/atelier-feature-image";
+import { AtelierCollage } from "@/components/sections/atelier-collage";
 import { getCollectionSummary, listProducts } from "@/lib/server/products";
+import type { Product } from "@/lib/types";
+
+const COLLAGE_SIZE = 7;
+// Already the hero slider's own three picks (`hero-slider.tsx`) — excluded
+// here so the atelier's fan doesn't repeat a photo the reader saw a few
+// sections up.
+const HERO_SLUGS = new Set(["tussel-organza-suit", "adda-work-chiffon", "scifflie-lawn-suit"]);
 
 /**
  * The single dark section on the page — the rhythm beat (SKILL.md §6).
  *
  * Roles invert: ink ground, paper type, purple-300 thread. Left side
- * (client brief, 2026-08-29): one large editorial image, replacing the
- * previous pass's "01" numeral + fanned fabric-swatch stack, which the brief
- * judged amateur next to the reference sites' own campaign sections. Right
- * side text/stats/CTA is unchanged, per the brief's own explicit "no
- * changes to right side."
+ * (client brief, 2026-08-31): a fanned stack of seven real photographs —
+ * was one large editorial image (2026-08-29), before that a decorative "01"
+ * numeral + three fabric swatches (2026-08-27). Right side text/stats/CTA
+ * has been untouched since the first of those passes.
  */
 export async function SignatureSection() {
   const { pieceCount } = await getCollectionSummary();
   const catalogue = await listProducts();
   const withPhotos = catalogue.filter((product) => product.images[0]);
-  // "Most visually striking... richest embroidery" (client brief,
-  // 2026-08-29) is not a field the catalogue has, so this names a specific,
-  // real, hand-inspected piece rather than guessing at a heuristic: Monsoon
-  // Blooms Chikankari is literally hand chikankari work — the caption text
-  // itself ("Chikankari — worked by hand") is this product's own blurb, not
-  // a generic line paired with an arbitrary photo. Falls back to any other
-  // cotton-category piece (chikankari is this catalogue's cotton fabric),
-  // then to the first photographed product, so the section still renders a
-  // real image if the named slug is ever retired from the catalogue.
-  const featured =
-    withPhotos.find((product) => product.slug === "monsoon-blooms") ??
-    withPhotos.find((product) => product.category.slug === "cotton") ??
-    withPhotos[0] ??
-    null;
+
+  // Monsoon Blooms Chikankari leads (the front, framed, captioned tile) for
+  // the same reason it did as the previous pass's single image: this
+  // catalogue's own chikankari piece, and the caption is close to its own
+  // blurb rather than a generic line paired with an arbitrary photo. The
+  // other six are the next distinct, not-already-used-by-the-hero pieces —
+  // "distinct" meaning one per category where the catalogue allows it, so
+  // the fan reads as a spread of the collection rather than six variations
+  // on one fabric.
+  const lead = withPhotos.find((product) => product.slug === "monsoon-blooms");
+  const seen = new Set<string>(lead ? [lead.id] : []);
+  const rest: Product[] = [];
+  for (const product of withPhotos) {
+    if (rest.length >= COLLAGE_SIZE - 1) break;
+    if (seen.has(product.id) || HERO_SLUGS.has(product.slug)) continue;
+    if (rest.some((existing) => existing.category.slug === product.category.slug)) continue;
+    rest.push(product);
+    seen.add(product.id);
+  }
+  // Category-diverse pass filled what it could; top up with anything left
+  // (still excluding what's already picked) so the fan always reaches
+  // seven tiles even on a catalogue with fewer than seven categories
+  // represented.
+  for (const product of withPhotos) {
+    if (rest.length >= COLLAGE_SIZE - 1) break;
+    if (seen.has(product.id)) continue;
+    rest.push(product);
+    seen.add(product.id);
+  }
+
+  // `lead` last, not first — `atelier-collage.tsx`'s `TILES` array marks its
+  // *last* entry as the front/framed tile, so this is what actually puts
+  // Monsoon Blooms in that position rather than as one of the six background
+  // tiles.
+  const collageProducts = [...rest, lead].filter((product): product is Product =>
+    Boolean(product),
+  );
 
   return (
     <section
@@ -42,7 +71,7 @@ export async function SignatureSection() {
           columns on the locked 12-column grid — `lg:col-span-5`/`7`. */}
       <div className="mx-auto grid max-w-shell gap-12 px-6 py-24 md:px-12 lg:px-20 md:py-32 lg:grid-cols-12 lg:items-center lg:gap-16">
         <div className="relative order-2 lg:order-1 lg:col-span-5">
-          {featured && <AtelierFeatureImage product={featured} />}
+          {collageProducts.length > 0 && <AtelierCollage products={collageProducts} />}
         </div>
 
         {/*

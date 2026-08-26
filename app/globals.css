@@ -250,6 +250,23 @@
   .dark-section :focus-visible {
     outline-color: var(--purple-300);
   }
+
+  /*
+   * Custom cursor (user request, 2026-08-31) — `custom-cursor.tsx` adds this
+   * class only when it has actually mounted its dot/ring (fine pointer, no
+   * reduced motion), so this rule can never hide the real cursor with
+   * nothing drawn to replace it. `@media (pointer: fine)` is a second,
+   * defensive gate in the unlikely case JS somehow adds the class without
+   * that check having run. `input`/`textarea` keep the native I-beam —
+   * losing that cursor while typing in the checkout form or search is a
+   * real usability cost the effect isn't worth.
+   */
+  @media (pointer: fine) {
+    html.custom-cursor-active,
+    html.custom-cursor-active *:not(input):not(textarea) {
+      cursor: none;
+    }
+  }
 }
 
 @layer components {

@@ -137,7 +137,14 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
           <SlideContent slide={slide} priority={index === 0} />
         </div>
       ) : (
-        <AnimatePresence>
+        // `initial={false}` on AnimatePresence — without it the very first
+        // slide (server-rendered, LCP-critical h1 and all) fades in from
+        // opacity 0 on mount instead of simply being there, which both
+        // delays LCP and produces the flash Reveal's own doc comment
+        // warns against for above-the-fold content. Later slide changes
+        // still play their own `initial`/`animate` normally — this only
+        // suppresses the mount-time one.
+        <AnimatePresence initial={false}>
           <m.div
             key={index}
             initial={{ opacity: 0, scale: 1.02 }}

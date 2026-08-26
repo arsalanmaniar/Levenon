@@ -4,16 +4,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
-import { Trash2 } from "lucide-react";
+import { Trash2, Heart } from "lucide-react";
 import { useCart } from "./cart-provider";
+import { useWishlist } from "@/components/wishlist/wishlist-provider";
+import { useToast } from "@/components/providers/toast-provider";
 import { ShimmerAction } from "@/components/ui/shimmer-button";
 import { PaymentModal } from "./payment-modal";
 import { CheckoutModal } from "./checkout-modal";
 import { DiscountField } from "./discount-field";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
-import { formatMinor, type CartTotals } from "@/lib/cart/types";
+import { formatMinor, type CartLine, type CartTotals } from "@/lib/cart/types";
 import { summariseOrder, type DiscountCode } from "@/lib/cart/discount";
 import { lockScroll, unlockScroll } from "@/lib/scroll-lock";
+import type { Product } from "@/lib/types";
 
 /**
  * Placeholder threshold for the free-shipping nudge below — no delivery-fee
@@ -241,18 +244,25 @@ export function CartDrawer() {
                               setQuantity(line.variantSku, quantity)
                             }
                           />
-                          <m.button
-                            type="button"
-                            onClick={() => remove(line.variantSku)}
-                            whileHover={reducedMotion ? undefined : { scale: 1.15 }}
-                            transition={{ duration: 0.2 }}
-                            className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-charcoal transition-colors duration-200 ease-state hover:text-purple-500"
-                          >
-                            <Trash2 aria-hidden="true" strokeWidth={1.5} className="h-4 w-4" />
-                            <span className="sr-only">
-                              Remove {line.name}, size {line.size}
-                            </span>
-                          </m.button>
+                          <div className="flex items-center gap-1">
+                            <SaveForLaterButton
+                              line={line}
+                              reducedMotion={reducedMotion}
+                              onSaved={() => remove(line.variantSku)}
+                            />
+                            <m.button
+                              type="button"
+                              onClick={() => remove(line.variantSku)}
+                              whileHover={reducedMotion ? undefined : { scale: 1.15 }}
+                              transition={{ duration: 0.2 }}
+                              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-charcoal transition-colors duration-200 ease-state hover:text-purple-500"
+                            >
+                              <Trash2 aria-hidden="true" strokeWidth={1.5} className="h-4 w-4" />
+                              <span className="sr-only">
+                                Remove {line.name}, size {line.size}
+                              </span>
+                            </m.button>
+                          </div>
                         </div>
 
                         {line.quantity >= line.maxQuantity && (
@@ -445,6 +455,66 @@ function FreeShippingProgress({
         />
       </div>
     </div>
+  );
+}
+
+/**
+ * "Save for later" (user request, 2026-08-31) — moves a line to the
+ * wishlist instead of discarding it outright, so a shopper who's on the
+ * fence about one piece doesn't have to lose it entirely to tidy up the bag.
+ *
+ * `CartLine` doesn't carry a full `Product` — it's a flattened, denormalised
+ * shape built once at add-to-cart time (`lineFromVariant`), missing the
+ * category/description/specs/full-image-array fields `WishlistProvider`'s
+ * `add()` (and the wishlist page's own `ProductCard` rendering) expect.
+ * Rather than construct an incomplete fake `Product` from what the line
+ * happens to carry, this re-fetches the real one via the existing
+ * `GET /api/products/:id` route (accepts a slug, which every line already
+ * has) — one small request, on click, not on every render.
+ */
+function SaveForLaterButton({
+  line,
+  reducedMotion,
+  onSaved,
+}: {
+  line: CartLine;
+  reducedMotion: boolean;
+  onSaved: () => void;
+}) {
+  const { add: addToWishlist } = useWishlist();
+  const { showToast } = useToast();
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/products/${line.slug}`);
+      if (!response.ok) throw new Error(String(response.status));
+      const data = (await response.json()) as { product: Product };
+      addToWishlist(data.product);
+      onSaved();
+      showToast("Saved for later", "success");
+    } catch {
+      showToast("Couldn't save — try again", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <m.button
+      type="button"
+      onClick={handleSave}
+      disabled={saving}
+      whileHover={reducedMotion || saving ? undefined : { scale: 1.15 }}
+      transition={{ duration: 0.2 }}
+      className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center text-charcoal transition-colors duration-200 ease-state hover:text-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      <Heart aria-hidden="true" strokeWidth={1.5} className="h-4 w-4" />
+      <span className="sr-only">
+        Save {line.name}, size {line.size} for later
+      </span>
+    </m.button>
   );
 }
 
