@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SiteNav } from "@/components/sections/site-nav";
-import { Hero } from "@/components/sections/hero";
-import { CollectionBanner } from "@/components/sections/collection-banner";
+import { HeroSlider } from "@/components/sections/hero-slider";
 import { FeaturedProducts } from "@/components/sections/featured-products";
+import { CategoryBanners } from "@/components/sections/category-banners";
 import { TopSelling } from "@/components/sections/top-selling";
 import { FabricExplorer } from "@/components/sections/fabric-explorer";
 import { ProductGrid } from "@/components/sections/product-grid";
@@ -14,6 +14,7 @@ import {
 } from "@/components/sections/product-grid-fallback";
 import { SignatureSection } from "@/components/sections/signature-section";
 import { WornAndLoved } from "@/components/sections/worn-and-loved";
+import { TrustBar } from "@/components/sections/trust-bar";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 import { SiteFooter } from "@/components/sections/site-footer";
 import { StitchDivider } from "@/components/ui/stitch-divider";
@@ -40,35 +41,22 @@ export const metadata: Metadata = {
 };
 
 /**
- * Page rhythm (client brief, 2026-08-29, Item 5 — "flow like a premium
- * fashion magazine"): nav → hero → collection banner → New Arrivals →
- * Explore by Fabric → Top Selling → dark signature ("the cloth, before the
- * cut") → Worn & Loved → the full grid → newsletter → footer.
+ * Page rhythm (client brief, 2026-08-30, Item 5 — supersedes the previous
+ * pass's own rhythm instruction): nav → hero slider → New Arrivals →
+ * category banners → Explore by Fabric → Top Selling → dark signature
+ * ("the cloth, before the cut") → Worn & Loved → the full grid → trust bar
+ * → newsletter → footer. The announcement bar sits above all of this, in
+ * `app/layout.tsx` — every page gets it, not just `/`.
  *
- * Two deliberate departures from the brief's own 11-line list, both
- * disclosed rather than silently resolved:
- *
- * 1. **The full collection grid stays on the home page.** The brief's list
- *    never names it, and taken completely literally "remove any section
- *    that breaks this rhythm" would delete it — but doing that would break
- *    the fourteen-plus existing `/#collection` links across the site (the
- *    atelier page, the PDP's own error/not-found/breadcrumb, the cart
- *    drawer, search's empty state, this page's own new banner and hero
- *    CTAs, `wishlist-contents.tsx`…), all of which assume that id exists on
- *    `/`. `/shop` already serves the identical `ProductGrid` at its own
- *    route (built specifically so the nav no longer *needed* to point at
- *    this section) — but silently deleting a still-linked section is a
- *    bigger, riskier call than the brief made explicitly, so it stays,
- *    placed where it always structurally sat: closing out the shopping
- *    sections before the page's closing editorial/newsletter beat.
- * 2. **Worn & Loved sits after the dark signature section, not immediately
- *    after Top Selling.** Item 3's own text says "below Top Selling, above
- *    the full collection grid," which conflicts with Item 5's explicit
- *    enumerated order (dark section at position 8, Worn & Loved at 9) —
- *    Item 5 is the later, more specific "enforce this exact order"
- *    instruction, so it wins the ordering; Worn & Loved still lands above
- *    the grid, per Item 3, just with the dark section between them rather
- *    than directly adjacent.
+ * **The full collection grid stays on the home page** — the same disclosed
+ * call the previous pass made, unchanged by this one: the brief's own
+ * 12-line list still never names it, and removing it would still break the
+ * many existing `/#collection` deep-links across the site (the atelier
+ * page, the PDP's error/not-found/breadcrumb, the cart drawer, search's
+ * empty state, `wishlist-contents.tsx`…). `/shop` already serves the
+ * identical `ProductGrid` at its own route. Placed where it has
+ * structurally sat since the very first pass: closing out the shopping
+ * sections before the page's closing beats.
  *
  * The grid keeps its own Suspense boundary so a slow catalogue can never hold
  * up anything above it. Reading `searchParams` keeps the route dynamic, which
@@ -84,9 +72,7 @@ export default function HomePage({
     <>
       <SiteNav />
       <main id="main">
-        <Hero />
-
-        <CollectionBanner />
+        <HeroSlider />
 
         {/* Own Suspense boundary (client brief, 2026-08-28, Item 4B) — a
             grey pulse placeholder in the section's own shape while the
@@ -96,8 +82,8 @@ export default function HomePage({
           <FeaturedProducts />
         </Suspense>
 
-        {/* Explore by Fabric now precedes Top Selling (client brief,
-            2026-08-29, Item 5 — the previous pass had these swapped). */}
+        <CategoryBanners />
+
         <FabricExplorer />
 
         <Suspense fallback={<TopSellingFallback />}>
@@ -115,6 +101,8 @@ export default function HomePage({
         <Suspense fallback={<ProductGridFallback />}>
           <ProductGrid searchParams={searchParams} />
         </Suspense>
+
+        <TrustBar />
 
         <NewsletterSignup />
       </main>

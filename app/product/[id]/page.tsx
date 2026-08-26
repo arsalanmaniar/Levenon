@@ -28,6 +28,7 @@ import {
 import { getAverageRating, getReviews } from "@/lib/reviews/reviews-data";
 import type { Review } from "@/lib/reviews/types";
 import { getProduct, listProducts } from "@/lib/server/products";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { formatPrice, isInStock } from "@/lib/types";
 import { siteDescription, siteName, siteUrl } from "@/lib/site";
 import { ProductJsonLd } from "@/components/products/product-json-ld";
@@ -159,15 +160,10 @@ export default async function ProductPage({ params }: Params) {
         {/* Bottom padding matches the mobile bar's own height, so it never
             overlaps the related-products strip or the footer beneath it. */}
         <article className="mx-auto max-w-shell px-6 py-12 pb-24 md:px-12 lg:px-20 md:py-16 lg:pb-16">
-          <nav aria-label="Breadcrumb" className="label text-charcoal">
-            <Link href="/#collection" className="hover:text-purple-500">
-              Collection
-            </Link>
-            <span aria-hidden="true" className="px-2 text-hairline">
-              /
-            </span>
-            <span>{product.category.name}</span>
-          </nav>
+          {/* "Home > [Product Name]" (client brief, 2026-08-30, Item 6A) —
+              simpler than the previous "Collection > Category" version;
+              the shared `Breadcrumbs` component every other page now uses. */}
+          <Breadcrumbs items={[{ label: product.name }]} />
 
           <div className="mt-10 grid gap-12 lg:grid-cols-12 lg:gap-16">
             {/*

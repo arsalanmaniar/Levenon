@@ -1,5 +1,6 @@
 import { SiteNav } from "@/components/sections/site-nav";
 import { SiteFooter } from "@/components/sections/site-footer";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 /**
  * Shared shell for the small content routes (shipping, returns, size guide,
@@ -29,7 +30,8 @@ export function ContentPage({
       <SiteNav />
       <main id="main">
         <article className="mx-auto max-w-2xl px-6 py-16 md:py-24">
-          <p className="label text-charcoal">{eyebrow}</p>
+          <Breadcrumbs items={[{ label: title }]} />
+          <p className="mt-6 label text-charcoal">{eyebrow}</p>
           {/* Page H1 tier (SKILL.md §3), the same one `/track` and
               `/wishlist` use. */}
           <h1 className="mt-5 font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">

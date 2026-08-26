@@ -59,6 +59,11 @@ export function SearchBar() {
   const [status, setStatus] = useState<Status>("idle");
   const [activeIndex, setActiveIndex] = useState(-1);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  // "You might like" — four random products shown under a zero-result
+  // search (client brief, 2026-08-30, Item 6C). Fetched once per overlay
+  // session, not per keystroke: this is a fallback suggestion, not a
+  // second search, so it doesn't need to track `term` at all.
+  const [suggestions, setSuggestions] = useState<Product[] | null>(null);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -75,6 +80,7 @@ export function SearchBar() {
     setResults([]);
     setStatus("idle");
     setActiveIndex(-1);
+    setSuggestions(null);
   }, []);
 
   useModalBehaviour({
@@ -183,6 +189,30 @@ export function SearchBar() {
 
     return () => window.clearTimeout(timer);
   }, [trimmed, open]);
+
+  // "You might like" — fetched once, the first time a search comes back
+  // empty, not re-fetched on every keystroke that also returns zero results.
+  useEffect(() => {
+    if (status !== "ready" || results.length > 0 || suggestions !== null) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/products?limit=24");
+        if (!response.ok) throw new Error(String(response.status));
+        const data = (await response.json()) as { products: Product[] };
+        if (cancelled) return;
+        const shuffled = [...data.products].sort(() => Math.random() - 0.5);
+        setSuggestions(shuffled.slice(0, 4));
+      } catch {
+        if (!cancelled) setSuggestions([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [status, results.length, suggestions]);
 
   const goTo = useCallback(
     (product: Product) => {
@@ -361,6 +391,7 @@ export function SearchBar() {
                       onRunSearch={runSearch}
                       onRemoveSearch={removeSearch}
                       onClearSearches={clearSearches}
+                      suggestions={suggestions}
                     />
                   </div>
                 </m.div>
@@ -386,6 +417,7 @@ function SearchResults({
   onRunSearch,
   onRemoveSearch,
   onClearSearches,
+  suggestions,
 }: {
   listId: string;
   term: string;
@@ -397,6 +429,7 @@ function SearchResults({
   reducedMotion: boolean;
   recentSearches: string[];
   onRunSearch: (value: string) => void;
+  suggestions: Product[] | null;
   onRemoveSearch: (value: string) => void;
   onClearSearches: () => void;
 }) {
@@ -485,7 +518,8 @@ function SearchResults({
   if (results.length === 0) {
     return (
       <div className="py-8">
-        <p className="label text-charcoal">No pieces match “{term}”</p>
+        {/* Literal copy from the client brief, 2026-08-30, Item 6C. */}
+        <p className="label text-charcoal">No results for &ldquo;{term}&rdquo;</p>
         <p className="mt-3 max-w-[34ch] text-body leading-relaxed text-charcoal">
           The season is short — twelve pieces, not twelve hundred. Try a
           broader word, or see everything.
@@ -496,6 +530,42 @@ function SearchResults({
         >
           See the collection
         </Link>
+
+        {suggestions && suggestions.length > 0 && (
+          <div className="mt-10 border-t border-hairline pt-8">
+            <p className="label text-charcoal">You might like</p>
+            <ul className="mt-4 grid grid-cols-2 gap-x-6 gap-y-8 sm:grid-cols-4">
+              {suggestions.map((product) => (
+                <li key={product.id}>
+                  <button
+                    type="button"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      onSelect(product);
+                    }}
+                    className="block w-full text-left"
+                  >
+                    <div className="relative aspect-[4/5] w-full overflow-hidden border border-hairline bg-paper">
+                      {product.images[0] ? (
+                        <Image
+                          src={product.images[0].url}
+                          alt=""
+                          fill
+                          sizes="(min-width: 640px) 25vw, 50vw"
+                          className="object-cover"
+                        />
+                      ) : null}
+                    </div>
+                    <p className="mt-3 truncate font-display text-sm font-bold tracking-[-0.02em] text-ink">
+                      {product.name}
+                    </p>
+                    <p className="label mt-1 text-charcoal">{formatPrice(product)}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     );
   }

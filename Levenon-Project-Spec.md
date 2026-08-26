@@ -313,6 +313,102 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Hero slider, announcement bar, category banners, trust bar, breadcrumbs (2026-08-30, fifteenth pass)
+
+Six items from the client's revision brief, referencing Nishat Linen and Maria B patterns. `tsc
+--noEmit` clean after every batch; `next lint` clean; `next build` clean after a full `.next`
+wipe. First-load JS: `/` 156 kB, `/product/[id]` 159 kB, everything else 142–152 kB — all under
+the 200 kB ceiling, 120 routes (unchanged). No browser was spawned, per the brief's instruction —
+verified by `tsc`, grep, and build output only; "no horizontal overflow 320→1920" is asserted
+from reading the changed components' CSS (relative units, `truncate`/`flex-wrap` at every
+narrow-viewport risk point identified), not a rendered screenshot.
+
+**Built:**
+1. **Hero slider** (`hero-slider.tsx` + `hero-slider-client.tsx`) replaces the static hero and its
+   four exclusive sub-components (`hero-collage.tsx`, `background-beams.tsx`, `hero-aurora.tsx`,
+   `scroll-indicator.tsx` — all deleted, confirmed via grep to have no other consumers), per the
+   brief's own explicit "remove the old static hero" instruction. Three slides, the brief's own
+   literal copy, three hand-picked products rather than a computed "best photography" heuristic
+   the catalogue has no field for: Tussel Organza Suit (visual variety against the other two),
+   Adda Work Chiffon Suit (its own embroidery technique literally is adda work, matching the
+   "Hand Embroidery" slide), Scifflie Lawn Suit (its own embroidery technique literally is
+   schiffli, which that slide's own copy names). 5s auto-play, pause-on-hover, crossfade
+   (opacity + `scale(1.02→1)`, 0.7s), 48px arrow circles, dots (24px active/8px inactive,
+   width-animated), pointer-based swipe, `ArrowLeft`/`ArrowRight` when focused. Reduced motion
+   branches the render tree — a plain, unanimated slide swap — rather than animating at
+   `duration: 0`, which this codebase's own spec log already flags as the pattern SKILL.md §7
+   rules out (`cart-drawer.tsx`'s known exception); auto-play is also skipped outright, not just
+   slowed.
+2. **Announcement bar** (`announcement-bar.tsx`), mounted in `app/layout.tsx` above every page's
+   own `<SiteNav>`. Four rotating messages (3s, fade), dismiss persisted to sessionStorage using
+   the identical three-state `useLayoutEffect`-gated pattern `loading-screen.tsx` already
+   established (`null` while undecided, decided synchronously before the browser's first client
+   paint, so a returning-this-session visitor who already dismissed it never sees it flash on).
+   Pinned `--ink`/`--paper`/`--purple-300` (new `#announcement-bar` selector in `globals.css`,
+   same technique the footer's own pin already uses) so "always dark, both themes" is actually
+   true rather than swapping with `data-theme`. **Nav integration required rethinking the brief's
+   own instruction, not just following it literally**: "nav top = 36px when the bar is visible, 0
+   when dismissed" only produces a real effect if the bar is *also* pinned at the very top while
+   scrolling — a not-sticky bar that simply scrolls away needs no compensating nav offset at all,
+   since a `top: 0` sticky nav already catches correctly the instant the bar (in normal flow)
+   scrolls out of view. Implemented as two coordinated `sticky` elements, bar at `top-0`
+   (`z-[60]`), nav at `top-[var(--announcement-h)]` (`z-50`) — the CSS var is the only channel
+   between them, no direct component coupling — with `transition-[top]` on the nav so dismissing
+   the bar mid-session slides it up rather than snapping.
+3. **Category banners** (`category-banners.tsx`) — three panels (Lawn / Chiffon & Silk /
+   Organza & Net), between New Arrivals and Fabric Explorer. Each panel's photo is the first
+   photographed product in its target categories that the hero slider didn't already use, so nine
+   real, mostly-distinct photographs appear across the two sections rather than repeats. CTA
+   reveal rebuilt off `opacity`/`translate-y` (matching `fabric-explorer.tsx`'s own established
+   hover-reveal technique) rather than the `max-height` approach first drafted, which would have
+   animated a non-GPU-accelerated property for no benefit over the simpler, already-proven pattern.
+4. **Trust bar** (`trust-bar.tsx`) — four static facts, above the footer, below the newsletter.
+   Plain server component, `lucide-react` icons at 40px/purple-500 per the brief's literal spec.
+5. **Homepage rhythm re-enforced**: nav → hero slider → New Arrivals → category banners →
+   Explore by Fabric → Top Selling → dark signature → Worn & Loved → the full grid → trust bar →
+   newsletter → footer. **The full collection grid stays on the home page** — the same disclosed
+   call the two previous passes both made, unchanged again: the brief's own 12-line list still
+   never names it, and removing it would still break the many existing `/#collection` deep-links
+   sitewide. `/shop` already serves the identical `ProductGrid` at its own route.
+6. **Six UX items:**
+   - **Breadcrumbs** (`breadcrumbs.tsx`, shared) — "Home" implicit and always first, `/` purple-300
+     separator, mono 11px charcoal. Wired into `content-page.tsx` (covers About/Contact/Returns/
+     Shipping/Size Guide in one edit), `/shop` (new), `/collections`, `/new-in`, `/atelier`,
+     `/stockists`, `/wishlist`, `/track`, `/bank-transfer`, and the PDP — which replaces its
+     previous hand-rolled "Collection / Category" breadcrumb with the brief's own literal
+     "Home / [Product Name]" format. `/order/[id]` was deliberately skipped: a private,
+     unauthenticated-link confirmation page isn't part of the catalogue-browsing hierarchy the
+     other examples all are, and `robots: {index:false}` already marks it as not meant to be
+     found/crawled the way the rest of the site is.
+   - Back-to-top: already had `aria-label="Back to top"` and smooth scroll from an earlier pass —
+     verified, no change needed.
+   - **Empty search state** rebuilt: literal "No results for '[query]'" copy, plus a new
+     "You might like" row of four products. Genuinely randomised, not just "first four" — a
+     one-time `/api/products?limit=24` fetch per empty result, shuffled client-side, fired once
+     per overlay session rather than re-fetched on every keystroke that also happens to return zero
+     results.
+   - **Root 404** (`app/not-found.tsx`, new) — the brief's own literal copy and styling (large
+     "404" in purple-500/20 behind the quiet ring motif, "This thread doesn't exist.", "Back to
+     Shop"). `/product/[id]`'s own `not-found.tsx` is untouched and stays the more specific page a
+     genuinely-sold-through product hits, with its own different copy.
+   - **`/shop` and `/collections` page heroes**: `/shop` gained one from scratch (200px, title +
+     live piece count, hairline border) — it had none before. `/collections` already carried a
+     richer eyebrow/H1/intro block; rather than force a literal 200px cap that would have meant
+     cutting its intro paragraph, it kept its content and gained the hairline border, the live
+     count, and the breadcrumb — the spirit of the brief's spec without discarding existing,
+     unrelated copy a pixel budget never asked to be sacrificed.
+   - **Footer payment marks** (`payment-icons.tsx`, new) — simplified, monochrome Visa/Mastercard
+     glyphs (`currentColor`, not either network's brand colours or logo artwork), `text-charcoal`
+     per the brief's literal spec. The footer's pinned-dark charcoal value is ~3.8:1 against its
+     background — under AA's 4.5:1 text floor, but these are graphical icons, not body copy, so
+     WCAG's 3:1 non-text floor is the applicable bar, which this clears.
+
+**Verified:** `tsc --noEmit`, `next lint`, `next build` (after `rm -rf .next`) all clean; grep
+confirms `HeroSliderClient` has both an autoplay `setInterval` and `onPointerDown`/`onPointerUp`
+handlers; `AnnouncementBar` reads/writes `sessionStorage`; `TrustBar`'s `ITEMS` array has four
+entries; `CategoryBanners`' `PANELS` array has three; `VisaMark`/`MastercardMark` are imported and
+rendered in `site-footer.tsx`. First-load JS for every route is under the 200 kB ceiling.
+
 #### Atelier rebuild, social sidebar removal, Worn & Loved, collection banner, mega nav, premium cards (2026-08-29, fourteenth pass)
 
 Seven items from the client's revision brief, referencing mariab.pk / sapphireonline.pk /

@@ -33,7 +33,14 @@ export async function SiteNav() {
   const shopMenuFeatured = catalogue.filter((product) => product.images[0]).slice(0, 2);
 
   return (
-    <header className="nav-frost relative sticky top-0 z-50 border-b border-hairline bg-paper">
+    <header
+      // `top-[var(--announcement-h)]`, not `top-0` (client brief,
+      // 2026-08-30, Item 5) — `AnnouncementBar` owns that variable; a
+      // `transition-[top]` here is what makes dismissing it slide the nav
+      // up smoothly rather than snapping, since the CSS var itself changes
+      // instantly the moment React state updates.
+      className="nav-frost relative sticky top-[var(--announcement-h)] z-50 border-b border-hairline bg-paper transition-[top] duration-300 ease-state"
+    >
       <NavFrame
         logo={
           <Link

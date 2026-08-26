@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SiteNav } from "@/components/sections/site-nav";
 import { SiteFooter } from "@/components/sections/site-footer";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Stockists",
@@ -19,7 +20,10 @@ export default function StockistsPage() {
     <>
       <SiteNav />
       <main id="main">
-        <div className="mx-auto flex min-h-[calc(100vh-var(--nav-h))] max-w-shell flex-col items-center justify-center px-6 py-24 text-center md:px-12 lg:px-20">
+        <div className="mx-auto max-w-shell px-6 pt-8 md:px-12 lg:px-20">
+          <Breadcrumbs items={[{ label: "Stockists" }]} />
+        </div>
+        <div className="mx-auto flex min-h-[calc(100vh-var(--nav-h)-56px)] max-w-shell flex-col items-center justify-center px-6 py-24 text-center md:px-12 lg:px-20">
           {/* The ring, quiet — same motif as every other empty/placeholder state. */}
           <svg
             viewBox="0 0 120 120"

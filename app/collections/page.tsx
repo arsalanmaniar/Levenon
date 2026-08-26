@@ -4,6 +4,7 @@ import Image from "next/image";
 import { SiteNav } from "@/components/sections/site-nav";
 import { SiteFooter } from "@/components/sections/site-footer";
 import { Reveal } from "@/components/ui/reveal";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { listCategories, listProducts } from "@/lib/server/products";
 
 export const metadata: Metadata = {
@@ -36,17 +37,33 @@ export default async function CollectionsPage() {
     <>
       <SiteNav />
       <main id="main">
-        <div className="mx-auto max-w-shell px-6 py-16 md:px-12 lg:px-20 md:py-24">
-          <p className="label text-charcoal">The edit, by fabric</p>
-          <h1 className="mt-5 max-w-[20ch] text-balance font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
-            Collections
-          </h1>
-          <p className="mt-6 max-w-measure text-body leading-relaxed text-charcoal">
-            Six cloths, cut in small runs. Pick one to see everything on the
-            rail in it.
-          </p>
+        {/* Page hero with a hairline bottom border and the live piece
+            count (client brief, 2026-08-30, Item 6E) — the existing
+            eyebrow/intro copy stays; a literal 200px cap here would mean
+            cutting that paragraph, which nothing about this page's own
+            rhythm calls for the way `/shop` (which had no hero at all
+            before this pass) did. */}
+        <div className="border-b border-hairline">
+          <div className="mx-auto max-w-shell px-6 py-16 md:px-12 lg:px-20 md:py-24">
+            <Breadcrumbs items={[{ label: "Collections" }]} />
+            <div className="mt-6 flex flex-wrap items-baseline justify-between gap-4">
+              <p className="label text-charcoal">The edit, by fabric</p>
+              <p className="label text-charcoal">
+                {catalogue.length} {catalogue.length === 1 ? "piece" : "pieces"}
+              </p>
+            </div>
+            <h1 className="mt-5 max-w-[20ch] text-balance font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
+              Collections
+            </h1>
+            <p className="mt-6 max-w-measure text-body leading-relaxed text-charcoal">
+              Six cloths, cut in small runs. Pick one to see everything on the
+              rail in it.
+            </p>
+          </div>
+        </div>
 
-          <ul className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mx-auto max-w-shell px-6 pb-16 pt-14 md:px-12 lg:px-20 md:pb-24">
+          <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {cards.map(({ category, image }, index) => (
               <Reveal as="li" key={category.id} delay={index * 0.06}>
                 <Link

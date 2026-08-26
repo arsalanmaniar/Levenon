@@ -54,6 +54,18 @@
 
   --shell: 1400px;
   --nav-h: 72px;
+  /*
+   * Announcement bar height (client brief, 2026-08-30, Item 2) — the nav's
+   * own `sticky top-[var(--announcement-h)]` reads this directly, so
+   * dismissing the bar moves the nav with zero JS-to-JS coordination
+   * between the two components. Defaults to 0 — the SSR-safe state, since
+   * the server cannot read the dismissal flag in sessionStorage — and
+   * `AnnouncementBar` bumps it to 36px in a `useLayoutEffect`, the same
+   * "decide before paint" technique `loading-screen.tsx` already uses, so a
+   * first-time-this-session visitor never sees the nav flash at the wrong
+   * offset before settling.
+   */
+  --announcement-h: 0px;
 
   color-scheme: light;
 }
@@ -153,6 +165,22 @@
   --paper-rgb: 251 250 248;
   --charcoal-rgb: 91 90 95;
   --hairline-rgb: 234 232 226;
+}
+
+/*
+ * The announcement bar (client brief, 2026-08-30, Item 2) — "Background:
+ * ink (always, both themes)" is the identical requirement the footer above
+ * already had, so this is the same pin, not a new pattern: without it,
+ * `bg-ink` on the bar would render near-white the moment a reader is in
+ * dark site-theme, since `--ink` itself swaps globally with `data-theme`.
+ */
+#announcement-bar {
+  --ink: #0b0b0d;
+  --paper: #fbfaf8;
+  --purple-300: #b98cf2;
+  --ink-rgb: 11 11 13;
+  --paper-rgb: 251 250 248;
+  --purple-300-rgb: 185 140 242;
 }
 
 /*

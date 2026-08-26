@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SiteNav } from "@/components/sections/site-nav";
 import { SiteFooter } from "@/components/sections/site-footer";
 import { TrackForm } from "@/components/orders/track-form";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 export const metadata: Metadata = {
   title: "Track an order",
@@ -23,7 +24,8 @@ export default function TrackPage() {
           right-hand side empty and read as unfinished.
         */}
         <div className="mx-auto max-w-lg px-6 py-16 md:py-20">
-          <p className="label text-charcoal">Orders</p>
+          <Breadcrumbs items={[{ label: "Track Order" }]} />
+          <p className="mt-6 label text-charcoal">Orders</p>
           <h1 className="mt-5 font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
             Track an order
           </h1>

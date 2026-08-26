@@ -5,6 +5,7 @@ import { SmoothScroll } from "@/components/providers/smooth-scroll";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { PageTransition } from "@/components/providers/page-transition";
 import { LoadingScreen } from "@/components/providers/loading-screen";
+import { AnnouncementBar } from "@/components/providers/announcement-bar";
 import { ToastProvider } from "@/components/providers/toast-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CartProvider } from "@/components/cart/cart-provider";
@@ -97,6 +98,13 @@ export default function RootLayout({
           Skip to content
         </a>
         <SmoothScroll />
+        {/* Above every page's own `<SiteNav>` — each page renders its own
+            nav rather than the root layout owning it, so this is the one
+            place that reliably sits above all of them. `SiteNav` reads the
+            `--announcement-h` CSS var this writes for its own `sticky`
+            offset (client brief, 2026-08-30, Item 2/5); the two components
+            never talk to each other directly. */}
+        <AnnouncementBar />
         {/* Outermost: every `m` element below needs the feature bundle. */}
         <ThemeProvider>
         <MotionProvider>

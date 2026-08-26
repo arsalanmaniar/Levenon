@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Wordmark } from "@/components/ui/wordmark";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { FacebookIcon, InstagramIcon, SocialLink, TikTokIcon } from "@/components/ui/social-icons";
+import { VisaMark, MastercardMark } from "@/components/ui/payment-icons";
 
 /**
  * Footer, redesigned to the client brief (2026-08-26): four columns, dark
@@ -151,10 +152,19 @@ export function SiteFooter() {
           ))}
         </div>
 
-        <div className="mt-16 flex flex-col gap-4 border-t border-paper/20 pt-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-16 flex flex-col gap-6 border-t border-paper/20 pt-8 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
             <p className="label text-paper/60">© {new Date().getFullYear()} Levenon</p>
             <p className="label text-paper/60">Made in Pakistan</p>
+            {/* Payment marks (client brief, 2026-08-30, Item 6F) —
+                `text-charcoal` per the brief's own literal spec; the
+                footer's pinned-dark charcoal value is ~3.8:1 against this
+                background, which clears WCAG's 3:1 floor for graphical/
+                non-text elements (these are icons, not body copy). */}
+            <div className="flex items-center gap-2 text-charcoal">
+              <VisaMark className="h-8 w-auto" />
+              <MastercardMark className="h-8 w-auto" />
+            </div>
           </div>
           {/* A second toggle, per the brief ("moved here from nav — keep one
               in nav too") — the nav's own icon-only instance is untouched. */}
