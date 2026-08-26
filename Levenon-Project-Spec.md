@@ -313,6 +313,133 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Atelier rebuild, social sidebar removal, Worn & Loved, collection banner, mega nav, premium cards (2026-08-29, fourteenth pass)
+
+Seven items from the client's revision brief, referencing mariab.pk / sapphireonline.pk /
+nishatlinen.com as the target register. `tsc --noEmit` clean after every batch; `next lint`
+clean; `next build` clean after a full `.next` wipe. First-load JS: `/` 156 kB,
+`/product/[id]` 159 kB, everything else 142–152 kB — all under the 200 kB ceiling, 120 routes
+(unchanged). No browser was spawned, per the brief's instruction — verified by `tsc`, grep, and
+build output only; "no horizontal overflow 320→1920" is asserted from reading the changed
+components' CSS (relative units throughout, `overflow-hidden` on every scroll/parallax
+container), not a rendered screenshot. `@21st-dev/cli`/`uipro` were not used, per the brief's own
+note that they need interactive browser OAuth this CLI session cannot complete.
+
+**Built:**
+1. **Atelier left side, rebuilt.** The "01" numeral + fanned three-swatch stack
+   (`atelier-swatch-stack.tsx`, deleted) replaced with `atelier-feature-image.tsx`: one large
+   3:4 editorial photograph, a 1px `outline` purple-500 frame inset 8px (`outline-offset:-8px` —
+   `outline`, not `box-shadow`, per the brief), a mono 10px paper caption ("Chikankari — worked by
+   hand"), and scroll parallax. The parallax is **element-relative**
+   (`useScroll({ target: ref, offset: ["start end", "end start"] })`), not the document-relative
+   `scrollY` `hero-collage.tsx` already uses — that pattern maps a fixed `[0, 600]` window of
+   *page* scroll, which only reads correctly for an element near the top of the document. The
+   atelier sits well below the fold, so reusing it verbatim would have shipped a parallax already
+   pinned at its end value before the section ever scrolled into view — this is the brief's own
+   named "the fixed bug." "0.7× scroll speed" is approximated as a 30%-overscanned frame
+   (`h-[130%]`) translating across a ±15% range across the element's own transit, disclosed as an
+   approximation rather than a literal velocity multiplier, which a bounded `object-cover` frame
+   has no direct equivalent of. The image itself is a named, hand-picked product (Monsoon Blooms
+   Chikankari, `lv-648`) rather than a computed "richest embroidery" heuristic the catalogue has
+   no field for — its own blurb is almost verbatim the brief's requested caption, and it is this
+   catalogue's cotton fabric, which SKILL.md documents as chikankari's own home. Falls back to
+   any other cotton piece, then the first photographed product, if the named slug is ever retired.
+2. **Fixed social sidebar removed.** `components/ui/social-sidebar.tsx` deleted; its one call site
+   (`app/layout.tsx`) removed. Footer's own Instagram/Facebook/TikTok icons are untouched — the
+   brief's own instruction was explicit that only the floating sidebar goes. `social-icons.tsx`'s
+   doc comments, which referenced "the sidebar" three times, were corrected rather than left
+   describing a component that no longer exists.
+3. **"Worn & Loved" UGC section built** (`worn-and-loved.tsx`) — between Top Selling and the full
+   collection grid... with the dark signature section between them (see Item 5's note below on
+   why). Six cards, real catalogue products spread across the collection (not just the first six
+   rows, so the strip doesn't repeat New Arrivals/Top Selling's own picks), fake-but-disclosed
+   Instagram handles in the brief's own naming style, the existing `InstagramIcon` gradient glyph
+   reused top-right of each card (not a new one built), hover `scale-[1.02]` + "Shop This →",
+   horizontal `snap-x` scroll below `sm`, a 3-column grid from `sm` up. "Tag us @levenon.pk to be
+   featured" centred underneath. The handles are disclosed as fabricated in the component's own
+   comment — there is no real UGC pipeline behind this catalogue — but every card still links a
+   real product, so "Shop This" never dead-ends.
+4. **Collection banner built** (`collection-banner.tsx`) — full-bleed (no `max-w-shell` wrapper on
+   the section itself; the text column carries its own gutter padding so *content* still lines up
+   with the rest of the page), 40vh mobile / 60vh desktop, the one genuinely landscape photograph
+   in the whole catalogue (`scifflie-lawn-suit`, image index 1, 1280×904 — hand-picked rather than
+   computed by aspect ratio, since a computed picker would silently break the moment the database
+   source goes live with its placeholder 1000×1250 dimensions on every image,
+   `lib/server/db/mapping.ts`). ink/60%→transparent left-to-right gradient, mono eyebrow/H2/
+   subtext/ghost-CTA staggered `slide-in-left` on load (plain CSS keyframes with per-element
+   inline `animationDelay`, the same idiom the hero's own entrance already uses, rather than a new
+   client component built just to run a Framer `initial`/`animate` once), image Ken Burns
+   (scale 1→1.04, 10s, plays once — a new `banner-ken-burns` keyframe, not the existing ambient
+   `ken-burns` loop, which is tuned for a different, continuously-drifting context).
+5. **Homepage rhythm reordered** to nav → hero → collection banner → New Arrivals → Explore by
+   Fabric → Top Selling → dark signature → Worn & Loved → \[grid\] → newsletter → footer —
+   Fabric Explorer and Top Selling swapped from the previous pass's order, per the brief. **Two
+   disclosed departures from the brief's literal 11-line list:** the full collection grid stays on
+   the home page (never named in the brief's list, and deleting it would break 14+ existing
+   `/#collection` links across the site — the atelier page, the PDP's error/not-found/breadcrumb,
+   the cart drawer, search's empty state, `wishlist-contents.tsx`, and this pass's own new banner
+   and card CTAs — `/shop` already serves the identical grid at its own route, built specifically
+   so the nav no longer *needed* to point at this section, but silently deleting a still-linked
+   section is a bigger call than the brief made explicitly); and Worn & Loved sits after the dark
+   section rather than immediately after Top Selling, because Item 3's prose ("below Top Selling,
+   above the grid") conflicts with Item 5's own explicit enumerated order (dark section at
+   position 8, Worn & Loved at 9) — Item 5, the later and more specific "enforce this exact order"
+   instruction, was treated as authoritative for sequencing.
+6. **Premium nav dropdowns built** (`nav-dropdown.tsx`) — "Shop" (categories with live counts on
+   the left, two featured products at 120×160px on the right, "View All →") and "Collections"
+   (New In / Top Selling / By Fabric). `SiteNav` is now `async` — a mega menu needs live category
+   counts and featured products, which only a server component can read directly — while
+   `NavLinks`/`MobileNav` stay the client islands that render the interactive menu itself, the
+   same "server fetches, client animates" split every other section already uses. The panel is a
+   DOM descendant of its trigger `<li>` but positioned `absolute` against the nearest *positioned*
+   ancestor, `SiteNav`'s own `<header>` (`relative`) rather than the `<li>` — `left-0 right-0`
+   therefore resolves to the header's full width, which is what "full-width (100vw)" needs.
+   Height `0→auto`/opacity `0→1`, 0.25s, `border-t-2 border-purple-500`, closes on Escape and on
+   mouse-leave — with a disclosed 150ms grace timer, since the trigger and panel are visually
+   separated (the panel starts at the header's bottom edge, not the link's), so an instant
+   close-on-leave flickers shut on the gap between them before the pointer ever reaches the panel.
+   Also opens/closes on focus/blur, an addition beyond the brief's own hover-only description, so
+   a keyboard user has a way in and out at all. **The brief's own fourth "Collections" item,
+   "Sale," was dropped**, disclosed rather than invented: nothing in this catalogue is marked
+   discounted, and every other link on this site resolves to something real (`site-footer.tsx`'s
+   own established rule) rather than a page with no content behind it. Mobile: `mobile-nav.tsx`
+   gained an accordion (`ChevronDown`, `height: 0→auto`) for the same two items, showing category
+   links / the same three Collections links, at most one section open at a time.
+7. **Product card, rebuilt** (`product-card.tsx`) — 3:4 image (was 4:5), the existing hover
+   cross-fade (`hoverSwap`, already built) kept for two-image rows, the existing hover zoom kept
+   but now conditional on a *single*-image row only (both firing together, the previous
+   behaviour, was reviewed as fighting for attention). Badge scheme rebuilt: NEW (purple-500,
+   first 8 of the *default* catalogue order — computed by each caller before any re-sort, since
+   this card has no server access to that array itself: `top-selling.tsx` reads it before its own
+   stock-sort, `product-grid.tsx` already fetches the unfiltered baseline for its own empty-state
+   logic) and Waitlist top-left; wishlist heart moved top-right (was bottom-right); "Only X left"
+   raised to `bottom-12` from `bottom-4` — a real bug caught while building, not requested: the
+   brief's own new full-width Quick Add bar claims the image's bottom edge, and the two would
+   otherwise render on top of each other on every in-stock, low-stock row, which is exactly the
+   set where both are visible simultaneously. Quick Add (36px, `bg-ink/80 backdrop-blur-sm`,
+   "Add to Bag — select size" → inline size chips in the same footprint, the same "swaps in over
+   the trigger" idiom `quick-add-card.tsx` already established) sits inside the card's own `<Link>`
+   rather than restructuring the DOM around it, using the same `preventDefault`/`stopPropagation`
+   technique `WishlistHeart` already proved works there. Body rebuilt to the brief's literal
+   spec — name (Manrope 600/14px/ink, `line-clamp-2`), fabric category (mono 10px charcoal
+   uppercase, new), price (Manrope 700/15px/**ink**, was purple-500/600), "Unstitched" pill
+   (hairline border, charcoal, 10px — moved off the image, where it was previously a solid filled
+   badge). The static size-chip row and the blurb paragraph, neither named in the brief's card
+   spec, were both dropped: Quick Add now surfaces sizes on demand, and the reference sites this
+   brief names don't carry a paragraph per grid tile — keeping both would have worked against the
+   "match premium fashion sites" the item opens with. **Correction to the brief's own stated
+   figure, not the deciding factor for the change**: Item 7 repeats a purple-500-on-paper contrast
+   figure (3.08:1) already corrected in the previous pass's own log — that number is the *dark*-
+   ground measurement (SKILL.md's own table); purple-500 on `--paper` is ~5.9:1 and passes AA. The
+   colour change to ink ships regardless, since Item 7 and its own VERIFY grep both state it as a
+   literal design decision, not only a contrast fix.
+
+**Verified:** `tsc --noEmit`, `next lint`, `next build` (after `rm -rf .next`) all clean; grep
+confirms no fixed social sidebar reference anywhere in the codebase (`social-sidebar.tsx` itself
+deleted); `WornAndLoved`/`CollectionBanner` components exist and are imported on `/`;
+`NavDropdown` present in the nav; the product card's price span is `text-ink`, not
+`text-purple-500`. First-load JS for every route is under the 200 kB ceiling.
+
 #### Font-size correction, theme-colour audit, footer logo definitive fix, UX polish (2026-08-28, thirteenth pass)
 
 Four items from the client's revision brief — the twelfth pass's own clamp values shipped too

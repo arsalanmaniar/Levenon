@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, m } from "framer-motion";
-import { Menu, X, Heart, ShoppingBag, Search } from "lucide-react";
+import { Menu, X, Heart, ShoppingBag, Search, ChevronDown } from "lucide-react";
 import { useModalBehaviour } from "@/hooks/use-modal-behaviour";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { useCart } from "@/components/cart/cart-provider";
 import { useWishlist } from "@/components/wishlist/wishlist-provider";
 import { Wordmark } from "@/components/ui/wordmark";
+import { cn } from "@/lib/cn";
+import type { Category } from "@/lib/types";
 
 const EASE_IN = [0.16, 1, 0.3, 1] as const;
 
@@ -33,9 +35,23 @@ const LINKS = [
   { href: "/stockists", label: "Stockists" },
 ];
 
-export function MobileNav() {
+// Same three real destinations as the desktop "Collections" dropdown
+// (`nav-dropdown.tsx`) — kept in sync by hand rather than shared as a
+// constant, since one lives in a client-only file and the other doesn't
+// carry category counts a mobile accordion has no room to show anyway.
+const COLLECTIONS_SUBLINKS = [
+  { href: "/new-in", label: "New In" },
+  { href: "/#top-selling", label: "Top Selling" },
+  { href: "/collections", label: "By Fabric" },
+];
+
+export function MobileNav({ categories }: { categories: Category[] }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // Accordion state (client brief, 2026-08-29, Item 6: "dropdowns become
+  // accordion... in the full-screen mobile menu overlay") — at most one
+  // section open at a time, same convention as most mobile nav accordions.
+  const [expanded, setExpanded] = useState<"shop" | "collections" | null>(null);
   useEffect(() => setMounted(true), []);
 
   const { totals, openCart } = useCart();
@@ -46,7 +62,10 @@ export function MobileNav() {
   const closeRef = useRef<HTMLButtonElement>(null);
   const titleId = `mobile-nav-${useId().replace(/:/g, "")}`;
 
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => {
+    setOpen(false);
+    setExpanded(null);
+  }, []);
 
   useModalBehaviour({
     open,
@@ -112,27 +131,98 @@ export function MobileNav() {
 
                   <nav aria-label="Primary" className="flex-1 overflow-y-auto px-6 py-10">
                     <ul className="space-y-2">
-                      {LINKS.map((link) => (
-                        <li key={link.label}>
-                          {/* Hover: an 8px slide plus a purple dot appearing
-                              to the left (client brief, 2026-08-26) — the dot
-                              sits in reserved space so the slide never
-                              changes the row's own width/wrapping. */}
-                          <Link
-                            href={link.href}
-                            onClick={close}
-                            className="group flex items-center gap-3 py-3 font-display text-4xl font-extrabold tracking-[-0.02em] transition-colors duration-200 ease-state hover:text-purple-500"
-                          >
-                            <span
-                              aria-hidden="true"
-                              className="h-2 w-2 shrink-0 rounded-full bg-purple-500 opacity-0 transition-opacity duration-200 ease-state group-hover:opacity-100"
-                            />
-                            <span className="transition-transform duration-200 ease-state group-hover:translate-x-2">
-                              {link.label}
-                            </span>
-                          </Link>
-                        </li>
-                      ))}
+                      {LINKS.map((link) => {
+                        const accordionKey =
+                          link.label === "Shop"
+                            ? "shop"
+                            : link.label === "Collections"
+                              ? "collections"
+                              : null;
+                        const sublinks =
+                          accordionKey === "shop"
+                            ? categories.map((category) => ({
+                                href: `/shop?category=${category.slug}`,
+                                label: category.name,
+                              }))
+                            : accordionKey === "collections"
+                              ? COLLECTIONS_SUBLINKS
+                              : null;
+                        const isExpanded = accordionKey !== null && expanded === accordionKey;
+
+                        return (
+                          <li key={link.label}>
+                            {/* Hover: an 8px slide plus a purple dot appearing
+                                to the left (client brief, 2026-08-26) — the dot
+                                sits in reserved space so the slide never
+                                changes the row's own width/wrapping. */}
+                            <div className="group flex items-center gap-3 py-3">
+                              <Link
+                                href={link.href}
+                                onClick={close}
+                                className="flex flex-1 items-center gap-3 font-display text-4xl font-extrabold tracking-[-0.02em] transition-colors duration-200 ease-state hover:text-purple-500"
+                              >
+                                <span
+                                  aria-hidden="true"
+                                  className="h-2 w-2 shrink-0 rounded-full bg-purple-500 opacity-0 transition-opacity duration-200 ease-state group-hover:opacity-100"
+                                />
+                                <span className="transition-transform duration-200 ease-state group-hover:translate-x-2">
+                                  {link.label}
+                                </span>
+                              </Link>
+
+                              {sublinks && sublinks.length > 0 && (
+                                <button
+                                  type="button"
+                                  aria-expanded={isExpanded}
+                                  aria-label={`${isExpanded ? "Collapse" : "Expand"} ${link.label}`}
+                                  onClick={() =>
+                                    setExpanded((current) =>
+                                      current === accordionKey ? null : accordionKey,
+                                    )
+                                  }
+                                  className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center text-charcoal transition-colors duration-200 ease-state hover:text-purple-500"
+                                >
+                                  <ChevronDown
+                                    aria-hidden="true"
+                                    size={20}
+                                    strokeWidth={1.5}
+                                    className={cn(
+                                      "transition-transform duration-200 ease-state",
+                                      isExpanded && "rotate-180",
+                                    )}
+                                  />
+                                </button>
+                              )}
+                            </div>
+
+                            {sublinks && (
+                              <AnimatePresence initial={false}>
+                                {isExpanded && (
+                                  <m.ul
+                                    initial={reducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={reducedMotion ? { opacity: 0 } : { height: 0, opacity: 0 }}
+                                    transition={{ duration: 0.25, ease: EASE_IN }}
+                                    className="overflow-hidden pl-5"
+                                  >
+                                    {sublinks.map((sublink) => (
+                                      <li key={sublink.href}>
+                                        <Link
+                                          href={sublink.href}
+                                          onClick={close}
+                                          className="label flex min-h-[44px] items-center text-charcoal transition-colors duration-200 ease-state hover:text-ink"
+                                        >
+                                          {sublink.label}
+                                        </Link>
+                                      </li>
+                                    ))}
+                                  </m.ul>
+                                )}
+                              </AnimatePresence>
+                            )}
+                          </li>
+                        );
+                      })}
                     </ul>
 
                     {/*

@@ -4,7 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { m } from "framer-motion";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import {
+  NavDropdown,
+  ShopMegaMenuPanel,
+  CollectionsDropdownPanel,
+  type ShopMenuCategory,
+} from "./nav-dropdown";
 import { cn } from "@/lib/cn";
+import type { Product } from "@/lib/types";
 
 const BRAND_EASE = [0.16, 1, 0.3, 1] as const;
 
@@ -14,6 +21,9 @@ const BRAND_EASE = [0.16, 1, 0.3, 1] as const;
  * `app/shop`, `app/collections`, `app/new-in`, `app/atelier`,
  * `app/stockists`). The home page keeps its own inline sections unchanged —
  * this only changes where the nav sends a reader.
+ *
+ * "Shop" and "Collections" additionally carry a hover mega-menu (client
+ * brief, 2026-08-29, Item 6) — see `nav-dropdown.tsx`.
  */
 const links = [
   { href: "/shop", label: "Shop" },
@@ -31,8 +41,16 @@ const links = [
  * sense while these were anchors into one page's own sections. Still a
  * client component: `usePathname()` needs one, and so does the load-in
  * stagger.
+ *
+ * `shopMenu` arrives from `SiteNav` (a server component, so it can read the
+ * catalogue) — category counts and the two featured pieces are not
+ * something a client component can fetch itself without a second request.
  */
-export function NavLinks() {
+export function NavLinks({
+  shopMenu,
+}: {
+  shopMenu?: { categories: ShopMenuCategory[]; featured: Product[] };
+}) {
   const pathname = usePathname();
   const reducedMotion = usePrefersReducedMotion();
 
@@ -40,6 +58,38 @@ export function NavLinks() {
     <ul className="hidden items-center gap-6 md:flex lg:gap-10">
       {links.map((link, index) => {
         const active = pathname === link.href;
+
+        if (link.label === "Shop" && shopMenu) {
+          return (
+            <NavDropdown
+              key={link.label}
+              index={index}
+              label={link.label}
+              href={link.href}
+              active={active}
+              panel={
+                <ShopMegaMenuPanel
+                  categories={shopMenu.categories}
+                  featured={shopMenu.featured}
+                />
+              }
+            />
+          );
+        }
+
+        if (link.label === "Collections") {
+          return (
+            <NavDropdown
+              key={link.label}
+              index={index}
+              label={link.label}
+              href={link.href}
+              active={active}
+              panel={<CollectionsDropdownPanel />}
+            />
+          );
+        }
+
         return (
           <m.li
             key={link.label}

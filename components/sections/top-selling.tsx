@@ -26,6 +26,11 @@ export async function TopSelling() {
 
   if (topSelling.length === 0) return null;
 
+  // "First 8 in catalogue array" (client brief, 2026-08-29, Item 7) means
+  // `catalogue`'s own default order — read here, before the stock sort above
+  // reorders it for display.
+  const newArrivalIds = new Set(catalogue.slice(0, 8).map((product) => product.id));
+
   return (
     <section id="top-selling" className="scroll-mt-[var(--nav-h)]">
       <div className="mx-auto max-w-shell px-6 pb-20 pt-4 md:px-12 lg:px-20 md:pb-28 md:pt-6">
@@ -41,7 +46,7 @@ export async function TopSelling() {
         <ul className="mt-14 grid grid-cols-1 gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
           {topSelling.map((product, index) => (
             <Reveal as="li" key={product.id} delay={Math.min(index, 5) * 0.05}>
-              <ProductCard product={product} />
+              <ProductCard product={product} isNew={newArrivalIds.has(product.id)} />
             </Reveal>
           ))}
         </ul>

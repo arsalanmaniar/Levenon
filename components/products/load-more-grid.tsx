@@ -17,7 +17,14 @@ const PAGE_SIZE = 12;
  * be one for a catalogue this size. A second network round trip would be
  * pure latency for zero new information.
  */
-export function LoadMoreGrid({ products }: { products: Product[] }) {
+export function LoadMoreGrid({
+  products,
+  /** First 8 ids of the default catalogue order (client brief, 2026-08-29, Item 7). */
+  newArrivalIds,
+}: {
+  products: Product[];
+  newArrivalIds?: Set<string>;
+}) {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const visible = products.slice(0, visibleCount);
   const remaining = products.length - visible.length;
@@ -55,7 +62,11 @@ export function LoadMoreGrid({ products }: { products: Product[] }) {
                 The rest lazy-load, which is what they should always have
                 done here.
               */}
-              <ProductCard product={product} priority={index < 2} />
+              <ProductCard
+                product={product}
+                priority={index < 2}
+                isNew={newArrivalIds?.has(product.id) ?? false}
+              />
             </Reveal>
           ))}
         </ul>

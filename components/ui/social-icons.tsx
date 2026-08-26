@@ -8,14 +8,13 @@ import { cn } from "@/lib/cn";
  * which is exactly what rules out `lucide-react` here (that library, and
  * every icon set built on the "one currentColor stroke" convention, is the
  * wrong tool for a logo whose whole identity is a specific gradient or
- * hex). Inline SVG, one file, reused by both the footer and the new
- * desktop sidebar rather than duplicated.
+ * hex). Inline SVG, one file.
  *
- * Each icon takes its own unique gradient/mask id via `useId()` — two
- * instances of the same icon on one page (footer + sidebar, simultaneously,
- * on a wide viewport) sharing a literal `id="..."` would be invalid HTML,
- * and browsers are not guaranteed to resolve `url(#id)` correctly when the
- * id isn't unique document-wide.
+ * Each icon takes its own unique gradient/mask id via `useId()` — the
+ * fixed desktop sidebar this once shared with the footer is gone (client
+ * brief, 2026-08-29: "looks out of place and cheap... footer only"), but a
+ * page that ever renders this icon set more than once (nothing does today)
+ * would still need unique ids, so the safeguard stays.
  */
 
 export function InstagramIcon({ className }: { className?: string }) {
@@ -74,7 +73,7 @@ const GLOW: Record<string, string> = {
 /**
  * Hover scale(1.2) + a brand-coloured `drop-shadow`, 0.25s (client brief) —
  * shared by every social icon instance so the physics stay identical
- * between the footer and the sidebar.
+ * wherever this renders.
  */
 export function SocialLink({
   href,

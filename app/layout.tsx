@@ -6,7 +6,6 @@ import { MotionProvider } from "@/components/providers/motion-provider";
 import { PageTransition } from "@/components/providers/page-transition";
 import { LoadingScreen } from "@/components/providers/loading-screen";
 import { ToastProvider } from "@/components/providers/toast-provider";
-import { SocialSidebar } from "@/components/ui/social-sidebar";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
@@ -98,10 +97,6 @@ export default function RootLayout({
           Skip to content
         </a>
         <SmoothScroll />
-        {/* `lg`+ only, every page (client brief, 2026-08-27) — no cart/
-            wishlist/motion context needed, so it sits outside every
-            provider rather than inside one it doesn't use. */}
-        <SocialSidebar />
         {/* Outermost: every `m` element below needs the feature bundle. */}
         <ThemeProvider>
         <MotionProvider>

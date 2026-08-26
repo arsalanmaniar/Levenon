@@ -176,7 +176,10 @@ export async function ProductGrid({
             </div>
           </Reveal>
         ) : (
-          <LoadMoreGrid products={products} />
+          <LoadMoreGrid
+            products={products}
+            newArrivalIds={new Set(catalogue.slice(0, 8).map((product) => product.id))}
+          />
         )}
       </div>
     </section>

@@ -136,7 +136,9 @@ practice and were replaced site-wide. Current tiers, defined once in `tailwind.c
 | **Card price** | `clamp(0.75rem, 0.9vw, 0.875rem)` (12px–14px) | Product card price. |
 
 **No font-size above 72px anywhere except the hero H1** — a hard, testable rule, not a
-guideline; the decorative atelier "01" numeral was shrunk from a 180–280px clamp to fit it.
+guideline. (The decorative atelier "01" numeral this rule once shrunk to fit no longer exists —
+the atelier's left side was rebuilt as a single editorial photograph, 2026-08-29 — but the rule
+itself stays, unchanged and still enforced by the same audit grep.)
 
 A second group is fixed pixel sizes, not clamp, because the element they're in has a fixed
 height regardless of viewport: nav links (12px), buttons (13px), footer links (13px), footer

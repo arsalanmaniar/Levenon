@@ -1,33 +1,37 @@
 import { ThreadButton } from "@/components/ui/thread-button";
 import { Reveal } from "@/components/ui/reveal";
 import { StitchDivider } from "@/components/ui/stitch-divider";
-import { AtelierSwatchStack } from "@/components/sections/atelier-swatch-stack";
+import { AtelierFeatureImage } from "@/components/sections/atelier-feature-image";
 import { getCollectionSummary, listProducts } from "@/lib/server/products";
-
-// Three fabrics, distinct from the hero collage's own five categories where
-// possible, so the two sections don't repeat photography.
-const SWATCH_CATEGORIES = ["silk", "net", "organza"];
 
 /**
  * The single dark section on the page — the rhythm beat (SKILL.md §6).
  *
  * Roles invert: ink ground, paper type, purple-300 thread. Left side
- * (client brief, 2026-08-27): a split composition — a large decorative "01",
- * three real fabric swatches, a mono caption — replacing the previous
- * pass's abstract SVG. Right side text/stats/CTA is unchanged, per the
- * brief's own explicit "already built — do not change."
+ * (client brief, 2026-08-29): one large editorial image, replacing the
+ * previous pass's "01" numeral + fanned fabric-swatch stack, which the brief
+ * judged amateur next to the reference sites' own campaign sections. Right
+ * side text/stats/CTA is unchanged, per the brief's own explicit "no
+ * changes to right side."
  */
 export async function SignatureSection() {
   const { pieceCount } = await getCollectionSummary();
   const catalogue = await listProducts();
   const withPhotos = catalogue.filter((product) => product.images[0]);
-  const swatches = SWATCH_CATEGORIES.map((slug) =>
-    withPhotos.find((product) => product.category.slug === slug),
-  ).filter((product): product is NonNullable<typeof product> => Boolean(product));
-  for (const product of withPhotos) {
-    if (swatches.length >= 3) break;
-    if (!swatches.includes(product)) swatches.push(product);
-  }
+  // "Most visually striking... richest embroidery" (client brief,
+  // 2026-08-29) is not a field the catalogue has, so this names a specific,
+  // real, hand-inspected piece rather than guessing at a heuristic: Monsoon
+  // Blooms Chikankari is literally hand chikankari work — the caption text
+  // itself ("Chikankari — worked by hand") is this product's own blurb, not
+  // a generic line paired with an arbitrary photo. Falls back to any other
+  // cotton-category piece (chikankari is this catalogue's cotton fabric),
+  // then to the first photographed product, so the section still renders a
+  // real image if the named slug is ever retired from the catalogue.
+  const featured =
+    withPhotos.find((product) => product.slug === "monsoon-blooms") ??
+    withPhotos.find((product) => product.category.slug === "cotton") ??
+    withPhotos[0] ??
+    null;
 
   return (
     <section
@@ -38,7 +42,7 @@ export async function SignatureSection() {
           columns on the locked 12-column grid — `lg:col-span-5`/`7`. */}
       <div className="mx-auto grid max-w-shell gap-12 px-6 py-24 md:px-12 lg:px-20 md:py-32 lg:grid-cols-12 lg:items-center lg:gap-16">
         <div className="relative order-2 lg:order-1 lg:col-span-5">
-          <AtelierSwatchStack products={swatches} />
+          {featured && <AtelierFeatureImage product={featured} />}
         </div>
 
         {/*

@@ -7,6 +7,7 @@ import { CartButton } from "@/components/cart/cart-button";
 import { WishlistButton } from "@/components/wishlist/wishlist-button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { SearchBar } from "@/components/search/search-bar";
+import { listCategories, listProducts } from "@/lib/server/products";
 
 /**
  * Paper nav, hairline bottom border, mono links. The hover state is the ring
@@ -14,10 +15,25 @@ import { SearchBar } from "@/components/search/search-bar";
  *
  * The row's own scroll-shrink and mount-in choreography live in `NavFrame` —
  * see that file for why `--nav-h` itself is untouched.
+ *
+ * Now `async` (client brief, 2026-08-29, Item 6) — the "Shop" mega menu
+ * needs live category counts and two featured products, and only a server
+ * component can read the catalogue directly rather than round-tripping
+ * through an API route. `NavLinks`/`MobileNav` stay the client islands that
+ * actually render the interactive menu; this only fetches and hands the
+ * data down, the same "server fetches, client animates" split every other
+ * section on the site already uses.
  */
-export function SiteNav() {
+export async function SiteNav() {
+  const [categories, catalogue] = await Promise.all([listCategories(), listProducts()]);
+  const shopMenuCategories = categories.map((category) => ({
+    category,
+    count: catalogue.filter((product) => product.category.slug === category.slug).length,
+  }));
+  const shopMenuFeatured = catalogue.filter((product) => product.images[0]).slice(0, 2);
+
   return (
-    <header className="nav-frost sticky top-0 z-50 border-b border-hairline bg-paper">
+    <header className="nav-frost relative sticky top-0 z-50 border-b border-hairline bg-paper">
       <NavFrame
         logo={
           <Link
@@ -40,7 +56,9 @@ export function SiteNav() {
             still fits at `md` with the added label, and `lg` already had
             room to spare.
           */
-          <NavLinks />
+          <NavLinks
+            shopMenu={{ categories: shopMenuCategories, featured: shopMenuFeatured }}
+          />
         }
         actions={
           /* Right cluster order is explicit: Search, Wishlist, Bag, then the
@@ -51,7 +69,7 @@ export function SiteNav() {
             <WishlistButton />
             <CartButton />
             <ThemeToggle />
-            <MobileNav />
+            <MobileNav categories={categories} />
           </>
         }
       />

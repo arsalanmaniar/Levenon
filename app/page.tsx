@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SiteNav } from "@/components/sections/site-nav";
 import { Hero } from "@/components/sections/hero";
+import { CollectionBanner } from "@/components/sections/collection-banner";
 import { FeaturedProducts } from "@/components/sections/featured-products";
 import { TopSelling } from "@/components/sections/top-selling";
 import { FabricExplorer } from "@/components/sections/fabric-explorer";
@@ -12,6 +13,7 @@ import {
   TopSellingFallback,
 } from "@/components/sections/product-grid-fallback";
 import { SignatureSection } from "@/components/sections/signature-section";
+import { WornAndLoved } from "@/components/sections/worn-and-loved";
 import { NewsletterSignup } from "@/components/newsletter/newsletter-signup";
 import { SiteFooter } from "@/components/sections/site-footer";
 import { StitchDivider } from "@/components/ui/stitch-divider";
@@ -38,16 +40,40 @@ export const metadata: Metadata = {
 };
 
 /**
- * Page rhythm (SKILL.md §6): nav → hero → stitch → grid → dark signature →
- * footer. One bold 3D moment per section, nothing in between.
+ * Page rhythm (client brief, 2026-08-29, Item 5 — "flow like a premium
+ * fashion magazine"): nav → hero → collection banner → New Arrivals →
+ * Explore by Fabric → Top Selling → dark signature ("the cloth, before the
+ * cut") → Worn & Loved → the full grid → newsletter → footer.
  *
- * The grid sits behind its own Suspense boundary so a slow catalogue can never
- * hold up the hero — the 3D moment paints on schedule regardless.
+ * Two deliberate departures from the brief's own 11-line list, both
+ * disclosed rather than silently resolved:
  *
- * Reading `searchParams` makes this route dynamic, which is the price of
- * filter state living in the URL. It is the right trade: a filtered grid is a
- * link someone can send, refresh, and bookmark, and the hero above it is static
- * markup either way.
+ * 1. **The full collection grid stays on the home page.** The brief's list
+ *    never names it, and taken completely literally "remove any section
+ *    that breaks this rhythm" would delete it — but doing that would break
+ *    the fourteen-plus existing `/#collection` links across the site (the
+ *    atelier page, the PDP's own error/not-found/breadcrumb, the cart
+ *    drawer, search's empty state, this page's own new banner and hero
+ *    CTAs, `wishlist-contents.tsx`…), all of which assume that id exists on
+ *    `/`. `/shop` already serves the identical `ProductGrid` at its own
+ *    route (built specifically so the nav no longer *needed* to point at
+ *    this section) — but silently deleting a still-linked section is a
+ *    bigger, riskier call than the brief made explicitly, so it stays,
+ *    placed where it always structurally sat: closing out the shopping
+ *    sections before the page's closing editorial/newsletter beat.
+ * 2. **Worn & Loved sits after the dark signature section, not immediately
+ *    after Top Selling.** Item 3's own text says "below Top Selling, above
+ *    the full collection grid," which conflicts with Item 5's explicit
+ *    enumerated order (dark section at position 8, Worn & Loved at 9) —
+ *    Item 5 is the later, more specific "enforce this exact order"
+ *    instruction, so it wins the ordering; Worn & Loved still lands above
+ *    the grid, per Item 3, just with the dark section between them rather
+ *    than directly adjacent.
+ *
+ * The grid keeps its own Suspense boundary so a slow catalogue can never hold
+ * up anything above it. Reading `searchParams` keeps the route dynamic, which
+ * is the price of filter state living in the URL — a filtered grid is a link
+ * someone can send, refresh, and bookmark.
  */
 export default function HomePage({
   searchParams,
@@ -60,13 +86,8 @@ export default function HomePage({
       <main id="main">
         <Hero />
 
-        {/*
-          No divider between hero and this section — Priority 2's own
-          instruction is "zero dead space below the fold", and a stitch rule
-          right after a full-viewport hero would itself read as a pause. The
-          divider moves to sit between the featured rail and the full grid
-          instead, where it still marks a real section change.
-        */}
+        <CollectionBanner />
+
         {/* Own Suspense boundary (client brief, 2026-08-28, Item 4B) — a
             grey pulse placeholder in the section's own shape while the
             catalogue resolves, rather than either section holding up the
@@ -75,15 +96,17 @@ export default function HomePage({
           <FeaturedProducts />
         </Suspense>
 
-        {/* Top Selling (client brief, 2026-08-24) — between New Arrivals and
-            the full collection grid. */}
+        {/* Explore by Fabric now precedes Top Selling (client brief,
+            2026-08-29, Item 5 — the previous pass had these swapped). */}
+        <FabricExplorer />
+
         <Suspense fallback={<TopSellingFallback />}>
           <TopSelling />
         </Suspense>
 
-        {/* Explore by Fabric (client brief, 2026-08-27) — between Top
-            Selling and the full collection grid. */}
-        <FabricExplorer />
+        <SignatureSection />
+
+        <WornAndLoved />
 
         <div className="mx-auto max-w-shell px-6 md:px-12 lg:px-20">
           <StitchDivider />
@@ -92,16 +115,6 @@ export default function HomePage({
         <Suspense fallback={<ProductGridFallback />}>
           <ProductGrid searchParams={searchParams} />
         </Suspense>
-
-        {/*
-          Atelier directly after the grid, newsletter after that: hero → grid
-          → dark signature → newsletter → footer. The dark section is the
-          page's rhythm beat (SKILL.md §6) and reads as the closing statement
-          on the collection just shown; the newsletter then sits as the quiet
-          paper ask right before the footer, rather than being sandwiched
-          between two paper blocks with no beat in between.
-        */}
-        <SignatureSection />
 
         <NewsletterSignup />
       </main>

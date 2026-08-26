@@ -160,6 +160,22 @@ const config: Config = {
           "0%, 100%": { opacity: "0.7" },
           "50%": { opacity: "1" },
         },
+        // Collection banner (client brief, 2026-08-29, Item 4) — a single
+        // pass, not the ambient infinite `ken-burns` loop above: "animation
+        // on page load", not a continuous background drift.
+        "banner-ken-burns": {
+          "0%": { transform: "scale(1)" },
+          "100%": { transform: "scale(1.04)" },
+        },
+        // Collection banner's text column: "slides in from the left" on
+        // load, staggered per element via inline `animationDelay` — the
+        // same idiom the hero's own `hero-fade-up` already uses, so this
+        // stays a plain CSS keyframe rather than a second client component
+        // built just to run a Framer `initial`/`animate` once.
+        "slide-in-left": {
+          "0%": { opacity: "0", transform: "translateX(-30px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
       },
       animation: {
         "thread-spin": "thread-spin 2.4s linear infinite",
@@ -174,6 +190,8 @@ const config: Config = {
         "ken-burns-reverse": "ken-burns 8s ease-in-out infinite alternate-reverse",
         "theme-ripple": "theme-ripple 500ms ease-out",
         "low-stock-pulse": "low-stock-pulse 2s ease-in-out infinite",
+        "banner-ken-burns": "banner-ken-burns 10s ease-out both",
+        "slide-in-left": "slide-in-left 700ms cubic-bezier(0.16, 1, 0.3, 1) both",
       },
     },
   },
