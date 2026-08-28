@@ -469,6 +469,30 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Hero slide 1 ("The Thread") — three independently-rotating dashed rings,
+   client brief 2026-08-31. Scoped inside the `no-preference` media query
+   rather than given its own reduced-motion branch in JS: a reader with
+   `prefers-reduced-motion: reduce` simply never receives the animation
+   rule, so the rings sit still with no extra code path needed.
+   --------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes hero-ring-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  .hero-ring-60s {
+    animation: hero-ring-spin 60s linear infinite;
+  }
+  .hero-ring-80s {
+    animation: hero-ring-spin 80s linear infinite reverse;
+  }
+  .hero-ring-40s {
+    animation: hero-ring-spin 40s linear infinite;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Reduced motion. Motion code branches on the media query in JS as well —
    this is the belt-and-braces floor for anything CSS-driven.
    --------------------------------------------------------------------------- */

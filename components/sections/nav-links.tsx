@@ -31,6 +31,7 @@ const links = [
   { href: "/new-in", label: "New In" },
   { href: "/atelier", label: "Atelier" },
   { href: "/stockists", label: "Stockists" },
+  { href: "/faqs", label: "Help" },
 ];
 
 /**

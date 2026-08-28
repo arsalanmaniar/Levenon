@@ -33,6 +33,7 @@ const LINKS = [
   { href: "/new-in", label: "New In" },
   { href: "/atelier", label: "Atelier" },
   { href: "/stockists", label: "Stockists" },
+  { href: "/faqs", label: "Help" },
 ];
 
 // Same three real destinations as the desktop "Collections" dropdown

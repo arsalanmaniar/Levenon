@@ -49,6 +49,8 @@ const columns = [
       { href: "/atelier", label: "Atelier" },
       { href: "/stockists", label: "Stockists" },
       { href: "/collections", label: "Materials" },
+      { href: "/fabrics", label: "Fabric Guide" },
+      { href: "/style-finder", label: "Style Finder" },
       { href: "/size-guide", label: "Size Guide" },
       { href: "/track", label: "Track Order" },
     ],
@@ -56,6 +58,7 @@ const columns = [
   {
     title: "Support",
     links: [
+      { href: "/faqs", label: "FAQs" },
       { href: "/shipping", label: "Shipping" },
       { href: "/returns", label: "Returns" },
       { href: "/contact", label: "Contact" },

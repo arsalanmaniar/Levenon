@@ -313,6 +313,83 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Editorial hero backgrounds, FAQs, Style Finder, Fabric Guide (2026-08-31, sixteenth pass)
+
+Three items from the client's revision brief. `tsc --noEmit` clean, `next lint` clean, `next
+build` clean after a full `.next` wipe (hit one unrelated transient `PageNotFoundError` for
+`/api/orders` on the first attempt — a stale `.next`/font-fetch artifact, not a real missing
+route; a second clean wipe built it without error). First-load JS: `/` 158 kB, `/product/[id]`
+159 kB, `/style-finder` 150 kB, `/fabrics` 144 kB, `/faqs` 143 kB — all under the 200 kB ceiling.
+No browser was spawned; verified by `tsc`, grep against `next start` output on ports 3910/3911,
+and the build's own route table.
+
+**Built:**
+1. **Hero backgrounds replaced with editorial CSS/SVG art** (`hero-slide-art.tsx`, new) — the
+   three slides no longer carry a product photograph at all. `ThreadArt` (ink ground, three
+   independently-rotating dashed rings at 40s/60s/80s via new `.hero-ring-*` keyframes in
+   `globals.css`, scoped inside `@media (prefers-reduced-motion: no-preference)` so a
+   reduced-motion reader receives no animation rule rather than a JS branch around one); `FabricArt`
+   (135° purple-to-ink gradient, nested rotated-square diamonds, a radial-gradient dot grid, two
+   L-shaped corner marks); `EditArt` (the one light slide — a near-invisible 200px "LEVENON"
+   watermark, two purple-500 hairlines, a purple-300 vertical rule, four "✦" marks). `HeroSlide`
+   dropped `imageUrl`/`imageAlt` for `variant`/`textTone`; `hero-slider.tsx` is no longer async and
+   no longer touches the catalogue at all, since nothing about these slides is product-specific.
+   Copy is unchanged from the fifteenth pass. Verified in rendered HTML: `hero-ring-60s/80s/40s`
+   each appear once (slide one, the initial mount); zero photographic `<img>`/preload tags inside
+   the hero itself (the one `res.cloudinary.com` preload on `/` traces to the product grid's
+   priority row, confirmed by its surrounding markup, not the hero).
+2. **`/faqs`** (new route) — 200px page hero (breadcrumb, H1, subtext, hairline border, matching
+   `/shop`'s own pattern) over `FaqAccordion` (new): six category accordions, the brief's own
+   literal Q&A copy, first category open by default, `AnimatePresence` height animation identical
+   in idiom to `pdp-accordion.tsx` (the codebase's one other accordion), 2px purple-500 left border
+   on the open category. Linked from the nav (`nav-links.tsx`/`mobile-nav.tsx`, new "Help" link)
+   and the footer's Support column, both per the brief.
+
+   **Flagged, not silently reconciled:** this page's literal "3–5 working days" / "PKR 200 below
+   PKR 5,000" answers directly contradict `/shipping`'s own deliberate stance of naming no delivery
+   window or fee, because — per that page's own comment — nothing in this codebase can calculate or
+   honour one. The PKR 5,000 free-shipping line here also doesn't match the PKR 10,000 placeholder
+   already coded into the cart drawer's `FreeShippingProgress`. All three numbers are typed from the
+   brief's own literal text rather than invented here, but the business owner should square them
+   against each other before either page is touched again.
+3. **Two new features — Style Finder (`/style-finder`) and Fabric Guide (`/fabrics`).** Chosen over
+   the brief's other two options (a Lookbook editorial, a shareable-wishlist link) because both
+   picked features convert a real gap in the catalogue schema (no "occasion" or "style" field, no
+   fabric-education copy anywhere on the site) into a customer-facing tool, whereas a Lookbook is
+   mostly a second grid of the same twelve products restyled, and wishlist-sharing's main value —
+   gifting — is already one tap via the browser's own native share sheet on a product page.
+   - **Style Finder** (`style-finder-client.tsx` + `lib/style-finder.ts`, new): a four-step
+     full-screen quiz (occasion / fabric preference / style / budget), reveals as fade + a small
+     vertical rise per SKILL.md §7 — never the more obvious off-screen slide between questions,
+     which §7 rules out. Scoring maps answers onto what the catalogue actually has (category, price,
+     a keyword match against name/blurb/description for "style") and is presented as "picks for
+     you", not a claimed recommendation engine, since there is no real personalisation data behind
+     it. Results render the real `ProductCard` — wishlist heart, Quick Add and all, zero new card
+     code. "Share my result" copies a URL carrying the four answers as short query params;
+     `useLayoutEffect` reads them back on load and jumps straight to results before first paint, so
+     a shared link never flashes step one first.
+
+     **Bug caught by the page's own verification, not by review:** the first draft gated the entire
+     quiz behind a `ready` boolean that only flipped true once the mount effect ran, so the
+     server-rendered HTML — and technically anything painted before that effect — showed an empty
+     `<div>` instead of step one. Caught by grepping `next start` output for the step-one copy and
+     finding nothing. Fixed by rendering step one unconditionally and letting the deep-link effect
+     override it before paint if query params are present; re-verified the same way, this time
+     finding "occasion?" and "Daily wear" in the served HTML.
+   - **Fabric Guide** (`fabric-guide-client.tsx` + `lib/fabric-guide-data.ts`, new): six fabric
+     cards (lawn, cotton, chiffon, silk, organza, net — the live category slugs) with hand-written
+     origin/texture/care/best-for copy (general textile fact, not a store policy claim, so it
+     carries none of the honesty caveats a fabricated delivery estimate would) and a woven-line
+     swatch built from the brand's own `--purple-500` token rather than an invented fabric colour or
+     photography the catalogue doesn't have. Clicking any two cards' "Compare" toggle opens a
+     sticky side-by-side table; a third click swaps out the older selection rather than requiring a
+     manual clear first. Each card also lists up to three real in-stock products in that category.
+
+**Verified:** grep confirms all three `.hero-ring-*` classes render on `/`; `FaqAccordion` uses
+`AnimatePresence`; `/style-finder` and `/fabrics` both compile and appear in the build's route
+table under the 200 kB ceiling; `/faqs` is linked from both `nav-links.tsx`/`mobile-nav.tsx` and
+`site-footer.tsx`. `tsc`, `next lint`, `next build` clean.
+
 #### Hero slider, announcement bar, category banners, trust bar, breadcrumbs (2026-08-30, fifteenth pass)
 
 Six items from the client's revision brief, referencing Nishat Linen and Maria B patterns. `tsc

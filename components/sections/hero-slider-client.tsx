@@ -1,16 +1,18 @@
 "use client";
 
-import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ThreadButton } from "@/components/ui/thread-button";
+import { HeroSlideArt } from "./hero-slide-art";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
 
 export type HeroSlide = {
-  imageUrl: string;
-  imageAlt: string;
+  /** Which editorial CSS/SVG background this slide renders — see `hero-slide-art.tsx`. */
+  variant: "thread" | "fabric" | "edit";
+  /** "edit" is the one light slide; the other two are dark. Drives text/button colour. */
+  textTone: "paper" | "ink";
   eyebrow: string;
   headline: string;
   subtext: string;
@@ -22,36 +24,50 @@ const AUTOPLAY_MS = 5000;
 const SWIPE_THRESHOLD_PX = 50;
 const ENTRANCE_EASE = [0.16, 1, 0.3, 1] as const;
 
-/** Image, gradient and bottom-left copy — identical in both the animated and reduced-motion branches below. */
-function SlideContent({ slide, priority }: { slide: HeroSlide; priority: boolean }) {
+/**
+ * Background art plus bottom-left copy — identical in both the animated and
+ * reduced-motion branches below.
+ *
+ * `priority` is unused now that the background is CSS/SVG rather than a
+ * `next/image` — there is nothing here left to preload — but the prop stays
+ * on the caller's signature so the "first slide renders eagerly" intent is
+ * still legible at the call site.
+ */
+function SlideContent({ slide }: { slide: HeroSlide }) {
+  const dark = slide.textTone === "paper";
+
   return (
     <>
-      <Image
-        src={slide.imageUrl}
-        alt={slide.imageAlt}
-        fill
-        priority={priority}
-        sizes="100vw"
-        className="object-cover"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-gradient-to-t from-ink/50 via-ink/10 to-transparent"
-      />
+      <HeroSlideArt variant={slide.variant} />
 
       <div className="absolute inset-x-0 bottom-0">
         <div className="mx-auto max-w-shell px-6 pb-16 md:px-12 lg:px-20 md:pb-24">
-          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-purple-300">
+          <p
+            className={cn(
+              "font-mono text-[11px] uppercase tracking-[0.2em]",
+              dark ? "text-purple-300" : "text-purple-500",
+            )}
+          >
             {slide.eyebrow}
           </p>
-          <h1 className="mt-4 max-w-[20ch] text-balance font-display text-[clamp(2.25rem,5vw,4.5rem)] font-extrabold leading-[0.98] tracking-[-0.02em] text-paper">
+          <h1
+            className={cn(
+              "mt-4 max-w-[20ch] text-balance font-display text-[clamp(2.25rem,5vw,4.5rem)] font-extrabold leading-[0.98] tracking-[-0.02em]",
+              dark ? "text-paper" : "text-ink",
+            )}
+          >
             {slide.headline}
           </h1>
-          <p className="mt-4 max-w-[46ch] truncate font-sans text-[15px] text-paper/80">
+          <p
+            className={cn(
+              "mt-4 max-w-[46ch] truncate font-sans text-[15px]",
+              dark ? "text-paper/80" : "text-charcoal",
+            )}
+          >
             {slide.subtext}
           </p>
           <div className="mt-8">
-            <ThreadButton href={slide.ctaHref} tone="outline-invert" icon>
+            <ThreadButton href={slide.ctaHref} tone={dark ? "outline-invert" : "outline"} icon>
               {slide.ctaLabel}
             </ThreadButton>
           </div>
@@ -134,7 +150,7 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
     >
       {reducedMotion ? (
         <div className="absolute inset-0">
-          <SlideContent slide={slide} priority={index === 0} />
+          <SlideContent slide={slide} />
         </div>
       ) : (
         // `initial={false}` on AnimatePresence — without it the very first
@@ -153,7 +169,7 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
             transition={{ duration: 0.7, ease: ENTRANCE_EASE }}
             className="absolute inset-0"
           >
-            <SlideContent slide={slide} priority={index === 0} />
+            <SlideContent slide={slide} />
           </m.div>
         </AnimatePresence>
       )}
