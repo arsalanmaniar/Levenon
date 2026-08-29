@@ -30,6 +30,17 @@
  * through untouched. They render correctly, just without transformation —
  * the right failure mode, since a wrong guess at another CDN's URL grammar
  * would break the image outright.
+ *
+ * **Local `/public` assets go through this same untouched pass-through**
+ * (added 2026-09-02, for the hero's campaign-asset slot — see
+ * `lib/server/hero-assets.ts`) — deliberately, not an oversight. The
+ * obvious fix, routing them through Next's own built-in `/_next/image`
+ * optimizer, was tried and reverted: `images.loader: "custom"` disables
+ * that endpoint entirely (it 404s), which is documented Next.js behaviour,
+ * not a bug here. Local hero campaign photography therefore ships as the
+ * exact bytes supplied, with no server-side resizing or re-encoding at
+ * any width — see `public/images/hero/README.md`'s "Delivery" section for
+ * the pre-optimisation this puts on whoever supplies the files.
  */
 export default function cloudinaryLoader({
   src,

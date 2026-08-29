@@ -70,6 +70,25 @@
   color-scheme: light;
 }
 
+/* ---------------------------------------------------------------------------
+   Hero magazine-split texture (client brief, 2026-09-02, eighteenth pass) —
+   a near-invisible woven-fabric read on the hero's dark gradient panels, the
+   "thread" motif applied as texture rather than as a literal thread/knot
+   shape. 1px-repeat diagonal hairlines at 3% paper opacity; a fixed literal
+   value (not a CSS variable) since the hero's own background is always dark
+   regardless of site theme, the same "always-dark section" pattern the
+   atelier's `.dark-section` already uses.
+   --------------------------------------------------------------------------- */
+.hero-weave {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgb(251 250 248 / 0.03) 0px,
+    rgb(251 250 248 / 0.03) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+}
+
 /*
  * Dark theme — the same seven tokens with swapped values, nothing more.
  *
@@ -465,30 +484,6 @@
       /* 60px, not 80 (client brief, 2026-08-25). */
       animation-range: 0px 60px;
     }
-  }
-}
-
-/* ---------------------------------------------------------------------------
-   Hero slide 1 ("The Thread") — three independently-rotating dashed rings,
-   client brief 2026-08-31. Scoped inside the `no-preference` media query
-   rather than given its own reduced-motion branch in JS: a reader with
-   `prefers-reduced-motion: reduce` simply never receives the animation
-   rule, so the rings sit still with no extra code path needed.
-   --------------------------------------------------------------------------- */
-@media (prefers-reduced-motion: no-preference) {
-  @keyframes hero-ring-spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-  .hero-ring-60s {
-    animation: hero-ring-spin 60s linear infinite;
-  }
-  .hero-ring-80s {
-    animation: hero-ring-spin 80s linear infinite reverse;
-  }
-  .hero-ring-40s {
-    animation: hero-ring-spin 40s linear infinite;
   }
 }
 

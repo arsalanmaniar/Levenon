@@ -313,6 +313,144 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Hero magazine split-layout, cinematic gradients, word-by-word reveal (2026-09-02, eighteenth pass)
+
+**The brief's diagnosis:** the seventeenth pass's bounded product panel on a flat `bg-ink`
+ground read as "a product photo dropped on a plain background," not a fashion campaign — flat
+ink isn't the problem the earlier passes thought it was; the missing ingredient was *layout and
+colour*, not more or less product photography. The catalogue genuinely has no landscape campaign
+photography (confirmed again this pass), so the brief's own answer is a fixed 50/50 **magazine
+split** per slide rather than any full-bleed treatment: rich, hand-specified gradients (never
+flat ink, four distinct pairs, one per slide) on the left with editorial type and linework, a
+precise 3:4 framed portrait photo on the right. `tsc --noEmit`, `next lint`, and a full `.next`
+wipe + `next build` are all clean; `/` first-load JS is **158 kB**, still under the 200 kB
+ceiling.
+
+**Built, in `hero-slider-client.tsx` (full rewrite) and `hero-slider.tsx` (data only):**
+1. **Four hand-specified gradient pairs** (`SLIDE_GRADIENTS`), the brief's own literal hex per
+   slide — violet-black (New Collection), burgundy-black (Hand Embroidery), navy-black (Fabric
+   First), purple-black (The Atelier) — applied as the left/right column backgrounds and
+   crossfaded independently from the content on top of them (1.2s linear opacity, slower than
+   the content so the background reads as depth rather than a hard cut).
+2. **A fine diagonal fabric-weave texture** (`.hero-weave`, new in `globals.css`) — a
+   `repeating-linear-gradient` at 1px/3% paper opacity — layered over the left column only, per
+   the brief. Literal `rgb(251 250 248 / 0.03)`, not the `--paper` custom property, since the
+   hero is an always-dark section regardless of site theme (same reasoning `.dark-section`
+   already uses for the same problem).
+3. **3:4 framed portrait photo, 65% of the right column, desktop-only** — shadow defines the
+   edge (`0 40px 80px` ink at 60%, plus a 1px inset paper/20 outline as a second shadow layer),
+   a slow independent Ken Burns (`scale 1 → 1.06` over one autoplay dwell), a precise 400px
+   circle outline (not a glow) offset up-right behind the frame, and the product's name + price
+   in mono beneath it. On mobile the same photo runs edge-to-edge, `object-cover`, no frame, no
+   circle, no name/price row — exactly the brief's "no fallback treatment, no bounded panel" for
+   the small screen.
+4. **Independent per-element transitions on slide change**, all nested inside one
+   `AnimatePresence` per column (background + content as separate keyed children so each can
+   carry its own variant/duration): text panel slides `x: -40 → 0` (0.7s in, 0.4s out), image
+   panel slides `x: 60 → 0` with a 0.1s delay (0.9s in, 0.4s out), background crossfades
+   independently (1.2s). Framer Motion's nested-exit propagation (v11, already a dependency)
+   carries these different durations correctly under one shared `AnimatePresence` per column —
+   verified by reading the rendered transition timing in code, not by eye, since no browser tool
+   is connected this pass either (see the note under Verified).
+5. **Word-by-word headline reveal** (`AnimatedHeadline`) — each word wrapped in its own
+   `overflow-hidden` mask so it rises (`y: 20 → 0`) into visibility rather than fading in whole,
+   0.5s per word, 0.08s stagger, starting 0.15s into the slide transition. Eyebrow fades first
+   (0.3s, no delay), subtext fades last (0.4s, 0.5s delay), the CTA fades and slides in last
+   (0.4s, 0.65s delay, `x: -10 → 0`) — the brief's own literal sequencing.
+6. **Progress indicator repositioned and restyled** — the brief specified the "0N / 04" label
+   both "bottom-left, outside content" (under the per-slide layout spec) and, later and more
+   specifically, "bottom-right of the LEFT column" (under the transition spec). Read as the
+   second, more detailed instruction superseding an earlier looser mention rather than two
+   separate elements — one indicator now lives bottom-right of the left column: the number
+   updates instantly, a 120px purple-500 line beneath it fills left-to-right over the 5.2s
+   autoplay dwell and restarts on every slide change (manual or automatic). A separate thin
+   corner bracket (40×40, paper/20, 1px) sits bottom-left, unrelated to the indicator.
+7. **Four specific catalogue products, hardcoded, no category/"any" fallback chain** —
+   `sequence-net-suit` (densest embroidery — sequence + adda work at the neck) for the generic
+   opener, `monsoon-blooms` (an actual chikankari piece, not an approximate match) for "Hand
+   Embroidery," `scifflie-lawn-suit` and `handwork-silk-suit` unchanged from the seventeenth pass
+   since they already matched their slides' copy exactly. `images[0]` only, per the brief — the
+   "closeup" second-image preference from the previous pass is gone along with the treatment
+   system it belonged to.
+8. **The campaign full-bleed override is untouched, not removed.** The brief's redesign is
+   entirely about the fallback the hero is currently running on; `hero-assets.ts` and the
+   full-bleed branch (`CampaignSlide`, renamed from `CampaignBackground`) still exist and still
+   take over per-slide the moment a real campaign photo lands in `public/images/hero/` — this
+   pass only rebuilt what it falls back to. Re-verified today: `public/images/hero/` still holds
+   only its `README.md`, so all four slides render the new magazine layout, not the campaign path.
+
+**Verified:** grepped a clean `next start` render — all four product names (`Sequence Net Suit`,
+`Monsoon Blooms Chikankari`, `Scifflie Lawn Suit`, `Handwork Silk Suit`) and all four headlines
+present; `campaign` is `null` ×4 (fallback confirmed active); `aria-roledescription="carousel"`
+intact; real `PKR` prices render per slide, matching each product's `priceMinor` in the
+catalogue; eight gradient strings present (two per slide, four slides); the word-split headline
+function, the `x`-axis text/image variants, and the `.hero-weave` `repeating-linear-gradient`
+are all present in source, grepped directly. **Not done this pass, and disclosed rather than
+silently skipped: no real-browser visual review.** No browser-automation tool is connected in
+this session, so breakpoint layout, the actual crossfade feel, and whether 3:4 cropping ever
+cuts into a garment awkwardly are all reasoned from the CSS (percentage/`vh`/`aspect-[3/4]`
+sizing throughout, no fixed-pixel element that could force horizontal scroll) rather than seen.
+A real visual QA pass is still owed once a browser tool is available or screenshots are supplied.
+
+#### Hero visual system rebuild, hero-only (2026-09-01, seventeenth pass)
+
+Scope was explicitly hero-only this pass — the brief named product cards, cart, checkout,
+WhatsApp, non-hero 3D, footer, nav and performance architecture as off-limits, and none of them
+changed. `tsc --noEmit`, `next lint`, `next build` (after a full `.next` wipe) all clean.
+First-load JS for `/` is **157 kB** (was 158 kB), still under the 200 kB ceiling; every other
+route unchanged.
+
+**The brief rejected the previous two passes' hero in opposite directions**, worth recording so a
+future pass doesn't repeat either mistake: the fifteenth pass stretched real product photography
+(portrait/square ecommerce shots) into a landscape band, which read as "product catalogue," not a
+campaign; the sixteenth pass over-corrected into abstract CSS/SVG rings and diamonds with *no
+clothing in them at all*, which this brief explicitly forbids ("the hero visuals must contain
+clothing/fashion... do not create abstract backgrounds where clothing becomes secondary").
+`hero-slide-art.tsx` and its now-orphaned `.hero-ring-*` keyframes in `globals.css` are deleted.
+
+**Built:**
+1. **Real garment photography, shown as a bounded editorial panel — never stretched full-bleed.**
+   Each of four slides now pairs its existing copy/CTA with a real, already-photographed catalogue
+   product, rendered at a fraction of the hero's width (40–54%, per slide) using the photo's own
+   real aspect ratio (`object-contain` against its real `width`/`height` — no distortion, no crop)
+   rather than covering the whole band. A soft `blur-[100px]` purple-500/25 glow sits behind each
+   panel — the brief's "subtle purple rim light / premium studio lighting" cue, achieved without
+   needing new photography. Slide 2 ("Fabric/Texture") is the one deliberate exception: it
+   `object-cover`s a tighter crop (biased toward the upper third, where a suit's embroidery
+   usually concentrates) to read as a close-up rather than a full garment shot, and prefers a
+   product's *second* photo where one exists, since that is very often a tighter or alternate
+   angle than the lead image. All four panels carry a slow linear Ken Burns scale
+   (1 → 1.05–1.08 over one autoplay dwell) under motion; reduced motion drops it entirely, per
+   SKILL.md §7 (never a zero-duration animation).
+2. **Four slides, not three** — a new fourth ("The Atelier" / "Cut clean. Sewn to last." /
+   handwork-silk-suit) added for the brief's fourth concept (moving garment). Its headline is
+   pulled verbatim from SKILL.md §9's own example copy voice, not invented for this pass. Slides
+   1–3 keep their exact copy from the fifteenth pass, per the brief's "keep existing messaging
+   where possible."
+3. **Progress indicator switched from dots to "01 / 04"** — mono, quiet, bottom-left (clear of the
+   photo panel, which always sits right), a thin purple-300 fill line between the two numbers
+   rather than four separate dots. Transition timing moved from 700ms to 900ms (the brief's
+   800–1200ms band) and gained a small y-drift (10px) alongside the existing opacity/scale
+   crossfade, read together as the brief's "very subtle scale + slow movement."
+4. **Hero campaign-asset architecture** (`lib/server/hero-assets.ts`, new; `public/images/hero/`,
+   new, with a `README.md` documenting the exact drop-in filenames and a photography brief per
+   slide) — there is no wide 16:9/21:9 fashion-campaign photography anywhere in this project, and
+   this codebase has no image-generation tool to produce one, so today every slide runs on the
+   bounded-panel fallback above. The moment a real shoot lands at
+   `public/images/hero/slide-{n}-desktop.{ext}` (optionally `-mobile`), `hero-slider.tsx` picks it
+   up automatically per slide and switches that slide to a genuine full-bleed treatment with a
+   readability gradient — no further code change. Verified today's fallback path specifically:
+   with the folder empty, `campaign` serialises as `null` for every slide in the rendered HTML.
+
+**Verified:** grepped `next start` output — zero `hero-ring` references (the deleted abstract art
+confirmed gone), all four slides' real copy present, `aria-roledescription="carousel"` intact,
+the hero's Cloudinary `<img>` ships explicit `width`/`height` attributes (CLS-safe), and
+`campaign` is `null` for every slide (correctly falling back with the asset folder empty).
+Layout reasoning for 375–1920px was done by reading the CSS rather than a rendered screenshot
+(no browser spawned, per the brief): every width is percentage- or `ch`-based, mobile stacks
+photo below text in a single column with no fixed-pixel element that could force horizontal
+scroll, and only the first slide's image carries `priority`.
+
 #### Editorial hero backgrounds, FAQs, Style Finder, Fabric Guide (2026-08-31, sixteenth pass)
 
 Three items from the client's revision brief. `tsc --noEmit` clean, `next lint` clean, `next
