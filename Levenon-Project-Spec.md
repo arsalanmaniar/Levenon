@@ -313,6 +313,67 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Hero rewritten full-bleed, font-size + text-colour audit, ring re-verified (2026-08-30, nineteenth pass)
+
+Four targeted fixes, `tsc`/`next lint`/a clean `next build` all green; `/` first-load JS is
+**157 kB**. No browser tool connected this pass either — verified by reading rendered SSR HTML
+(`next start` + curl) and source, not by eye.
+
+**1. Hero scrapped and rebuilt, third time in three passes** — the eighteenth pass's two-column
+magazine split (separate left/right gradients, a framed 3:4 photo, word-by-word headline) is
+gone entirely, replaced with the brief's own simpler design: one full-bleed gradient canvas per
+slide (four literal gradients, hex as given), text left, a bottom-aligned `object-contain`
+garment photo right at 70% slide height with a purple-500/30 glow behind it, no split columns.
+Motion simplified to match: the slide-level crossfade is opacity-only (0.6s, no x/y), each text
+element gets its own plain fade-up (eyebrow → headline → subtext → CTA, no word splitting), the
+photo slides in once from the right. Arrows are 40px `bg-paper/15` circles, desktop-only; **four**
+progress dots, not five — the brief's own spec named "5 dots (one per slide)" while listing
+exactly four slides, so the dot count follows the real slide count instead of the mismatched
+literal number. `hero-slider.tsx`'s two brief-given slugs that don't exist in the catalogue
+(`adda-work-chiffon-suit`, `monsoon-blooms-chikankari`) were corrected to their real rows
+(`adda-work-chiffon`, `monsoon-blooms`) — the same two products every prior hero pass has used
+for this exact pairing — rather than silently building a fuzzy-match resolver. The now-unused
+`.hero-weave` texture utility (added last pass for the split layout's left column) is deleted
+from `globals.css`. The campaign-asset full-bleed override (`hero-assets.ts`) is kept, minimally
+folded into the new simpler component — still untriggered, `public/images/hero/` still holds
+only its `README.md`.
+
+**2. Font-size audit.** Grepped the whole codebase for `text-5xl` through `text-9xl` — one hit,
+total, site-wide: a stat-number span in `signature-section.tsx` (the dark "atelier" section).
+Not the hero H1, so per the brief it's fixed — replaced with `clamp(1.5rem,3vw,2.5rem)`
+(24–40px), the same scale the brief specifies for a Section H2, the closest real category for a
+bold display numeral that isn't the hero. The hero H1 itself is `clamp(2rem,4vw,3.5rem)`
+(32–56px), matching the brief's ceiling exactly. `text-4xl` on `mobile-nav.tsx`'s full-screen
+menu links (36px) was found and deliberately left alone — a large tap-target label in a
+full-screen mobile overlay is a different UI category from a page's body headings, not what
+"Section H2/H3" or "Nav links: 12px" describe, and shrinking it would be a real UX regression for
+a pattern this codebase already uses intentionally.
+
+**3. Text-colour audit.** Enumerated every file using `bg-ink` (26) and every file using
+`text-ink` (46) and checked which genuinely dark, section-scale surfaces exist: the hero (already
+explicit throughout — its only `text-ink` is a correct `hover:bg-paper hover:text-ink`
+contrast flip on the CTA), the footer (already fully explicit — every text element already
+carries its own `text-paper/*` class, confirmed by re-reading the file), and the atelier/
+signature section. **One real violation found and fixed:** the atelier section's `<h2>`
+("The cloth, before the cut.") carried no colour class at all, relying on the section root's
+`text-paper` to inherit down — renders correctly today, but breaks the moment that heading is
+ever moved or the section restructured, exactly the "never rely on inheritance" failure mode the
+brief names. Given its own explicit `text-paper` class now. Every other `bg-ink`/`text-ink` hit
+checked is a small, self-contained badge or button that already carries its own explicit colour
+(e.g. `ThreadButton`'s `solid` tone, the quick-add bar's `bg-ink/80 text-paper`) — correct by
+construction, not touched.
+
+**4. ThreadRing re-verified, not removed.** The brief's fallback instruction was conditional —
+remove `ThreadRing` only if the previous pass's `group/image` scoping fix isn't actually working
+in production. Rebuilt clean from scratch and checked the live SSR HTML directly rather than
+assuming: on the homepage, `ThreadRing`'s own circle (`cx="50" cy="62.5" r="26"`) appears **24**
+times — once per rendered card across New Arrivals, Top Selling ("Most loved this season" — the
+section the brief named) and the grid fallback — and `group-hover/image` appears **48** times,
+exactly two per card, confirming the scoped trigger is present on every one. `ProductVisual`'s
+*real* broken-image ring (`cx="160" cy="200" r="86"`) appears **zero** times — no product image
+is actually broken on the homepage. The fix works; nothing was removed.
+
+
 #### Hero magazine split-layout, cinematic gradients, word-by-word reveal (2026-09-02, eighteenth pass)
 
 **The brief's diagnosis:** the seventeenth pass's bounded product panel on a flat `bg-ink`

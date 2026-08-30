@@ -1,46 +1,30 @@
 import { HeroSliderClient, type HeroSlide } from "./hero-slider-client";
 import { findHeroCampaignAsset } from "@/lib/server/hero-assets";
 import { listProducts } from "@/lib/server/products";
-import { formatPrice } from "@/lib/types";
 import type { Product } from "@/lib/types";
 
 /**
- * Magazine split-layout hero (client brief, 2026-09-02, eighteenth pass) —
- * the previous pass's bounded panel on a flat `bg-ink` ground read as "a
- * product photo on a plain background," not a fashion campaign. This
- * version's rule: the catalogue only has portrait product photography (no
- * landscape campaign shoots exist), so the premium read comes from
- * **layout and colour, not from stretching the photo** — a fixed 50/50
- * magazine split per slide, rich per-slide gradients (never flat ink), a
- * precise 3:4 framed portrait on the right, editorial type and decorative
- * linework on the left. See `hero-slider-client.tsx` for the full
- * treatment; this file only supplies data.
+ * Full-bleed hero, fresh rewrite (client brief, 2026-08-30, nineteenth pass)
+ * — the eighteenth pass's two-column magazine split (separate left/right
+ * gradients, framed 3:4 photo, word-by-word headline) is scrapped entirely
+ * per this brief's own explicit instruction, in favour of one simple,
+ * "guaranteed to work" full-bleed slide: a single gradient behind the whole
+ * frame, text left, a bottom-aligned product photo right, plain crossfade +
+ * fade-up motion. See `hero-slider-client.tsx` for the rebuilt component;
+ * this file only supplies data.
  *
- * Four specific, hand-picked products (no category/"any" fallback tree —
- * each slug is chosen for what the slide's copy is actually about and
- * hardcoded here):
- *   1. `sequence-net-suit` — sequence embroidery + adda work at the neck,
- *      the densest embroidery in the catalogue, for the generic "New
- *      Collection" opener.
- *   2. `monsoon-blooms` — literally a chikankari piece (needlework, not
- *      machine work), matching the slide's own "Chikankari and adda work"
- *      subtext exactly rather than approximately.
- *   3. `scifflie-lawn-suit` — schiffli-loom embroidery on lawn, matching
- *      "Schiffli lawn. Organza. Silk." verbatim. Unchanged from the
- *      seventeenth pass — it already was the right product.
- *   4. `handwork-silk-suit` — hand-set stones/embroidery over printed
- *      silk, the most premium fabric in the edit, for "The Atelier."
- *      Unchanged from the seventeenth pass.
- *
- * If dedicated wide campaign photography ever lands in
- * `public/images/hero/` (see that folder's README), `findHeroCampaignAsset`
- * still picks it up automatically per slide and that slide renders
- * full-bleed instead of the magazine-split treatment — this pass didn't
- * touch that architecture, only the fallback it falls back to.
+ * **Two of the brief's four literal slugs don't exist in the catalogue** —
+ * `adda-work-chiffon-suit` and `monsoon-blooms-chikankari` are not real
+ * rows; the real ones are `adda-work-chiffon` and `monsoon-blooms` (the
+ * same two products both the seventeenth and eighteenth passes already used
+ * for this exact "New Collection" / "Hand Embroidery" pairing). Corrected
+ * to the real slugs rather than silently building a fuzzy-match resolver —
+ * disclosed here and in the pass log, not guessed quietly. The other two
+ * (`sequence-net-suit`, `handwork-silk-suit`) match real rows exactly.
  */
 const SLIDE_COPY: Array<{
   eyebrow: string;
-  headline: string;
+  headlineLines: [string, string];
   subtext: string;
   ctaLabel: string;
   ctaHref: string;
@@ -48,32 +32,32 @@ const SLIDE_COPY: Array<{
 }> = [
   {
     eyebrow: "New Collection — Edit 01",
-    headline: "Unstitched. Yours to finish.",
+    headlineLines: ["Unstitched.", "Yours to finish."],
     subtext: "48 pieces across 6 fabrics.",
     ctaLabel: "Shop the Edit",
     ctaHref: "/shop",
-    slug: "sequence-net-suit",
+    slug: "adda-work-chiffon",
   },
   {
     eyebrow: "Hand Embroidery",
-    headline: "Worked by hand. Cut by you.",
-    subtext: "Chikankari and adda work, unstitched.",
+    headlineLines: ["Worked by hand.", "Cut by you."],
+    subtext: "Chikankari, worked stitch by stitch.",
     ctaLabel: "Explore Fabrics",
     ctaHref: "/collections",
     slug: "monsoon-blooms",
   },
   {
-    eyebrow: "Fabric First",
-    headline: "The cloth, before the cut.",
-    subtext: "Schiffli lawn. Organza. Silk.",
+    eyebrow: "Festive Collection",
+    headlineLines: ["Dressed for", "the occasion."],
+    subtext: "Sequence net and organza, unstitched.",
     ctaLabel: "View All",
     ctaHref: "/shop",
-    slug: "scifflie-lawn-suit",
+    slug: "sequence-net-suit",
   },
   {
     eyebrow: "The Atelier",
-    headline: "Cut clean. Sewn to last.",
-    subtext: "Tailored the moment it's yours.",
+    headlineLines: ["The cloth,", "before the cut."],
+    subtext: "Hand embroidery on pure silk.",
     ctaLabel: "Meet the Atelier",
     ctaHref: "/atelier",
     slug: "handwork-silk-suit",
@@ -94,7 +78,7 @@ export async function HeroSlider() {
 
     return {
       eyebrow: copy.eyebrow,
-      headline: copy.headline,
+      headlineLines: copy.headlineLines,
       subtext: copy.subtext,
       ctaLabel: copy.ctaLabel,
       ctaHref: copy.ctaHref,
@@ -104,8 +88,6 @@ export async function HeroSlider() {
         width: image.width,
         height: image.height,
       },
-      productName: product.name,
-      price: formatPrice(product),
       campaign: findHeroCampaignAsset(index + 1),
     };
   });

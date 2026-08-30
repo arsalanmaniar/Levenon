@@ -1,225 +1,113 @@
 "use client";
 
 import Image from "next/image";
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, m, type Variants } from "framer-motion";
+import Link from "next/link";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, m } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { ThreadButton } from "@/components/ui/thread-button";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
 import type { HeroCampaignAsset } from "@/lib/server/hero-assets";
 
 export type HeroSlide = {
   eyebrow: string;
-  headline: string;
+  headlineLines: [string, string];
   subtext: string;
   ctaLabel: string;
   ctaHref: string;
   photo: { url: string; alt: string; width: number; height: number };
-  productName: string;
-  price: string;
   /** Set only once real campaign photography exists — see `hero-assets.ts`. */
   campaign: HeroCampaignAsset | null;
 };
 
-const AUTOPLAY_MS = 5200;
+const AUTOPLAY_MS = 5000;
 const SWIPE_THRESHOLD_PX = 50;
-const EASE = [0.25, 0.1, 0, 1] as const;
-/** Ken Burns duration on the framed product photo — one slide's dwell, plus a little run-off. */
-const PAN_S = AUTOPLAY_MS / 1000 + 1.5;
+const IMAGE_SIZES = "(max-width: 767px) 90vw, 45vw";
 
-/**
- * Four fixed, hand-tuned gradients — never flat ink (client brief,
- * 2026-09-02). Literal hex, not the brand's semantic tokens: these are a
- * deliberately *dark* backdrop regardless of site theme, the same
- * "always-dark section" reasoning `.dark-section` already uses elsewhere,
- * and the brief specified exact values per slide, not a computed tint.
- * Index-matched to `hero-slider.tsx`'s `SLIDE_COPY` — 1 New Collection,
- * 2 Hand Embroidery, 3 Fabric First, 4 The Atelier.
- */
-const SLIDE_GRADIENTS: Array<{ left: string; right: string }> = [
-  {
-    left: "linear-gradient(135deg, #1A0A2E 0%, #0B0B0D 50%, #0D0A1A 100%)",
-    right: "linear-gradient(135deg, #150822 0%, #0B0B0D 60%)",
-  },
-  {
-    left: "linear-gradient(135deg, #0B0B0D 0%, #1C0A0A 60%, #0B0B0D 100%)",
-    right: "linear-gradient(135deg, #120808 0%, #0B0B0D 70%)",
-  },
-  {
-    left: "linear-gradient(135deg, #0A1020 0%, #0B0B0D 50%, #0E1520 100%)",
-    right: "linear-gradient(135deg, #080E1A 0%, #0B0B0D 70%)",
-  },
-  {
-    left: "linear-gradient(135deg, #0F0A1A 0%, #1A0A30 30%, #0B0B0D 100%)",
-    right: "linear-gradient(135deg, #0D0820 0%, #0B0B0D 70%)",
-  },
+/** Four fixed, rich gradients — one canvas per slide, never a two-tone split. */
+const GRADIENTS = [
+  "linear-gradient(135deg, #1A0535 0%, #0B0B0D 70%)",
+  "linear-gradient(135deg, #0D1A35 0%, #0B0B0D 70%)",
+  "linear-gradient(135deg, #1A0A0A 0%, #0B0B0D 70%)",
+  "linear-gradient(135deg, #0A1A15 0%, #0B0B0D 70%)",
 ];
 
-const FRAME_IMAGE_SIZES = "(max-width: 767px) 100vw, 33vw";
-
-/** Background crossfades slower than its content — "the background fades, content slides." */
-const BG_VARIANTS: Variants = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1, transition: { duration: 1.2, ease: "linear" } },
-  exit: { opacity: 0, transition: { duration: 1.2, ease: "linear" } },
-};
-
-const TEXT_VARIANTS: Variants = {
-  initial: { x: -40, opacity: 0 },
-  animate: { x: 0, opacity: 1, transition: { duration: 0.7, ease: EASE } },
-  exit: { x: 40, opacity: 0, transition: { duration: 0.4, ease: EASE } },
-};
-
-const IMAGE_VARIANTS: Variants = {
-  initial: { x: 60, opacity: 0 },
-  animate: { x: 0, opacity: 1, transition: { duration: 0.9, delay: 0.1, ease: EASE } },
-  exit: { x: -40, opacity: 0, transition: { duration: 0.4, ease: EASE } },
-};
-
-/** Thin crop-mark corner, echoing an editorial contact sheet — persistent, not per-slide. */
-function CornerBracket() {
-  return (
-    <svg
-      width="40"
-      height="40"
-      viewBox="0 0 40 40"
-      aria-hidden="true"
-      className="pointer-events-none absolute bottom-8 left-6 z-10 text-paper/20 md:left-12 lg:left-20"
-    >
-      <path d="M0 0 V40 H40" fill="none" stroke="currentColor" strokeWidth="1" />
-    </svg>
-  );
-}
-
-/** "0N / 04" — bottom-right of the left column, purple fill line resets and refills every autoplay dwell. */
-function ProgressIndicator({
-  index,
-  total,
-  reducedMotion,
-}: {
-  index: number;
-  total: number;
-  reducedMotion: boolean;
-}) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return (
-    <div className="absolute bottom-8 right-6 z-10 flex flex-col items-end gap-2 md:right-12 lg:right-20">
-      <span className="font-mono text-[11px] tracking-[0.15em] text-paper/60">
-        {pad(index + 1)} / {pad(total)}
-      </span>
-      <span className="block h-px w-[120px] overflow-hidden bg-paper/15">
-        {reducedMotion ? (
-          <span
-            className="block h-px bg-purple-500"
-            style={{ width: `${((index + 1) / total) * 100}%` }}
-          />
-        ) : (
-          <m.span
-            key={index}
-            className="block h-px origin-left bg-purple-500"
-            initial={{ scaleX: 0 }}
-            animate={{ scaleX: 1 }}
-            transition={{ duration: AUTOPLAY_MS / 1000, ease: "linear" }}
-          />
-        )}
-      </span>
-    </div>
-  );
-}
-
-/** Word-by-word rise — each word rises out of an overflow-hidden mask, magazine-style. Skipped entirely under reduced motion. */
-function AnimatedHeadline({ text, className }: { text: string; className: string }) {
-  const words = text.split(" ");
-  return (
-    <h1 className={className}>
-      {words.map((word, i) => (
-        <Fragment key={`${word}-${i}`}>
-          <span className="inline-block overflow-hidden align-bottom">
-            <m.span
-              className="inline-block"
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.15 + i * 0.08, ease: EASE }}
-            >
-              {word}
-            </m.span>
-          </span>
-          {i < words.length - 1 ? " " : null}
-        </Fragment>
-      ))}
-    </h1>
-  );
-}
-
-const HEADLINE_CLASS =
-  "mt-4 max-w-[16ch] text-balance font-display text-[clamp(2.25rem,4.5vw,4.25rem)] font-extrabold leading-[1.05] tracking-[-1.5px] text-paper";
-
-/** Animated text panel — eyebrow → headline (word rise) → subtext → CTA, each on its own delay. */
-function TextPanelAnimated({ slide }: { slide: HeroSlide }) {
+/** Eyebrow → headline → subtext → CTA, each its own fade-up, no word splitting. */
+function TextBlockAnimated({ slide }: { slide: HeroSlide }) {
   return (
     <div className="max-w-[46ch]">
       <m.p
-        className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.3em] text-purple-300"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: 0 }}
+        className="mb-4 font-mono text-[11px] uppercase tracking-[0.25em] text-purple-300"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <span className="h-px w-7 bg-purple-500" aria-hidden="true" />
         {slide.eyebrow}
       </m.p>
-
-      <AnimatedHeadline text={slide.headline} className={HEADLINE_CLASS} />
-
+      <m.h1
+        className="mb-4 text-balance text-[clamp(2rem,4vw,3.5rem)] font-display font-extrabold leading-[1.1] tracking-[-1px] text-paper"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
+        {slide.headlineLines[0]}
+        <br />
+        {slide.headlineLines[1]}
+      </m.h1>
       <m.p
-        className="mt-4 max-w-[38ch] font-sans text-[15px] text-paper/70"
+        className="mb-8 max-w-[38ch] font-sans text-[15px] text-paper/65"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.4, delay: 0.5 }}
+        transition={{ duration: 0.4, delay: 0.35 }}
       >
         {slide.subtext}
       </m.p>
-
       <m.div
-        className="mt-8"
-        initial={{ opacity: 0, x: -10 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.65 }}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.5 }}
       >
-        <ThreadButton href={slide.ctaHref} tone="outline-invert" icon>
+        <Link
+          href={slide.ctaHref}
+          className="inline-flex items-center justify-center border border-paper bg-transparent px-7 py-3.5 font-mono text-xs uppercase tracking-[0.18em] text-paper transition-colors duration-200 ease-state hover:bg-paper hover:text-ink"
+        >
           {slide.ctaLabel}
-        </ThreadButton>
+        </Link>
       </m.div>
     </div>
   );
 }
 
 /** Same copy block, no motion — reduced-motion path renders instantly. */
-function TextPanelStatic({ slide }: { slide: HeroSlide }) {
+function TextBlockStatic({ slide }: { slide: HeroSlide }) {
   return (
     <div className="max-w-[46ch]">
-      <p className="flex items-center gap-3 font-mono text-[11px] uppercase tracking-[0.3em] text-purple-300">
-        <span className="h-px w-7 bg-purple-500" aria-hidden="true" />
+      <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.25em] text-purple-300">
         {slide.eyebrow}
       </p>
-      <h1 className={HEADLINE_CLASS}>{slide.headline}</h1>
-      <p className="mt-4 max-w-[38ch] font-sans text-[15px] text-paper/70">{slide.subtext}</p>
-      <div className="mt-8">
-        <ThreadButton href={slide.ctaHref} tone="outline-invert" icon>
-          {slide.ctaLabel}
-        </ThreadButton>
-      </div>
+      <h1 className="mb-4 text-balance text-[clamp(2rem,4vw,3.5rem)] font-display font-extrabold leading-[1.1] tracking-[-1px] text-paper">
+        {slide.headlineLines[0]}
+        <br />
+        {slide.headlineLines[1]}
+      </h1>
+      <p className="mb-8 max-w-[38ch] font-sans text-[15px] text-paper/65">{slide.subtext}</p>
+      <Link
+        href={slide.ctaHref}
+        className="inline-flex items-center justify-center border border-paper bg-transparent px-7 py-3.5 font-mono text-xs uppercase tracking-[0.18em] text-paper transition-colors duration-200 ease-state hover:bg-paper hover:text-ink"
+      >
+        {slide.ctaLabel}
+      </Link>
     </div>
   );
 }
 
 /**
- * The right-hand portrait frame — exactly 3:4, 65% of the column, on desktop
- * only ("mobile: full width, object-cover, no frame" per the brief). Shadow
- * defines the edge (no border); a 1px inset paper outline keeps the frame
- * legible against a background that is also dark.
+ * The garment, bottom-aligned at 70% of the slide's height on the right,
+ * `object-contain` so the full piece is always visible — never cropped into
+ * — with a soft purple glow behind it. Mobile drops the bottom-alignment
+ * and glow sizing in favour of a plain centred frame in the top half.
  */
-function FramedPhoto({
+function ProductPanel({
   slide,
   priority,
   reducedMotion,
@@ -229,66 +117,50 @@ function FramedPhoto({
   reducedMotion: boolean;
 }) {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-3">
-      <div
-        className={cn(
-          "relative h-full w-full overflow-hidden md:aspect-[3/4] md:h-auto md:w-[65%]",
-          "md:shadow-[0_40px_80px_rgba(11,11,13,0.6),inset_0_0_0_1px_rgba(251,250,248,0.2)]",
-        )}
-      >
+    <div className="relative h-[50vh] w-full shrink-0 md:absolute md:inset-y-0 md:right-0 md:flex md:h-full md:w-1/2 md:items-end md:justify-center">
+      <div className="relative flex h-full w-full items-center justify-center md:h-[70%] md:w-[85%]">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-[-15%] rounded-full bg-purple-500/30 blur-[100px]"
+        />
         {reducedMotion ? (
           <Image
             src={slide.photo.url}
             alt={slide.photo.alt}
             fill
             priority={priority}
-            sizes={FRAME_IMAGE_SIZES}
-            className="object-cover"
+            sizes={IMAGE_SIZES}
+            className="relative object-contain"
           />
         ) : (
           <m.div
-            className="absolute inset-0"
-            initial={false}
-            animate={{ scale: [1, 1.06] }}
-            transition={{ duration: PAN_S, ease: "linear" }}
+            className="relative h-full w-full"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, delay: 0.15 }}
           >
             <Image
               src={slide.photo.url}
               alt={slide.photo.alt}
               fill
               priority={priority}
-              sizes={FRAME_IMAGE_SIZES}
-              className="object-cover"
+              sizes={IMAGE_SIZES}
+              className="object-contain"
             />
           </m.div>
         )}
-      </div>
-      <div className="hidden w-[65%] items-baseline justify-between md:flex">
-        <span className="font-mono text-[11px] text-paper/60">{slide.productName}</span>
-        <span className="font-mono text-[11px] text-purple-300">{slide.price}</span>
       </div>
     </div>
   );
 }
 
-/** Precise circle outline behind the frame — not a glow, a line. Persistent, desktop only. */
-function DecorativeCircle() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute left-1/2 top-1/2 hidden h-[400px] w-[400px] rounded-full border border-paper/[0.06] md:block"
-      style={{ transform: "translate(calc(-50% + 26px), calc(-50% - 26px))" }}
-    />
-  );
-}
-
 /**
  * Full-bleed treatment for once dedicated campaign photography exists — see
- * `hero-assets.ts`. Untouched by this pass's magazine-split redesign: no
- * asset has ever been supplied, so this branch has never rendered in
- * production, but the moment one lands the slide it belongs to should still
- * become the primary, full-bleed visual rather than falling back to a
- * portrait frame it doesn't need.
+ * `hero-assets.ts`. Untouched by this pass's rewrite in spirit: no asset has
+ * ever been supplied (this branch has never rendered in production), but
+ * the moment one lands the slide it belongs to should still take over as
+ * the primary visual rather than falling back to a product photo it
+ * doesn't need.
  */
 function CampaignSlide({
   slide,
@@ -301,37 +173,58 @@ function CampaignSlide({
 }) {
   const campaign = slide.campaign as HeroCampaignAsset;
   return (
-    <div className="relative h-full w-full overflow-hidden">
-      <m.div
-        className="absolute inset-0"
-        initial={false}
-        animate={reducedMotion ? undefined : { scale: [1, 1.035] }}
-        transition={{ duration: PAN_S, ease: "linear" }}
-      >
-        <Image
-          src={campaign.desktop}
-          alt={slide.photo.alt}
-          fill
-          priority={priority}
-          sizes="100vw"
-          className="hidden object-cover md:block"
-        />
-        <Image
-          src={campaign.mobile ?? campaign.desktop}
-          alt={slide.photo.alt}
-          fill
-          priority={priority}
-          sizes="100vw"
-          className="object-cover md:hidden"
-        />
-      </m.div>
+    <div className="relative h-full w-full overflow-hidden bg-ink">
+      <Image
+        src={campaign.desktop}
+        alt={slide.photo.alt}
+        fill
+        priority={priority}
+        sizes="100vw"
+        className="hidden object-cover md:block"
+      />
+      <Image
+        src={campaign.mobile ?? campaign.desktop}
+        alt={slide.photo.alt}
+        fill
+        priority={priority}
+        sizes="100vw"
+        className="object-cover md:hidden"
+      />
       <div
         aria-hidden="true"
         className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/60 via-ink/10 to-transparent"
       />
       <div className="absolute inset-x-0 bottom-0">
         <div className="mx-auto max-w-shell px-6 pb-16 md:px-12 lg:px-20 md:pb-24">
-          {reducedMotion ? <TextPanelStatic slide={slide} /> : <TextPanelAnimated slide={slide} />}
+          {reducedMotion ? <TextBlockStatic slide={slide} /> : <TextBlockAnimated slide={slide} />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** One full-bleed gradient canvas: text left, garment right (top/bottom stacked on mobile). */
+function SlideContent({
+  slide,
+  gradient,
+  priority,
+  reducedMotion,
+}: {
+  slide: HeroSlide;
+  gradient: string;
+  priority: boolean;
+  reducedMotion: boolean;
+}) {
+  if (slide.campaign) {
+    return <CampaignSlide slide={slide} priority={priority} reducedMotion={reducedMotion} />;
+  }
+
+  return (
+    <div className="relative h-full w-full" style={{ backgroundImage: gradient }}>
+      <div className="flex h-full w-full flex-col md:block">
+        <ProductPanel slide={slide} priority={priority} reducedMotion={reducedMotion} />
+        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center md:absolute md:inset-y-0 md:left-0 md:w-1/2 md:items-start md:justify-center md:pl-[clamp(2rem,6vw,6rem)] md:pr-6 md:text-left">
+          {reducedMotion ? <TextBlockStatic slide={slide} /> : <TextBlockAnimated slide={slide} />}
         </div>
       </div>
     </div>
@@ -339,18 +232,21 @@ function CampaignSlide({
 }
 
 /**
- * The interactive hero (client brief, 2026-09-02, eighteenth pass — magazine
- * split-layout rebuild; full history in `hero-slider.tsx`'s doc comment).
- * `hero-slider.tsx` fetches products server-side and hands down plain slide
- * data; everything below is presentation and state.
+ * The hero, rebuilt from scratch (client brief, 2026-08-30, nineteenth pass)
+ * — full history in `hero-slider.tsx`'s doc comment. `hero-slider.tsx`
+ * fetches products server-side and hands down plain slide data; everything
+ * below is presentation and state.
+ *
+ * Deliberately simple per this brief: one crossfade at the slide level
+ * (opacity only, no x/y that could break layout), a plain fade-up per text
+ * element and a single slide-in for the product photo — no word-by-word
+ * splitting, no independently-timed background layer.
  *
  * Reduced motion branches the render tree rather than animating at
  * `duration: 0` — SKILL.md §7's rule is "never construct the animation".
- * Autoplay, the crossfade, the Ken Burns pan and the word-by-word headline
- * reveal are all skipped outright; manual navigation (arrows, swipe,
- * keyboard) still works in both branches, and every visual element (the
- * gradients, the weave texture, the frame, the decorative circle/bracket)
- * renders identically either way — only the *motion* is conditional.
+ * Autoplay and every entrance/crossfade animation are skipped outright;
+ * manual navigation (arrows, swipe, dots, keyboard) still works in both
+ * branches.
  */
 export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
   const reducedMotion = usePrefersReducedMotion();
@@ -367,7 +263,7 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
   const next = useCallback(() => goTo(index + 1), [goTo, index]);
   const prev = useCallback(() => goTo(index - 1), [goTo, index]);
 
-  // Auto-play — ~5s, paused on hover, never built at all under reduced motion.
+  // Auto-play — 5s, paused on hover, never built at all under reduced motion.
   useEffect(() => {
     if (reducedMotion || paused || slides.length <= 1) return;
     const timer = window.setInterval(() => {
@@ -380,7 +276,7 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
   if (!slide) return null;
 
   const priority = index === 0;
-  const gradients = SLIDE_GRADIENTS[index % SLIDE_GRADIENTS.length];
+  const gradient = GRADIENTS[index % GRADIENTS.length];
 
   return (
     <section
@@ -409,113 +305,61 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
         if (delta <= -SWIPE_THRESHOLD_PX) next();
         else if (delta >= SWIPE_THRESHOLD_PX) prev();
       }}
-      className="relative h-[80vh] w-full touch-pan-y overflow-hidden bg-ink outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-inset md:h-[88vh]"
+      className="relative h-[85vh] w-full touch-pan-y overflow-hidden bg-ink outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-inset md:h-[100vh]"
     >
-      {slide.campaign ? (
-        reducedMotion ? (
-          <div className="absolute inset-0">
-            <CampaignSlide slide={slide} priority={priority} reducedMotion />
-          </div>
-        ) : (
-          <AnimatePresence initial={false}>
-            <div key={index} className="absolute inset-0">
-              <CampaignSlide slide={slide} priority={priority} reducedMotion={false} />
-            </div>
-          </AnimatePresence>
-        )
-      ) : (
-        <div className="relative flex h-full w-full flex-col md:flex-row">
-          {/* LEFT — editorial text column */}
-          <div className="hero-weave relative order-2 h-[30vh] w-full overflow-hidden md:order-none md:h-full md:w-1/2">
-            {reducedMotion ? (
-              <>
-                <div className="absolute inset-0" style={{ backgroundImage: gradients.left }} />
-                <div className="relative z-10 flex h-full flex-col justify-center px-6 py-8 text-center md:items-start md:px-12 md:py-0 md:pl-[10%] md:text-left lg:px-20">
-                  <TextPanelStatic slide={slide} />
-                </div>
-              </>
-            ) : (
-              <AnimatePresence initial={false}>
-                <m.div
-                  key={`bg-left-${index}`}
-                  className="absolute inset-0"
-                  style={{ backgroundImage: gradients.left }}
-                  variants={BG_VARIANTS}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                />
-                <m.div
-                  key={`text-${index}`}
-                  className="relative z-10 flex h-full flex-col justify-center px-6 py-8 text-center md:items-start md:px-12 md:py-0 md:pl-[10%] md:text-left lg:px-20"
-                  variants={TEXT_VARIANTS}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                >
-                  <TextPanelAnimated slide={slide} />
-                </m.div>
-              </AnimatePresence>
-            )}
-            <CornerBracket />
-            <ProgressIndicator index={index} total={slides.length} reducedMotion={reducedMotion} />
-          </div>
-
-          {/* RIGHT — framed portrait photo column */}
-          <div className="relative order-1 h-[50vh] w-full overflow-hidden md:order-none md:h-full md:w-1/2">
-            {reducedMotion ? (
-              <>
-                <div className="absolute inset-0" style={{ backgroundImage: gradients.right }} />
-                <div className="relative z-10 h-full w-full">
-                  <FramedPhoto slide={slide} priority={priority} reducedMotion />
-                </div>
-              </>
-            ) : (
-              <AnimatePresence initial={false}>
-                <m.div
-                  key={`bg-right-${index}`}
-                  className="absolute inset-0"
-                  style={{ backgroundImage: gradients.right }}
-                  variants={BG_VARIANTS}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                />
-                <m.div
-                  key={`image-${index}`}
-                  className="relative z-10 h-full w-full"
-                  variants={IMAGE_VARIANTS}
-                  initial="initial"
-                  animate="animate"
-                  exit="exit"
-                >
-                  <FramedPhoto slide={slide} priority={priority} reducedMotion={false} />
-                </m.div>
-              </AnimatePresence>
-            )}
-            <DecorativeCircle />
-          </div>
+      {reducedMotion ? (
+        <div className="absolute inset-0">
+          <SlideContent slide={slide} gradient={gradient} priority={priority} reducedMotion />
         </div>
+      ) : (
+        <AnimatePresence initial={false}>
+          <m.div
+            key={index}
+            className="absolute inset-0"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <SlideContent slide={slide} gradient={gradient} priority={priority} reducedMotion={false} />
+          </m.div>
+        </AnimatePresence>
       )}
 
-      {/* Arrows — `sm`+ only; a 48px hit target crowds a 320px viewport
-          right against the swipe gesture that already covers mobile. */}
+      {/* Arrows — desktop only, swipe covers mobile. */}
       <button
         type="button"
         onClick={prev}
         aria-label="Previous slide"
-        className="absolute left-4 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-paper/30 bg-paper/10 text-paper backdrop-blur-md transition-colors duration-200 ease-state hover:bg-paper/20 sm:flex"
+        className="absolute left-6 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-paper/15 text-paper backdrop-blur-sm transition-colors duration-200 ease-state hover:bg-paper/30 md:flex"
       >
-        <ChevronLeft aria-hidden="true" size={22} strokeWidth={1.5} />
+        <ChevronLeft aria-hidden="true" size={18} strokeWidth={1.5} />
       </button>
       <button
         type="button"
         onClick={next}
         aria-label="Next slide"
-        className="absolute right-4 top-1/2 z-20 hidden h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-paper/30 bg-paper/10 text-paper backdrop-blur-md transition-colors duration-200 ease-state hover:bg-paper/20 sm:flex"
+        className="absolute right-6 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-paper/15 text-paper backdrop-blur-sm transition-colors duration-200 ease-state hover:bg-paper/30 md:flex"
       >
-        <ChevronRight aria-hidden="true" size={22} strokeWidth={1.5} />
+        <ChevronRight aria-hidden="true" size={18} strokeWidth={1.5} />
       </button>
+
+      {/* Progress dots — one per slide (four, not a fixed five). */}
+      <div className="absolute inset-x-0 bottom-6 z-20 flex items-center justify-center gap-2">
+        {slides.map((dotSlide, dotIndex) => (
+          <button
+            key={dotSlide.headlineLines.join("-")}
+            type="button"
+            onClick={() => goTo(dotIndex)}
+            aria-label={`Go to slide ${dotIndex + 1}`}
+            aria-current={dotIndex === index || undefined}
+            className={cn(
+              "h-1.5 rounded-full transition-[width,background-color] duration-300 ease-state",
+              dotIndex === index ? "w-5 bg-paper" : "w-1.5 bg-paper/30 hover:bg-paper/50",
+            )}
+          />
+        ))}
+      </div>
     </section>
   );
 }

@@ -90,7 +90,7 @@ export async function SignatureSection() {
                 CLOTH, / BEFORE / THE CUT."). Set larger and tighter than
                 before so it carries the section the way the hero headline
                 carries the page. */}
-            <h2 className="mt-6 font-display text-balance text-[clamp(2.75rem,5.5vw,4rem)] font-extrabold leading-[0.98] tracking-[-0.03em]">
+            <h2 className="mt-6 font-display text-balance text-[clamp(2.75rem,5.5vw,4rem)] font-extrabold leading-[0.98] tracking-[-0.03em] text-paper">
               The cloth,
               <br />
               before
@@ -121,7 +121,7 @@ export async function SignatureSection() {
                 <div key={stat.label}>
                   <dt className="sr-only">{stat.label}</dt>
                   <dd>
-                    <span className="block font-display text-5xl font-extrabold tracking-[-0.03em] text-purple-300">
+                    <span className="block font-display text-[clamp(1.5rem,3vw,2.5rem)] font-extrabold tracking-[-0.03em] text-purple-300">
                       {stat.value}
                     </span>
                     <span className="label mt-2 block text-paper/55">
