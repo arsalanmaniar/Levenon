@@ -124,7 +124,7 @@ export function ProductCard({
         >
           {/* 3:4, up from 4:5 (client brief, 2026-08-29) — taller reads
               closer to fashion photography than the previous, squarer frame. */}
-          <CardSpotlight className="relative aspect-[3/4] overflow-hidden border border-hairline bg-paper shadow-[0_0_0_rgba(0,0,0,0)] transition-[border-color,box-shadow] duration-300 ease-state group-hover:border-purple-500/40 group-hover:shadow-thread">
+          <CardSpotlight className="group/image relative aspect-[3/4] overflow-hidden border border-hairline bg-paper shadow-[0_0_0_rgba(0,0,0,0)] transition-[border-color,box-shadow] duration-300 ease-state group-hover:border-purple-500/40 group-hover:shadow-thread">
             <m.div
               style={{ z: tiltEnabled ? liftZ : undefined, scale: imageScale }}
               // `isolate`: the hover-swap second image is a `-z-10` child and
@@ -295,6 +295,15 @@ export function ProductCard({
  * Under reduced motion the ring still answers the hover — it simply arrives at
  * full size with no transition, which is §7's "never construct the animation"
  * rather than a zero-duration one.
+ *
+ * **Trigger scoped to `group/image` (client brief, 2026-08-30), not the
+ * card-wide `group`.** `CardSpotlight` — the `aspect-[3/4]` image tile this
+ * ring already lives inside — now carries that named group, so the ring only
+ * answers a pointer over the photo itself; hovering the name/price/category
+ * text below the image (a sibling of `CardSpotlight`, outside this element's
+ * `absolute inset-0`, so it was never visually reachable by a hover starting
+ * there) no longer triggers it either. Narrower trigger surface, same visual
+ * placement.
  */
 function ThreadRing() {
   return (
@@ -302,7 +311,7 @@ function ThreadRing() {
       viewBox="0 0 100 125"
       fill="none"
       aria-hidden="true"
-      className="pointer-events-none absolute inset-0 h-full w-full scale-[0.85] text-purple-300 opacity-0 transition-[transform,opacity] duration-200 ease-state group-hover:scale-100 group-hover:opacity-100 motion-reduce:scale-100 motion-reduce:transition-none"
+      className="pointer-events-none absolute inset-0 h-full w-full scale-[0.85] text-purple-300 opacity-0 transition-[transform,opacity] duration-200 ease-state group-hover/image:scale-100 group-hover/image:opacity-100 motion-reduce:scale-100 motion-reduce:transition-none"
     >
       <circle
         cx="50"
