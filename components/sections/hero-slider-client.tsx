@@ -26,7 +26,6 @@ export type HeroSlide = {
 const AUTOPLAY_MS = 6000;
 const SWIPE_THRESHOLD_PX = 50;
 const TRANSITION_S = 0.8;
-const PAN_S = 6;
 
 /**
  * Literal colours throughout this file, never the `--paper`/`--ink` tokens
@@ -132,23 +131,29 @@ function TextBlockStatic({ slide }: { slide: HeroSlide }) {
  * see `hero-slider.tsx`'s doc comment for where they came from); a slide
  * that somehow has none renders a plain ink ground rather than a blank hole,
  * a defensive floor, not a second design.
+ *
+ * **No Ken Burns** (client brief, 2026-08-31) — the `scale: [1, 1.04]` pan
+ * this pass shipped with was upscaling `next/image`'s already-fixed-size
+ * output beyond its native resolution for the whole 6s hold, softening the
+ * image. Static now: `object-cover` alone fills the frame at full source
+ * quality, and the only motion left on the background is the slide-level
+ * opacity crossfade in `HeroSliderClient` below, which this component has
+ * no part in.
  */
 function SlideBackground({
   campaign,
   alt,
   priority,
-  reducedMotion,
 }: {
   campaign: HeroCampaignAsset | null;
   alt: string;
   priority: boolean;
-  reducedMotion: boolean;
 }) {
   if (!campaign) {
     return <div className="absolute inset-0" style={{ backgroundColor: INK_HEX }} />;
   }
 
-  const image = (
+  return (
     <Image
       src={campaign.desktop}
       alt={alt}
@@ -157,19 +162,6 @@ function SlideBackground({
       sizes="100vw"
       className="object-cover"
     />
-  );
-
-  return reducedMotion ? (
-    <div className="absolute inset-0">{image}</div>
-  ) : (
-    <m.div
-      className="absolute inset-0"
-      initial={false}
-      animate={{ scale: [1, 1.04] }}
-      transition={{ duration: PAN_S, ease: "linear" }}
-    >
-      {image}
-    </m.div>
   );
 }
 
@@ -185,12 +177,7 @@ function SlideContent({
 }) {
   return (
     <div className="relative h-full w-full overflow-hidden" style={{ backgroundColor: INK_HEX }}>
-      <SlideBackground
-        campaign={slide.campaign}
-        alt={slide.imageAlt}
-        priority={priority}
-        reducedMotion={reducedMotion}
-      />
+      <SlideBackground campaign={slide.campaign} alt={slide.imageAlt} priority={priority} />
 
       {/* Desktop overlay — dark on the right (where the text sits), clear on the left. */}
       <div
@@ -234,9 +221,10 @@ function SlideContent({
  *
  * Reduced motion branches the render tree rather than animating at
  * `duration: 0` — SKILL.md §7's rule is "never construct the animation".
- * Autoplay, the crossfade, the Ken Burns pan and the text stagger are all
- * skipped outright; manual navigation (arrows, swipe, line nav, keyboard)
- * still works in both branches.
+ * Autoplay, the crossfade and the text stagger are all skipped outright;
+ * manual navigation (arrows, swipe, line nav, keyboard) still works in both
+ * branches. The background photo itself no longer animates either way —
+ * see `SlideBackground`'s own doc comment.
  */
 export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
   const reducedMotion = usePrefersReducedMotion();
