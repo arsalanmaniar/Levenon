@@ -184,6 +184,30 @@
 }
 
 /*
+ * The hero (client brief, 2026-08-31 — the "headline invisible" report) —
+ * the same bug as the footer and announcement bar above, missed when the
+ * hero was rebuilt: its slide backgrounds are literal hex gradients (never
+ * dark-theme-aware, by design — a campaign photo can't re-tint itself
+ * either), but its text used the bare `text-paper`/`text-purple-300`/
+ * `border-paper` tokens, which swap globally with `data-theme`. In light
+ * theme that's `--paper: #FBFAF8` on a hardcoded-dark gradient — fine. The
+ * moment a reader switches to dark site-theme, `--paper` flips to
+ * `#0F0E0D` (near-black) while the gradient stays exactly as dark as
+ * before: near-black headline on a near-black background, invisible. Not a
+ * hypothetical — reproduced by toggling `data-theme` and reading the
+ * resolved `color` on the hero's own `<h1>`. Pinned the same way, to the
+ * same two tokens the footer already pins.
+ */
+#hero {
+  --ink: #0b0b0d;
+  --paper: #fbfaf8;
+  --purple-300: #b98cf2;
+  --ink-rgb: 11 11 13;
+  --paper-rgb: 251 250 248;
+  --purple-300-rgb: 185 140 242;
+}
+
+/*
  * The atelier keeps its job, and it needs no override to do it.
  *
  * SKILL.md §6 makes the dark section the page's one rhythm beat — a single

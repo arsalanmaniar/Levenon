@@ -22,7 +22,7 @@ export type HeroSlide = {
 
 const AUTOPLAY_MS = 5000;
 const SWIPE_THRESHOLD_PX = 50;
-const IMAGE_SIZES = "(max-width: 767px) 90vw, 45vw";
+const IMAGE_SIZES = "(max-width: 767px) 90vw, 40vw";
 
 /** Four fixed, rich gradients — one canvas per slide, never a two-tone split. */
 const GRADIENTS = [
@@ -102,10 +102,17 @@ function TextBlockStatic({ slide }: { slide: HeroSlide }) {
 }
 
 /**
- * The garment, bottom-aligned at 70% of the slide's height on the right,
- * `object-contain` so the full piece is always visible — never cropped into
- * — with a soft purple glow behind it. Mobile drops the bottom-alignment
- * and glow sizing in favour of a plain centred frame in the top half.
+ * The garment, bottom-aligned on the right, full outfit head-to-toe visible
+ * — never cropped into. Client brief, 2026-08-31: 80% of the slide's height,
+ * width auto (the image's own aspect ratio decides it), capped at 40% of
+ * the viewport on desktop. That rules out `fill` + a fixed box (the previous
+ * pass's approach, which forces the *box*'s aspect ratio onto the photo):
+ * here the `<Image>` carries its real intrinsic `width`/`height` and scales
+ * itself via plain CSS (`h-[…] w-auto`), so a tall or a wide garment photo
+ * both render at their own true proportions instead of being letterboxed
+ * inside someone else's box. `vh`, not a `%` height, so the sizing doesn't
+ * depend on an intermediate wrapper also carrying a definite height — the
+ * Ken Burns `m.div` wrapper below never does.
  */
 function ProductPanel({
   slide,
@@ -116,40 +123,42 @@ function ProductPanel({
   priority: boolean;
   reducedMotion: boolean;
 }) {
+  const image = (
+    <>
+      {/* Sized to hug the photo's own rendered box (its parent is a
+          shrink-to-fit flex/motion child, never stretched), so the glow
+          wraps the garment itself rather than ballooning to the size of
+          the whole right-hand column. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-[-15%] -z-10 rounded-full bg-purple-500/30 blur-[100px]"
+      />
+      <Image
+        src={slide.photo.url}
+        alt={slide.photo.alt}
+        width={slide.photo.width}
+        height={slide.photo.height}
+        priority={priority}
+        sizes={IMAGE_SIZES}
+        className="h-[42vh] w-auto max-w-full object-contain md:h-[80vh] md:max-w-[40vw]"
+      />
+    </>
+  );
+
   return (
-    <div className="relative h-[50vh] w-full shrink-0 md:absolute md:inset-y-0 md:right-0 md:flex md:h-full md:w-1/2 md:items-end md:justify-center">
-      <div className="relative flex h-full w-full items-center justify-center md:h-[70%] md:w-[85%]">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-[-15%] rounded-full bg-purple-500/30 blur-[100px]"
-        />
-        {reducedMotion ? (
-          <Image
-            src={slide.photo.url}
-            alt={slide.photo.alt}
-            fill
-            priority={priority}
-            sizes={IMAGE_SIZES}
-            className="relative object-contain"
-          />
-        ) : (
-          <m.div
-            className="relative h-full w-full"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.7, delay: 0.15 }}
-          >
-            <Image
-              src={slide.photo.url}
-              alt={slide.photo.alt}
-              fill
-              priority={priority}
-              sizes={IMAGE_SIZES}
-              className="object-contain"
-            />
-          </m.div>
-        )}
-      </div>
+    <div className="relative flex h-[50vh] w-full shrink-0 items-center justify-center md:absolute md:inset-y-0 md:right-0 md:h-full md:w-1/2 md:items-end md:justify-center md:pr-6 lg:pr-12">
+      {reducedMotion ? (
+        <div className="relative">{image}</div>
+      ) : (
+        <m.div
+          className="relative"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.7, delay: 0.15 }}
+        >
+          {image}
+        </m.div>
+      )}
     </div>
   );
 }
@@ -280,6 +289,7 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
 
   return (
     <section
+      id="hero"
       role="region"
       aria-roledescription="carousel"
       aria-label="Featured collections"

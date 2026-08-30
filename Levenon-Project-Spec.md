@@ -313,6 +313,57 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Hero dark-theme text bug found and fixed, full-garment sizing, AI generation disclosed unavailable (2026-08-31, twentieth pass)
+
+`tsc`, `next lint`, a clean `next build` all green; `/` is 157 kB. No browser tool connected —
+verified via a fresh `next start` + curl, reading the actual compiled CSS and rendered HTML, not
+by eye.
+
+**1. Hero headline invisible — real bug, found and fixed, unlike the last two "broken" reports.**
+The eighteenth/nineteenth passes' hero text was already fully explicit (`text-paper`,
+`text-purple-300`, `border-paper` on every element, confirmed by re-reading the file) — so the
+brief's literal complaint ("relying on inheritance") didn't match the source. But the brief's
+*symptom* ("headline invisible on the purple gradient") pointed at something real once checked
+against `globals.css` rather than the component alone: the hero's slide backgrounds are literal
+hex gradients that never change, but `text-paper`/`--paper` is a **global token that swaps with
+`data-theme`** — `#FBFAF8` in light theme, `#0F0E0D` (near-black) in dark theme. This site has a
+working theme toggle (nav + footer). In dark site-theme, the hero would render a near-black
+headline over its own still-near-black gradient — invisible, exactly as reported, and **not a
+hypothetical**: this codebase already hit and fixed the identical bug twice before, for the
+footer (`#stockists-footer`) and the announcement bar (`#announcement-bar`) — both pin `--ink`/
+`--paper` to their literal light-theme values because both are "always dark regardless of site
+theme," the same thing true of the hero's hardcoded gradients. The hero was missed when it was
+rebuilt. Fixed the same way: `id="hero"` added to the section, `#hero { --ink; --paper;
+--purple-300; …-rgb }` pinned in `globals.css`, right beside the other two. Confirmed the rule
+compiled (`grep`'d the built CSS output) and that the section carries the id in rendered HTML.
+
+**2. AI-generated hero images — not available, disclosed rather than faked or worked around.**
+No Hugging Face MCP server is configured for this project — `.mcp.json` lists only `21st`;
+`ToolSearch` and `ListMcpResourcesTool` both confirm no Hugging Face tool exists in this session.
+**Deliberately did not fall back to the brief's own suggested Plan B** (dropping a real catalogue
+photo — Monsoon Blooms or Adda Work — into `public/images/hero/` as a full-bleed background):
+doing so would activate `CampaignSlide`'s full-bleed `object-cover` path, which crops a portrait
+garment photo hard when forced into a landscape frame — precisely the "cropped, not the full
+outfit" problem Item 3 *in this same brief* asks to fix, and precisely the "never stretch/crop a
+product photo into a landscape banner" rule every hero pass back to the fifteenth has held to.
+Populating the folder would silently defeat Item 3 for whichever slides got a file. Left
+`public/images/hero/` exactly as it was (`README.md` only) so today's live hero is the
+already-fixed bounded-photo layout, not a regression dressed as a fallback. Real wide campaign
+photography, or a connected image-generation tool, are still the two ways this activates.
+
+**3. Product photo — full garment, no `fill`-mode letterboxing.** The nineteenth pass's `fill` +
+`object-contain` inside a *fixed* box (`h-[70%] w-[85%]` of the column) forces the **box's**
+aspect ratio onto the photo, not the photo's own — a tall photo in a wide box still doesn't show
+head-to-toe cleanly. Rebuilt on `next/image`'s other mode instead: the `<Image>` now carries its
+real intrinsic `width`/`height` and sizes itself via plain CSS (`h-[42vh] w-auto` mobile,
+`md:h-[80vh] md:max-w-[40vw]` desktop) — width is genuinely auto, decided by the photo's own
+aspect ratio against the height cap, which is what "full outfit head-to-toe, not cropped" actually
+requires. `vh` rather than `%` for the height, specifically so the sizing doesn't depend on an
+intermediate wrapper (the Ken Burns `m.div`) also carrying a definite height — it doesn't, and a
+percentage there would have silently resolved to 0. The purple glow moved from the old fixed box
+onto a wrapper that hugs the photo's own shrink-to-fit size, so it still frames the garment rather
+than ballooning to the width of the whole column now that the box itself is gone.
+
 #### Hero rewritten full-bleed, font-size + text-colour audit, ring re-verified (2026-08-30, nineteenth pass)
 
 Four targeted fixes, `tsc`/`next lint`/a clean `next build` all green; `/` first-load JS is
