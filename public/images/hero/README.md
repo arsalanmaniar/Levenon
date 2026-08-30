@@ -1,14 +1,20 @@
 # Hero campaign photography — drop-in slot
 
-This folder is empty as of this writing (2026-09-02) — no campaign assets have
-been supplied yet. There is no wide cinematic fashion-campaign photography
-anywhere in this project, and the tools available to build this site cannot
-generate one, so the hero currently runs on real catalogue garment
-photography, shown as a bounded editorial panel rather than stretched into a
-landscape banner (see `components/sections/hero-slider.tsx` and
-`hero-slider-client.tsx`).
+**As of 2026-08-31, this folder holds real catalogue photography, not a final
+campaign shoot.** There is still no wide cinematic fashion-campaign
+photography anywhere in this project, and no image-generation tool is
+connected in this environment (checked directly — no Hugging Face MCP server
+is configured; see `hero-slider.tsx`'s own doc comment). Five real,
+already-photographed catalogue products were downloaded from Cloudinary
+straight into this folder as an interim full-bleed background, per the
+client brief's own explicit fallback instruction. They are portrait
+ecommerce photographs, not landscape campaign shoots, so `object-cover`
+crops them on a wide desktop viewport — expected, disclosed, not hidden.
 
-The moment the real shoot lands, drop files here using this exact naming
+Current files: `slide-1-desktop.jpg` through `slide-5-desktop.jpg`, no
+`-mobile` variants supplied (the desktop asset serves every breakpoint).
+
+The moment a real shoot lands, replace these files using this exact naming
 convention and the hero switches to them automatically — **no code change
 required** (`lib/server/hero-assets.ts` looks for exactly these names on
 every request):
@@ -18,6 +24,7 @@ slide-1-desktop.jpg   slide-1-mobile.jpg   (optional)
 slide-2-desktop.jpg   slide-2-mobile.jpg
 slide-3-desktop.jpg   slide-3-mobile.jpg
 slide-4-desktop.jpg   slide-4-mobile.jpg
+slide-5-desktop.jpg   slide-5-mobile.jpg
 ```
 
 ## Delivery — pre-optimise before dropping the file in
@@ -41,23 +48,19 @@ automatically has to happen **before** the file is dropped in:
 `.jpeg`, `.png` and `.webp` are all recognised too. `-mobile` is optional —
 if it's missing, the desktop asset is used on every breakpoint. Supply a
 dedicated mobile crop whenever the desktop composition would lose the model
-or the garment when `object-cover`ed into a portrait frame; the rule per the
-final asset contract is **use a real mobile asset rather than fixing a bad
-crop with a layout change.**
+or the garment when `object-cover`ed into a portrait frame.
 
 ## What happens once a slide's asset exists
 
-That slide's real hero visual becomes the campaign photo, full-bleed,
-nothing bounding or overlaying it beyond a minimal readability gradient
-confined to the bottom third — the campaign image is the primary visual,
-never a panel in front of it. A slow, gentle Ken Burns scale (~1 → 1.035)
-and the same 900ms crossfade/y-drift the rest of the slider uses apply
-automatically; nothing else about the slider changes. A slide with no asset
-present keeps running the bounded real-product fallback exactly as today —
-each slide resolves independently, so a partial delivery (e.g. only
-slide 1 and slide 2 supplied) is fine.
+That slide's real hero visual becomes the full-bleed background — this is
+now the hero's *only* treatment (the earlier bounded-panel fallback design
+was retired this pass in favour of a full-bleed-always approach), with a
+right-weighted dark overlay on desktop and a bottom-weighted one on mobile
+for text readability, plus a slow Ken Burns scale. Each slide resolves
+independently — a partial delivery (e.g. only slide 1 replaced with real
+campaign photography) is fine.
 
-## Brief for the photography
+## Brief for real campaign photography, when it's ready to shoot
 
 - **Aspect:** ideally 16:9–21:9 for `-desktop`, close to 4:5–3:4 for
   `-mobile`. `object-cover` is what renders these — use `cover` framing only
@@ -65,30 +68,27 @@ slide 1 and slide 2 supplied) is fine.
   tolerance top/bottom); don't submit a composition that depends on being
   seen uncropped.
 - **Subject:** an actual garment or model wearing one, every slide — this is
-  a fashion campaign hero, not an abstract background. See the sequence
-  below.
+  a fashion campaign hero, not an abstract background.
 - **Palette:** black / off-white / deep purple (`#0B0B0D` / `#FBFAF8` /
   `#7C2AE8`), consistent with the rest of the site. Purple as a rim light or
-  reflection accent, never a full colour wash. All four images should read
-  as one campaign, not four unrelated shoots.
+  reflection accent, never a full colour wash. All five images should read
+  as one campaign, not five unrelated shoots.
 - **Mood:** dramatic studio or directional lighting, deep shadows, minimal
-  environment — a luxury editorial, not ecommerce catalogue lighting. Stable
-  and expensive-feeling, not busy — the site's own Ken Burns motion is
-  deliberately gentle for this reason.
-- **Negative space:** enough of it, on one side or across the bottom third,
-  for a headline + subtext + one CTA to sit over the image without a heavy
-  overlay doing the readability work for a busy composition.
+  environment — a luxury editorial, not ecommerce catalogue lighting.
+- **Negative space:** enough of it toward the right edge (where the text
+  sits — see `hero-slider-client.tsx`) for a label + headline + subtext +
+  CTA to sit over the image without a heavy overlay doing the readability
+  work for a busy composition.
 
-## Campaign sequence
+## Current sequence
 
-| Slide | Name | Composition |
+| Slide | Label | Interim source (real catalogue product) |
 |---|---|---|
-| 1 | **The Look** | Premium fashion campaign shot — clothing clearly, unmistakably visible. Model to one side, negative space opposite for the headline. |
-| 2 | **The Fabric** | Close-up textile / embroidery / craftsmanship detail — tactile, directional light, subtle purple reflection. |
-| 3 | **The Silhouette** | Full-body fashion-editorial composition, minimal studio/architectural backdrop, wide cinematic framing. |
-| 4 | **The Atelier** | Craftsmanship, garment detail, or a garment caught in soft movement — the clothing must stay clearly recognisable. |
+| 1 | New Collection — "Edit 01" | Monsoon Blooms Chikankari |
+| 2 | Hand Embroidery — "Worked By Hand" | Adda Work Chiffon Suit |
+| 3 | Limited Time Offer — "Eid Collection" | Sequence Net Suit |
+| 4 | Just Arrived — "Festive Edit" | Handwork Silk Suit |
+| 5 | The Atelier — "The Cloth, Before The Cut" | Scifflie Lawn Suit |
 
-Until these land, `hero-slider.tsx` maps each of the four slides above onto a
-real, already-photographed product from the catalogue and a matching
-bounded-panel treatment (`portrait` / `closeup` / `full` / `motion`) — see
-that file for exactly which product backs which slide today.
+See `hero-slider.tsx` for the live copy, CTA links, and the badge/countdown
+special-cases on slides 3 and 4.

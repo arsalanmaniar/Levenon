@@ -1,96 +1,113 @@
 import { HeroSliderClient, type HeroSlide } from "./hero-slider-client";
 import { findHeroCampaignAsset } from "@/lib/server/hero-assets";
-import { listProducts } from "@/lib/server/products";
-import type { Product } from "@/lib/types";
 
 /**
- * Full-bleed hero, fresh rewrite (client brief, 2026-08-30, nineteenth pass)
- * — the eighteenth pass's two-column magazine split (separate left/right
- * gradients, framed 3:4 photo, word-by-word headline) is scrapped entirely
- * per this brief's own explicit instruction, in favour of one simple,
- * "guaranteed to work" full-bleed slide: a single gradient behind the whole
- * frame, text left, a bottom-aligned product photo right, plain crossfade +
- * fade-up motion. See `hero-slider-client.tsx` for the rebuilt component;
- * this file only supplies data.
+ * Full-bleed, Maria B–style hero (client brief, 2026-08-31, twenty-first
+ * pass) — the fourth hero rebuild in six passes, and the first one that
+ * actually gets full-bleed campaign photography onto every slide.
  *
- * **Two of the brief's four literal slugs don't exist in the catalogue** —
- * `adda-work-chiffon-suit` and `monsoon-blooms-chikankari` are not real
- * rows; the real ones are `adda-work-chiffon` and `monsoon-blooms` (the
- * same two products both the seventeenth and eighteenth passes already used
- * for this exact "New Collection" / "Hand Embroidery" pairing). Corrected
- * to the real slugs rather than silently building a fuzzy-match resolver —
- * disclosed here and in the pass log, not guessed quietly. The other two
- * (`sequence-net-suit`, `handwork-silk-suit`) match real rows exactly.
+ * **Where the five images came from.** The brief's Step 1 asked for
+ * Hugging Face MCP image generation first. Checked before writing a line of
+ * component code: `.mcp.json` declares only the `21st` server, and
+ * `ToolSearch`/`ListMcpResourcesTool` both confirm no Hugging Face tool
+ * exists in this session — same result as the previous pass, reconfirmed
+ * rather than assumed stale. Per the brief's own Attempt C, downloaded the
+ * five named real catalogue photographs from Cloudinary straight to
+ * `public/images/hero/` (`node:fs` + `fetch`, then discarded the script) so
+ * `hero-assets.ts`'s existing file-existence check picks them up with zero
+ * new code: `monsoon-blooms`, `adda-work-chiffon`, `sequence-net-suit`,
+ * `handwork-silk-suit` (the brief's own four), plus `scifflie-lawn-suit` for
+ * the fifth "brand story" slide the brief left as "best available."
+ *
+ * **This drops the previous three passes' "bounded panel with the full
+ * garment visible" design entirely** — not an oversight, the brief's whole
+ * premise this time (`object-cover`, full-bleed, Maria B) supersedes it.
+ * These are still portrait ecommerce photographs, not landscape campaign
+ * shoots, so `object-cover` on a 90vh frame crops them — expected, and the
+ * reason the brief itself named this path "Attempt C," behind real AI
+ * generation. Disclosed in the pass log, not hidden.
  */
 const SLIDE_COPY: Array<{
-  eyebrow: string;
-  headlineLines: [string, string];
+  label: string;
+  headline: string;
   subtext: string;
   ctaLabel: string;
   ctaHref: string;
-  slug: string;
+  alt: string;
+  badge?: string;
+  countdown?: boolean;
 }> = [
   {
-    eyebrow: "New Collection — Edit 01",
-    headlineLines: ["Unstitched.", "Yours to finish."],
-    subtext: "48 pieces across 6 fabrics.",
-    ctaLabel: "Shop the Edit",
+    label: "New Collection",
+    headline: "Edit 01",
+    subtext: "Unstitched. Yours to finish.",
+    ctaLabel: "Shop Now",
     ctaHref: "/shop",
-    slug: "adda-work-chiffon",
+    alt: "Monsoon Blooms Chikankari — new collection",
   },
   {
-    eyebrow: "Hand Embroidery",
-    headlineLines: ["Worked by hand.", "Cut by you."],
-    subtext: "Chikankari, worked stitch by stitch.",
-    ctaLabel: "Explore Fabrics",
+    label: "Hand Embroidery",
+    headline: "Worked By Hand",
+    subtext: "Chikankari. Adda work. Yours to stitch.",
+    ctaLabel: "Explore",
     ctaHref: "/collections",
-    slug: "monsoon-blooms",
+    alt: "Adda Work Chiffon Suit — hand embroidery detail",
   },
   {
-    eyebrow: "Festive Collection",
-    headlineLines: ["Dressed for", "the occasion."],
-    subtext: "Sequence net and organza, unstitched.",
-    ctaLabel: "View All",
-    ctaHref: "/shop",
-    slug: "sequence-net-suit",
+    label: "Limited Time Offer",
+    headline: "Eid Collection",
+    subtext: "Free delivery on orders above PKR 5,000.",
+    ctaLabel: "Shop Eid",
+    ctaHref: "/shop?category=chiffon",
+    alt: "Sequence Net Suit — Eid collection",
+    badge: "Free Delivery",
   },
   {
-    eyebrow: "The Atelier",
-    headlineLines: ["The cloth,", "before the cut."],
-    subtext: "Hand embroidery on pure silk.",
-    ctaLabel: "Meet the Atelier",
+    label: "Just Arrived",
+    headline: "Festive Edit",
+    subtext: "48 pieces across 6 fabrics. Shop now.",
+    ctaLabel: "New In",
+    ctaHref: "/new-in",
+    alt: "Handwork Silk Suit — festive edit",
+    countdown: true,
+  },
+  {
+    label: "The Atelier",
+    headline: "The Cloth, Before The Cut",
+    subtext: "Hand-selected fabrics. Yours to finish.",
+    ctaLabel: "Our Story",
     ctaHref: "/atelier",
-    slug: "handwork-silk-suit",
+    alt: "Scifflie Lawn Suit — the atelier",
   },
 ];
 
+/**
+ * "Static display... showing urgency" (client brief) — computed once, on
+ * the server, per request. Deliberately not a client-side ticking timer:
+ * the brief's own words are "static display," and a number that changes on
+ * every render would also be a hydration mismatch waiting to happen.
+ */
+function daysUntilEndOfMonth(): number {
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const diffMs = endOfMonth.getTime() - now.getTime();
+  return Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+}
+
 export async function HeroSlider() {
-  const catalogue = await listProducts();
-  const withPhotos = catalogue.filter((product) => product.images[0]);
-  if (withPhotos.length === 0) return null;
+  const countdownDays = daysUntilEndOfMonth();
 
-  const findBySlug = (slug: string): Product =>
-    withPhotos.find((product) => product.slug === slug) ?? withPhotos[0];
-
-  const slides: HeroSlide[] = SLIDE_COPY.map((copy, index) => {
-    const product = findBySlug(copy.slug);
-    const image = product.images[0];
-
-    return {
-      eyebrow: copy.eyebrow,
-      headlineLines: copy.headlineLines,
-      subtext: copy.subtext,
-      ctaLabel: copy.ctaLabel,
-      ctaHref: copy.ctaHref,
-      photo: {
-        url: image.url,
-        alt: image.alt || `${product.name} — ${product.category.name}`,
-        width: image.width,
-        height: image.height,
-      },
-      campaign: findHeroCampaignAsset(index + 1),
-    };
-  });
+  const slides: HeroSlide[] = SLIDE_COPY.map((copy, index) => ({
+    label: copy.label,
+    headline: copy.headline,
+    subtext: copy.subtext,
+    ctaLabel: copy.ctaLabel,
+    ctaHref: copy.ctaHref,
+    imageAlt: copy.alt,
+    badge: copy.badge,
+    countdownDays: copy.countdown ? countdownDays : undefined,
+    campaign: findHeroCampaignAsset(index + 1),
+  }));
 
   return <HeroSliderClient slides={slides} />;
 }

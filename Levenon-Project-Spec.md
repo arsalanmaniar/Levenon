@@ -313,6 +313,65 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Hero rebuilt full-bleed, Maria B style — five slides, offer banners (2026-08-31, twenty-first pass)
+
+`tsc`, `next lint`, a clean `next build` all green; `/` is 157 kB. No browser tool connected —
+verified via `next start` + curl against the real rendered HTML and the compiled output, not by
+eye. This is the fourth hero rebuild in seven passes.
+
+**Step 1 — image generation, reconfirmed unavailable, then the brief's own Attempt C.** Checked
+before writing any component code, not assumed: `.mcp.json` still declares only the `21st`
+server; `ToolSearch` (queried multiple ways) and `ListMcpResourcesTool` both return nothing for
+Hugging Face. Same finding as the previous pass, reconfirmed rather than trusted stale. Per the
+brief's own Attempt C, downloaded the five named real catalogue photographs straight from
+Cloudinary into `public/images/hero/` (a one-off `node:fs` + `fetch` script, discarded after
+running): `monsoon-blooms`, `adda-work-chiffon`, `sequence-net-suit`, `handwork-silk-suit` — the
+brief's own four — plus `scifflie-lawn-suit` for the fifth "brand story" slide the brief left as
+"best available." `hero-assets.ts`'s existing file-existence check picked all five up with zero
+code changes, exactly as it was built to. **Disclosed, not hidden:** these are portrait ecommerce
+photographs, not landscape campaign shoots, so `object-cover` on a 90vh full-bleed frame crops
+them — the reason the brief itself ordered this behind real AI generation, not a defect found
+after the fact. `public/images/hero/README.md` rewritten to describe the current interim state
+and the same easy-swap path once real campaign photography exists.
+
+**Step 2 — `hero-slider-client.tsx` scrapped and rebuilt for real this time, full-bleed only.**
+The last three passes' "bounded panel, full garment always visible" design is gone entirely — not
+an oversight, this pass's whole premise (Maria B: `object-cover`, full-bleed, minimal overlay)
+replaces it outright, and every slide now has a real local image to be full-bleed *with*. Built:
+right-aligned text column (`text-align: right`, `padding-right: clamp(2.5rem,8vw,7.5rem)`), a
+"to left" dark gradient overlay concentrated on the right where the text sits and clear on the
+left, a plain opacity crossfade (0.8s) with an independent Ken Burns pan (scale 1→1.04, 6s), a
+staggered fade-up per text element (label → headline → subtext → CTA, 0.15s apart), a sharp-cornered
+(`rounded-none`) white CTA button that inverts to purple on hover, and **line navigation instead
+of dots** — thin segments, active 40px, inactive 8px, `w-*`-transition. Arrows moved to the
+bottom-right (Maria B's own placement), not vertically centred. Five slides, matching the brief's
+copy exactly, including the two offer-banner specials: slide 3 carries a small purple "FREE
+DELIVERY" pill top-right, slide 4 carries a **server-computed, static** "Offer ends in: N days" —
+deliberately not a client-side ticking timer, since the brief's own words are "static display" and
+a per-render-changing number would also be a hydration mismatch. `hero-slider.tsx` no longer reads
+the product catalogue at all — nothing in the new design needs a product name, price, or picked
+slug, so that whole dependency (and its slug-matching/fallback logic from every prior pass) is
+gone.
+
+**Hero text colour, fixed a second and more direct way.** The twentieth pass fixed the dark-theme-
+invisible-headline bug by pinning `--ink`/`--paper` to their light-theme values inside a `#hero`
+scope. This brief asked for something stronger and simpler: no token at all. Every hero text
+element now uses literal `text-white`/`white/NN` (a static Tailwind colour, not a custom
+property), so nothing here can move when `data-theme` changes, full stop — confirmed zero
+`text-paper`/`text-ink` occurrences left in the file. The CTA's own dark-on-white text uses an
+inline `color: #0B0B0D`, not a `text-ink` class, for the identical reason: the class would have
+been exactly the same live-swapping token this whole fix is removing. The `#hero` CSS pin from
+last pass stays in `globals.css` as a harmless second guard (nothing in this file depends on it
+any more).
+
+**Verified:** rendered HTML confirms `id="hero"`, the first slide's `<img>` resolves to
+`/images/hero/slide-1-desktop.jpg` (the campaign path is genuinely active, not silently falling
+through), the real copy ("Edit 01", "New Collection") is present, and all five line-nav buttons
+render (`aria-label="Go to slide 1"` through `"5"`). Source-grepped: `text-white` × 12, zero
+`text-paper`/`text-ink`, the literal `"to left"` gradient string, `bg-white` on both CTA
+occurrences, no `rounded-full` on the nav buttons.
+
+
 #### Hero dark-theme text bug found and fixed, full-garment sizing, AI generation disclosed unavailable (2026-08-31, twentieth pass)
 
 `tsc`, `next lint`, a clean `next build` all green; `/` is 157 kB. No browser tool connected —

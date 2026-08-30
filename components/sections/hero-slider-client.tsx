@@ -10,66 +10,84 @@ import { cn } from "@/lib/cn";
 import type { HeroCampaignAsset } from "@/lib/server/hero-assets";
 
 export type HeroSlide = {
-  eyebrow: string;
-  headlineLines: [string, string];
+  label: string;
+  headline: string;
   subtext: string;
   ctaLabel: string;
   ctaHref: string;
-  photo: { url: string; alt: string; width: number; height: number };
-  /** Set only once real campaign photography exists — see `hero-assets.ts`. */
+  imageAlt: string;
+  /** Slide 3 only — the small "FREE DELIVERY" pill, top-right corner. */
+  badge?: string;
+  /** Slide 4 only — static "Offer ends in: N days", computed server-side. */
+  countdownDays?: number;
   campaign: HeroCampaignAsset | null;
 };
 
-const AUTOPLAY_MS = 5000;
+const AUTOPLAY_MS = 6000;
 const SWIPE_THRESHOLD_PX = 50;
-const IMAGE_SIZES = "(max-width: 767px) 90vw, 40vw";
+const TRANSITION_S = 0.8;
+const PAN_S = 6;
 
-/** Four fixed, rich gradients — one canvas per slide, never a two-tone split. */
-const GRADIENTS = [
-  "linear-gradient(135deg, #1A0535 0%, #0B0B0D 70%)",
-  "linear-gradient(135deg, #0D1A35 0%, #0B0B0D 70%)",
-  "linear-gradient(135deg, #1A0A0A 0%, #0B0B0D 70%)",
-  "linear-gradient(135deg, #0A1A15 0%, #0B0B0D 70%)",
-];
+/**
+ * Literal colours throughout this file, never the `--paper`/`--ink` tokens
+ * (client brief, 2026-08-31 — this is the second and more direct fix for
+ * the dark-theme-invisible-headline bug the last pass patched by pinning
+ * the tokens instead). A full-bleed photo doesn't retint itself for a site
+ * theme toggle, so the text sitting on it can't either — `text-white` is a
+ * static Tailwind colour, not a custom property, so nothing here moves
+ * when `data-theme` changes. The `#hero` token pin from the previous pass
+ * stays in `globals.css` as a harmless second guard, but this component no
+ * longer depends on it.
+ */
+const INK_HEX = "#0B0B0D";
 
-/** Eyebrow → headline → subtext → CTA, each its own fade-up, no word splitting. */
+/** Eyebrow → headline → subtext → CTA, each its own fade-up, staggered 0.15s apart. */
 function TextBlockAnimated({ slide }: { slide: HeroSlide }) {
   return (
     <div className="max-w-[46ch]">
       <m.p
-        className="mb-4 font-mono text-[11px] uppercase tracking-[0.25em] text-purple-300"
-        initial={{ opacity: 0, y: 12 }}
+        className="mb-3 font-mono text-[11px] uppercase tracking-[0.3em] text-white/80"
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
+        transition={{ duration: 0.3, delay: 0 }}
       >
-        {slide.eyebrow}
+        {slide.label}
       </m.p>
       <m.h1
-        className="mb-4 text-balance text-[clamp(2rem,4vw,3.5rem)] font-display font-extrabold leading-[1.1] tracking-[-1px] text-paper"
-        initial={{ opacity: 0, y: 16 }}
+        className="mb-2 text-balance text-[clamp(1.75rem,3.5vw,3.25rem)] font-display font-extrabold uppercase leading-[1.1] tracking-[-0.5px] text-white"
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.2 }}
+        transition={{ duration: 0.3, delay: 0.15 }}
       >
-        {slide.headlineLines[0]}
-        <br />
-        {slide.headlineLines[1]}
+        {slide.headline}
       </m.h1>
       <m.p
-        className="mb-8 max-w-[38ch] font-sans text-[15px] text-paper/65"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.4, delay: 0.35 }}
+        className="mb-7 max-w-[38ch] font-sans text-sm text-white/70 md:ml-auto"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.3 }}
       >
         {slide.subtext}
       </m.p>
+      {slide.countdownDays !== undefined && (
+        <m.p
+          className="mb-5 font-mono text-[11px] uppercase tracking-[0.2em] text-purple-300"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.38 }}
+        >
+          Offer ends in: {slide.countdownDays} {slide.countdownDays === 1 ? "day" : "days"}
+        </m.p>
+      )}
       <m.div
-        initial={{ opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.5 }}
+        transition={{ duration: 0.3, delay: 0.45 }}
       >
         <Link
           href={slide.ctaHref}
-          className="inline-flex items-center justify-center border border-paper bg-transparent px-7 py-3.5 font-mono text-xs uppercase tracking-[0.18em] text-paper transition-colors duration-200 ease-state hover:bg-paper hover:text-ink"
+          className="inline-flex items-center justify-center rounded-none bg-white px-8 py-3 font-mono text-xs uppercase tracking-[0.15em] transition-colors duration-200 ease-state hover:bg-purple-500 hover:text-white"
+          style={{ color: INK_HEX }}
         >
           {slide.ctaLabel}
         </Link>
@@ -82,18 +100,24 @@ function TextBlockAnimated({ slide }: { slide: HeroSlide }) {
 function TextBlockStatic({ slide }: { slide: HeroSlide }) {
   return (
     <div className="max-w-[46ch]">
-      <p className="mb-4 font-mono text-[11px] uppercase tracking-[0.25em] text-purple-300">
-        {slide.eyebrow}
+      <p className="mb-3 font-mono text-[11px] uppercase tracking-[0.3em] text-white/80">
+        {slide.label}
       </p>
-      <h1 className="mb-4 text-balance text-[clamp(2rem,4vw,3.5rem)] font-display font-extrabold leading-[1.1] tracking-[-1px] text-paper">
-        {slide.headlineLines[0]}
-        <br />
-        {slide.headlineLines[1]}
+      <h1 className="mb-2 text-balance text-[clamp(1.75rem,3.5vw,3.25rem)] font-display font-extrabold uppercase leading-[1.1] tracking-[-0.5px] text-white">
+        {slide.headline}
       </h1>
-      <p className="mb-8 max-w-[38ch] font-sans text-[15px] text-paper/65">{slide.subtext}</p>
+      <p className="mb-7 max-w-[38ch] font-sans text-sm text-white/70 md:ml-auto">
+        {slide.subtext}
+      </p>
+      {slide.countdownDays !== undefined && (
+        <p className="mb-5 font-mono text-[11px] uppercase tracking-[0.2em] text-purple-300">
+          Offer ends in: {slide.countdownDays} {slide.countdownDays === 1 ? "day" : "days"}
+        </p>
+      )}
       <Link
         href={slide.ctaHref}
-        className="inline-flex items-center justify-center border border-paper bg-transparent px-7 py-3.5 font-mono text-xs uppercase tracking-[0.18em] text-paper transition-colors duration-200 ease-state hover:bg-paper hover:text-ink"
+        className="inline-flex items-center justify-center rounded-none bg-white px-8 py-3 font-mono text-xs uppercase tracking-[0.15em] transition-colors duration-200 ease-state hover:bg-purple-500 hover:text-white"
+        style={{ color: INK_HEX }}
       >
         {slide.ctaLabel}
       </Link>
@@ -102,137 +126,99 @@ function TextBlockStatic({ slide }: { slide: HeroSlide }) {
 }
 
 /**
- * The garment, bottom-aligned on the right, full outfit head-to-toe visible
- * — never cropped into. Client brief, 2026-08-31: 80% of the slide's height,
- * width auto (the image's own aspect ratio decides it), capped at 40% of
- * the viewport on desktop. That rules out `fill` + a fixed box (the previous
- * pass's approach, which forces the *box*'s aspect ratio onto the photo):
- * here the `<Image>` carries its real intrinsic `width`/`height` and scales
- * itself via plain CSS (`h-[…] w-auto`), so a tall or a wide garment photo
- * both render at their own true proportions instead of being letterboxed
- * inside someone else's box. `vh`, not a `%` height, so the sizing doesn't
- * depend on an intermediate wrapper also carrying a definite height — the
- * Ken Burns `m.div` wrapper below never does.
+ * Full-bleed slide photograph — the whole point of this pass, replacing the
+ * previous three passes' bounded/letterboxed product-photo panel entirely.
+ * `hero-assets.ts` resolves a local file per slide (all five now exist —
+ * see `hero-slider.tsx`'s doc comment for where they came from); a slide
+ * that somehow has none renders a plain ink ground rather than a blank hole,
+ * a defensive floor, not a second design.
  */
-function ProductPanel({
-  slide,
+function SlideBackground({
+  campaign,
+  alt,
   priority,
   reducedMotion,
 }: {
-  slide: HeroSlide;
+  campaign: HeroCampaignAsset | null;
+  alt: string;
   priority: boolean;
   reducedMotion: boolean;
 }) {
-  const image = (
-    <>
-      {/* Sized to hug the photo's own rendered box (its parent is a
-          shrink-to-fit flex/motion child, never stretched), so the glow
-          wraps the garment itself rather than ballooning to the size of
-          the whole right-hand column. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-[-15%] -z-10 rounded-full bg-purple-500/30 blur-[100px]"
-      />
-      <Image
-        src={slide.photo.url}
-        alt={slide.photo.alt}
-        width={slide.photo.width}
-        height={slide.photo.height}
-        priority={priority}
-        sizes={IMAGE_SIZES}
-        className="h-[42vh] w-auto max-w-full object-contain md:h-[80vh] md:max-w-[40vw]"
-      />
-    </>
-  );
-
-  return (
-    <div className="relative flex h-[50vh] w-full shrink-0 items-center justify-center md:absolute md:inset-y-0 md:right-0 md:h-full md:w-1/2 md:items-end md:justify-center md:pr-6 lg:pr-12">
-      {reducedMotion ? (
-        <div className="relative">{image}</div>
-      ) : (
-        <m.div
-          className="relative"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.7, delay: 0.15 }}
-        >
-          {image}
-        </m.div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Full-bleed treatment for once dedicated campaign photography exists — see
- * `hero-assets.ts`. Untouched by this pass's rewrite in spirit: no asset has
- * ever been supplied (this branch has never rendered in production), but
- * the moment one lands the slide it belongs to should still take over as
- * the primary visual rather than falling back to a product photo it
- * doesn't need.
- */
-function CampaignSlide({
-  slide,
-  priority,
-  reducedMotion,
-}: {
-  slide: HeroSlide;
-  priority: boolean;
-  reducedMotion: boolean;
-}) {
-  const campaign = slide.campaign as HeroCampaignAsset;
-  return (
-    <div className="relative h-full w-full overflow-hidden bg-ink">
-      <Image
-        src={campaign.desktop}
-        alt={slide.photo.alt}
-        fill
-        priority={priority}
-        sizes="100vw"
-        className="hidden object-cover md:block"
-      />
-      <Image
-        src={campaign.mobile ?? campaign.desktop}
-        alt={slide.photo.alt}
-        fill
-        priority={priority}
-        sizes="100vw"
-        className="object-cover md:hidden"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-ink/60 via-ink/10 to-transparent"
-      />
-      <div className="absolute inset-x-0 bottom-0">
-        <div className="mx-auto max-w-shell px-6 pb-16 md:px-12 lg:px-20 md:pb-24">
-          {reducedMotion ? <TextBlockStatic slide={slide} /> : <TextBlockAnimated slide={slide} />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** One full-bleed gradient canvas: text left, garment right (top/bottom stacked on mobile). */
-function SlideContent({
-  slide,
-  gradient,
-  priority,
-  reducedMotion,
-}: {
-  slide: HeroSlide;
-  gradient: string;
-  priority: boolean;
-  reducedMotion: boolean;
-}) {
-  if (slide.campaign) {
-    return <CampaignSlide slide={slide} priority={priority} reducedMotion={reducedMotion} />;
+  if (!campaign) {
+    return <div className="absolute inset-0" style={{ backgroundColor: INK_HEX }} />;
   }
 
+  const image = (
+    <Image
+      src={campaign.desktop}
+      alt={alt}
+      fill
+      priority={priority}
+      sizes="100vw"
+      className="object-cover"
+    />
+  );
+
+  return reducedMotion ? (
+    <div className="absolute inset-0">{image}</div>
+  ) : (
+    <m.div
+      className="absolute inset-0"
+      initial={false}
+      animate={{ scale: [1, 1.04] }}
+      transition={{ duration: PAN_S, ease: "linear" }}
+    >
+      {image}
+    </m.div>
+  );
+}
+
+/** One full-bleed photograph, a right-side-weighted dark overlay, and the text block. */
+function SlideContent({
+  slide,
+  priority,
+  reducedMotion,
+}: {
+  slide: HeroSlide;
+  priority: boolean;
+  reducedMotion: boolean;
+}) {
   return (
-    <div className="relative h-full w-full" style={{ backgroundImage: gradient }}>
-      <div className="flex h-full w-full flex-col md:block">
-        <ProductPanel slide={slide} priority={priority} reducedMotion={reducedMotion} />
-        <div className="flex flex-1 flex-col items-center justify-center px-6 text-center md:absolute md:inset-y-0 md:left-0 md:w-1/2 md:items-start md:justify-center md:pl-[clamp(2rem,6vw,6rem)] md:pr-6 md:text-left">
+    <div className="relative h-full w-full overflow-hidden" style={{ backgroundColor: INK_HEX }}>
+      <SlideBackground
+        campaign={slide.campaign}
+        alt={slide.imageAlt}
+        priority={priority}
+        reducedMotion={reducedMotion}
+      />
+
+      {/* Desktop overlay — dark on the right (where the text sits), clear on the left. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 hidden md:block"
+        style={{
+          background:
+            "linear-gradient(to left, rgba(11,11,13,0.75) 0%, rgba(11,11,13,0.3) 40%, transparent 70%)",
+        }}
+      />
+      {/* Mobile overlay — dark from the bottom, covering more of the frame so centred text stays readable. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 md:hidden"
+        style={{
+          background:
+            "linear-gradient(to top, rgba(11,11,13,0.85) 0%, rgba(11,11,13,0.5) 35%, transparent 60%)",
+        }}
+      />
+
+      {slide.badge && (
+        <span className="absolute right-6 top-6 z-10 bg-purple-500 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-white md:right-12 lg:right-20">
+          {slide.badge}
+        </span>
+      )}
+
+      <div className="relative z-10 flex h-full w-full items-center justify-center px-6 text-center md:items-center md:justify-end md:px-0 md:text-right">
+        <div className="md:pr-[clamp(2.5rem,8vw,7.5rem)]">
           {reducedMotion ? <TextBlockStatic slide={slide} /> : <TextBlockAnimated slide={slide} />}
         </div>
       </div>
@@ -241,21 +227,16 @@ function SlideContent({
 }
 
 /**
- * The hero, rebuilt from scratch (client brief, 2026-08-30, nineteenth pass)
- * — full history in `hero-slider.tsx`'s doc comment. `hero-slider.tsx`
- * fetches products server-side and hands down plain slide data; everything
- * below is presentation and state.
- *
- * Deliberately simple per this brief: one crossfade at the slide level
- * (opacity only, no x/y that could break layout), a plain fade-up per text
- * element and a single slide-in for the product photo — no word-by-word
- * splitting, no independently-timed background layer.
+ * The hero, Maria B–style full-bleed rebuild (client brief, 2026-08-31,
+ * twenty-first pass) — full history in `hero-slider.tsx`'s doc comment.
+ * `hero-slider.tsx` hands down plain slide data; everything below is
+ * presentation and state.
  *
  * Reduced motion branches the render tree rather than animating at
  * `duration: 0` — SKILL.md §7's rule is "never construct the animation".
- * Autoplay and every entrance/crossfade animation are skipped outright;
- * manual navigation (arrows, swipe, dots, keyboard) still works in both
- * branches.
+ * Autoplay, the crossfade, the Ken Burns pan and the text stagger are all
+ * skipped outright; manual navigation (arrows, swipe, line nav, keyboard)
+ * still works in both branches.
  */
 export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
   const reducedMotion = usePrefersReducedMotion();
@@ -272,7 +253,7 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
   const next = useCallback(() => goTo(index + 1), [goTo, index]);
   const prev = useCallback(() => goTo(index - 1), [goTo, index]);
 
-  // Auto-play — 5s, paused on hover, never built at all under reduced motion.
+  // Auto-play — 6s, paused on hover, never built at all under reduced motion.
   useEffect(() => {
     if (reducedMotion || paused || slides.length <= 1) return;
     const timer = window.setInterval(() => {
@@ -285,7 +266,6 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
   if (!slide) return null;
 
   const priority = index === 0;
-  const gradient = GRADIENTS[index % GRADIENTS.length];
 
   return (
     <section
@@ -315,11 +295,12 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
         if (delta <= -SWIPE_THRESHOLD_PX) next();
         else if (delta >= SWIPE_THRESHOLD_PX) prev();
       }}
-      className="relative h-[85vh] w-full touch-pan-y overflow-hidden bg-ink outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-inset md:h-[100vh]"
+      className="relative h-[90vh] w-full touch-pan-y overflow-hidden outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-inset"
+      style={{ backgroundColor: INK_HEX }}
     >
       {reducedMotion ? (
         <div className="absolute inset-0">
-          <SlideContent slide={slide} gradient={gradient} priority={priority} reducedMotion />
+          <SlideContent slide={slide} priority={priority} reducedMotion />
         </div>
       ) : (
         <AnimatePresence initial={false}>
@@ -329,43 +310,45 @@ export function HeroSliderClient({ slides }: { slides: HeroSlide[] }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: TRANSITION_S }}
           >
-            <SlideContent slide={slide} gradient={gradient} priority={priority} reducedMotion={false} />
+            <SlideContent slide={slide} priority={priority} reducedMotion={false} />
           </m.div>
         </AnimatePresence>
       )}
 
-      {/* Arrows — desktop only, swipe covers mobile. */}
-      <button
-        type="button"
-        onClick={prev}
-        aria-label="Previous slide"
-        className="absolute left-6 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-paper/15 text-paper backdrop-blur-sm transition-colors duration-200 ease-state hover:bg-paper/30 md:flex"
-      >
-        <ChevronLeft aria-hidden="true" size={18} strokeWidth={1.5} />
-      </button>
-      <button
-        type="button"
-        onClick={next}
-        aria-label="Next slide"
-        className="absolute right-6 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-paper/15 text-paper backdrop-blur-sm transition-colors duration-200 ease-state hover:bg-paper/30 md:flex"
-      >
-        <ChevronRight aria-hidden="true" size={18} strokeWidth={1.5} />
-      </button>
+      {/* Arrows — right side, bottom area (Maria B's own placement, not centred). */}
+      <div className="absolute bottom-24 right-6 z-20 hidden items-center gap-2 md:flex md:right-12 lg:right-20">
+        <button
+          type="button"
+          onClick={prev}
+          aria-label="Previous slide"
+          className="flex h-9 w-9 items-center justify-center text-white/60 transition-colors duration-200 ease-state hover:text-white"
+        >
+          <ChevronLeft aria-hidden="true" size={20} strokeWidth={1.5} />
+        </button>
+        <button
+          type="button"
+          onClick={next}
+          aria-label="Next slide"
+          className="flex h-9 w-9 items-center justify-center text-white/60 transition-colors duration-200 ease-state hover:text-white"
+        >
+          <ChevronRight aria-hidden="true" size={20} strokeWidth={1.5} />
+        </button>
+      </div>
 
-      {/* Progress dots — one per slide (four, not a fixed five). */}
-      <div className="absolute inset-x-0 bottom-6 z-20 flex items-center justify-center gap-2">
-        {slides.map((dotSlide, dotIndex) => (
+      {/* Line navigation, bottom-centre — segments, not dots. */}
+      <div className="absolute inset-x-0 bottom-8 z-20 flex items-center justify-center gap-1.5">
+        {slides.map((lineSlide, lineIndex) => (
           <button
-            key={dotSlide.headlineLines.join("-")}
+            key={lineSlide.headline}
             type="button"
-            onClick={() => goTo(dotIndex)}
-            aria-label={`Go to slide ${dotIndex + 1}`}
-            aria-current={dotIndex === index || undefined}
+            onClick={() => goTo(lineIndex)}
+            aria-label={`Go to slide ${lineIndex + 1}`}
+            aria-current={lineIndex === index || undefined}
             className={cn(
-              "h-1.5 rounded-full transition-[width,background-color] duration-300 ease-state",
-              dotIndex === index ? "w-5 bg-paper" : "w-1.5 bg-paper/30 hover:bg-paper/50",
+              "h-[2px] transition-[width,background-color] duration-300 ease-state",
+              lineIndex === index ? "w-10 bg-white" : "w-2 bg-white/40 hover:bg-white/60",
             )}
           />
         ))}
