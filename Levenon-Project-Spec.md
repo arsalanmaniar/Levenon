@@ -313,6 +313,72 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Hero rebuilt pure CSS/SVG — no photography dependency at all (2026-08-31, twenty-second pass)
+
+`tsc`, `next lint`, a clean `next build` all green; `/` is 159 kB. No browser tool connected —
+verified via `next start` + curl against rendered HTML and source, not by eye. This is the sixth
+hero rebuild in nine passes, and the first with zero image files, zero `<Image>` usage, and zero
+photography dependency of any kind — every prior pass's central tension (real photos vs. abstract
+art, cropping, dead stock-photo URLs, AI-generation tooling that was never actually connected) is
+moot now by construction.
+
+**Deleted:** `public/images/hero/` entirely (all five downloaded/Unsplash JPGs plus its README).
+`lib/server/hero-assets.ts` is kept, per the brief, but gutted to a two-line stub — `findHeroCampaignAsset`
+always returns `null`, no `node:fs` import, no file-existence check, since there is nothing left
+to check for. Its doc comment explains why it still exists (so a future pass wanting real
+campaign photography again doesn't have to re-derive the convention from this project's git
+history) rather than leaving a mystery no-op.
+
+**Built:** five bespoke CSS/SVG compositions, one per slide (`Visual1`–`Visual5` in
+`hero-slider-client.tsx`), each wrapped in the brief's shared entrance animation (opacity + scale,
+0.8s, 0.2s delay):
+1. **The Edit** — two orbiting rings (60s / 40s-reverse, pure CSS, always running), a faint "01"
+   numeral, three diagonal hairlines.
+2. **The Thread** — a needle eye, a shaft, six evenly-spaced stitches, and an unravelling bezier
+   thread that draws itself via Framer's `pathLength` over 3s on every mount (so it replays each
+   time the slide is revisited, not just once) — a faint dot-grid sits behind the whole thing.
+3. **Eid Offer** — 8 radiating lines, 3 concentric octagons (computed via a small
+   `polygonPoints()` helper, not hand-typed coordinates), a pulsing centre dot (pure CSS, 2s
+   loop), four gold diamond accents at the cardinal points, plus the brief's "FREE DELIVERY"
+   badge, top-right.
+4. **The Fabric** — three overlapping, individually rotated/offset swatch rectangles, each
+   carrying its own inline fabric-weave `repeating-linear-gradient` texture, no `<svg>` at all
+   (correctly, per the brief's own "CSS only" for this one) — plus the mono
+   "Lawn · Chiffon · Silk · Organza" caption.
+5. **The Brand** — a giant, near-invisible "L" letterform behind the wordmark's own ring motif
+   (the same circle-plus-open-tail geometry `ThreadRing` on the product cards already uses,
+   redrawn here rather than imported, since that component is tightly coupled to card hover
+   state), rotating slowly (20s, pure CSS), "Est. 2024" beneath it — **the one paper-background
+   slide**, for the rhythm the brief itself calls out ("creates visual rhythm — one light slide").
+
+**No literal copy was given for slide 5** (the brief specified its *visual* in full — the L, the
+ring, "Est. 2024" — but no label/headline/subtext/CTA text, unlike slides 1–4). Rather than invent
+new marketing lines, it reuses copy already established and vetted in this project's own history:
+the headline is SKILL.md §9's own example voice (already used verbatim for an earlier "Atelier"
+hero slide, two passes before the magazine-split rebuild), and the subtext is that same earlier
+slide's line. Flagged here rather than left unremarked, the same way every other unverified/
+under-specified gap this project has hit has been disclosed rather than silently filled.
+
+**Colour, extended to the slide this rule hadn't covered yet.** The last two passes established
+"literal colours in the hero, never the `--paper`/`--ink` tokens" — because those tokens swap
+globally with `data-theme`, and the hero's backgrounds don't. Slide 5 is the first hero slide
+whose background is the *light* polarity (`#FBFAF8`, still a fixed literal, not `bg-paper`), so
+its text needed the identical treatment mirrored: `text-[#0B0B0D]`/`text-[#5B5A5F]` Tailwind
+arbitrary-value classes, never the `text-ink`/`text-charcoal` token classes — using the token here
+would look right in light site-theme and silently invert to near-white-on-near-white the moment a
+reader is in dark site-theme, the exact bug class the twentieth pass fixed, mirrored onto the
+opposite background. **The fixed bottom-of-page nav chrome (arrows, line indicators) also had to
+learn about this** for the first time this pass — every previous hero background was uniformly
+dark, so white arrows/lines never had a slide to disappear against; now that slide 5 exists, both
+switch to a dark colour whenever the active slide is `light`.
+
+**Verified:** rendered HTML confirms `id="hero"`, real copy present ("Unstitched."), zero
+`<img src=…hero…>` anywhere in the response, and all five line-nav buttons render (`aria-label="Go
+to slide 1"` through `"5"`). Source-grepped: no `<Image` component usage (the one match is this
+file's own doc comment, not JSX), four `<svg>` elements (slides 1/2/3/5 — slide 4 is correctly
+`<svg>`-free, CSS-only per its own spec), `public/images/` confirmed empty on disk.
+
+
 #### Hero rebuilt full-bleed, Maria B style — five slides, offer banners (2026-08-31, twenty-first pass)
 
 `tsc`, `next lint`, a clean `next build` all green; `/` is 157 kB. No browser tool connected —

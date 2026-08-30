@@ -493,6 +493,53 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Hero editorial art — always-running decoration (client brief, 2026-08-31).
+   Independent of the slide crossfade/entrance motion in
+   `hero-slider-client.tsx` (all Framer Motion, gated on `usePrefersReducedMotion`
+   there); these three are pure CSS so they never stop or restart with a
+   slide change, and — the reason they live here rather than as inline
+   `style={{animation:...}}` — the `@media` guard is the only way to make a
+   plain CSS animation vanish under reduced motion without JS re-rendering
+   the tree to remove it. Unguarded, an element would simply hold its `to`
+   state; the `no-preference` gate means it holds its natural rest state
+   (no rotation, no pulse) instead.
+   --------------------------------------------------------------------------- */
+@keyframes hero-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hero-pulse {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Slide 1's two concentric rings — 60s clockwise, 40s the other way. */
+  .hero-orbit-a {
+    animation: hero-spin 60s linear infinite;
+  }
+  .hero-orbit-b {
+    animation: hero-spin 40s linear infinite reverse;
+  }
+  /* Slide 3's centre dot — a slow radar-style pulse, 2s loop. */
+  .hero-pulse-dot {
+    animation: hero-pulse 2s ease-out infinite;
+  }
+  /* Slide 5's ring motif. */
+  .hero-orbit-ring {
+    animation: hero-spin 20s linear infinite;
+  }
+}
+
+/* ---------------------------------------------------------------------------
    Reduced motion. Motion code branches on the media query in JS as well —
    this is the belt-and-braces floor for anything CSS-driven.
    --------------------------------------------------------------------------- */
