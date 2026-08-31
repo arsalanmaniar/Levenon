@@ -308,6 +308,84 @@
     display: none;
   }
 
+  /* New Arrivals 360° carousel (client brief, 2026-08-31) — the motion-
+     allowed replacement for the plain scroller above (kept, unchanged, as
+     the `prefers-reduced-motion` fallback — see `new-arrivals-carousel.tsx`).
+     Radius and card size live here as custom properties, keyed off the same
+     breakpoints Tailwind uses elsewhere in this file, so the carousel's own
+     `transform: translateZ(var(--carousel-radius))` in
+     `carousel-3d-card.tsx` never needs a resize listener to stay correct —
+     the browser re-resolves the `var()` on its own when the media query
+     flips. */
+  .carousel-3d-stage {
+    --carousel-radius: 200px;
+    --carousel-card-w: 120px;
+    --carousel-card-h: 170px;
+  }
+
+  @media (min-width: 768px) {
+    .carousel-3d-stage {
+      --carousel-radius: 280px;
+      --carousel-card-w: 150px;
+      --carousel-card-h: 210px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .carousel-3d-stage {
+      --carousel-radius: 420px;
+      --carousel-card-w: 200px;
+      --carousel-card-h: 280px;
+    }
+  }
+
+  .carousel-3d-card {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--carousel-card-w);
+    height: var(--carousel-card-h);
+    margin-top: calc(var(--carousel-card-h) / -2);
+    margin-left: calc(var(--carousel-card-w) / -2);
+    transition:
+      opacity 0.5s cubic-bezier(0.65, 0, 0.35, 1),
+      transform 0.5s cubic-bezier(0.65, 0, 0.35, 1),
+      filter 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  @keyframes carouselSpin {
+    from {
+      transform: rotateY(0deg);
+    }
+    to {
+      transform: rotateY(-360deg);
+    }
+  }
+
+  /* Continuous auto-spin — applied only while the ring is in "auto" mode
+     (see the component); a manual arrow/card/swipe interaction removes
+     this class entirely rather than only pausing it, so Framer Motion's
+     own spring can take sole ownership of `transform` without the two
+     fighting over the same property. */
+  .carousel-3d-ring--auto {
+    animation: carouselSpin 20s linear infinite;
+  }
+
+  .carousel-3d-stage:hover .carousel-3d-ring--auto {
+    animation-play-state: paused;
+  }
+
+  /* Belt-and-braces floor — `new-arrivals-carousel.tsx` already never
+     renders this markup at all under reduced motion (it renders the plain
+     scroller instead), so this rule should never actually be reached, the
+     same "JS branches too, this is just the CSS-side backstop" pattern the
+     hero's own always-running decoration already uses. */
+  @media (prefers-reduced-motion: reduce) {
+    .carousel-3d-ring--auto {
+      animation: none;
+    }
+  }
+
   /* Mono utility text: eyebrows, tags, prices, SKUs. Always uppercase. */
   .label {
     font-family: var(--font-mono), ui-monospace, monospace;

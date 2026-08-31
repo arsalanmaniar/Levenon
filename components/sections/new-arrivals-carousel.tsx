@@ -1,30 +1,90 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { m } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NewArrivalCard } from "@/components/products/new-arrival-card";
+import { Carousel3DCard, type Carousel3DBand } from "@/components/products/carousel-3d-card";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
+import { cn } from "@/lib/cn";
 import type { Product } from "@/lib/types";
 
-const SCROLL_GAP_PX = 24; // matches `gap-6`
+const SCROLL_GAP_PX = 24; // matches `gap-6`, the flat fallback's own card gap
+const AUTO_RESUME_MS = 3000;
+const SWIPE_THRESHOLD_PX = 40;
+const RING_AUTOPLAY_MS = 20000;
+
+type RingMode = "auto" | "manual";
+
+function bandFor(distance: number): Carousel3DBand {
+  if (distance === 0) return { opacity: 1, scale: 1.05, brightness: 1 };
+  if (distance <= 2) return { opacity: 0.6, scale: 0.85, brightness: 0.85 };
+  return { opacity: 0.2, scale: 0.7, brightness: 0.6 };
+}
+
+/** Shortest signed distance from `index` to `activeIndex` around an N-card ring, in slots. */
+function shortestDelta(index: number, activeIndex: number, total: number): number {
+  let diff = index - activeIndex;
+  const half = total / 2;
+  if (diff > half) diff -= total;
+  if (diff < -half) diff += total;
+  return diff;
+}
 
 /**
- * "Just landed" — full redesign from a 1+3 editorial grid to a horizontal
- * scroll carousel (client brief, 2026-08-31), Maria B/Sapphire "Most
- * Trending" style. One client component for header + scroller together,
- * deliberately: the arrow buttons live in the header row but drive the
- * scroller below it, and a ref created in one client component can't be
- * handed to a separate sibling — colocating both avoids that entirely
- * rather than working around it.
- *
- * Arrow disabled-state is IntersectionObserver-driven, not a scroll-
- * position calculation: two 1px sentinel `<li>`s bookend the real cards,
- * and each arrow disables exactly when its sentinel is fully visible
- * inside the scroller. That stays correct across every breakpoint's
- * different card width without this component ever needing to know it.
+ * "NEW ARRIVALS" eyebrow + "Just landed." + "View all →", unchanged copy
+ * from the previous pass — per the brief's own "keep existing header row."
+ * `after` is a slot for the flat fallback's inline scroll arrows only; the
+ * 3D carousel's arrows live below the ring instead (see `Carousel3DRing`),
+ * so it renders this with nothing in the slot.
  */
-export function NewArrivalsCarousel({ products }: { products: Product[] }) {
+function SectionHeading({ after }: { after?: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 px-6 md:px-12 lg:px-20">
+      <div>
+        <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-purple-500">
+          New Arrivals
+        </p>
+        <h2 className="mt-4 text-balance text-[clamp(1.5rem,3vw,2.5rem)] font-display font-extrabold leading-[1.02] tracking-[-0.03em] text-ink">
+          Just landed.
+        </h2>
+      </div>
+
+      <div className="flex items-center gap-6">
+        <Link
+          href="/new-in"
+          className="label group inline-flex min-h-[44px] items-center gap-2 text-ink transition-colors duration-200 ease-state hover:text-purple-500"
+        >
+          <span className="relative">
+            View all
+            <span className="absolute -bottom-1.5 left-0 h-px w-full origin-left scale-x-0 bg-purple-500 transition-transform duration-300 ease-enter group-hover:scale-x-100" />
+          </span>
+          <span
+            aria-hidden="true"
+            className="transition-transform duration-200 ease-state group-hover:translate-x-0.5"
+          >
+            →
+          </span>
+        </Link>
+        {after}
+      </div>
+    </div>
+  );
+}
+
+const arrowButtonClass =
+  "flex h-10 w-10 items-center justify-center rounded-full border border-hairline text-ink transition-colors duration-200 ease-state hover:border-ink disabled:cursor-not-allowed disabled:opacity-30";
+
+/**
+ * The pre-existing flat horizontal scroller — untouched from the previous
+ * pass, and deliberately so: this is the `prefers-reduced-motion` fallback
+ * the brief explicitly asks for ("show flat horizontal scroll instead —
+ * fall back to the previous carousel design"), not a stripped-down version
+ * of the 3D ring. Arrow disabled-state is IntersectionObserver-driven off
+ * two 1px sentinel `<li>`s bookending the real cards.
+ */
+function FlatScrollCarousel({ products }: { products: Product[] }) {
   const scrollerRef = useRef<HTMLUListElement>(null);
   const startSentinelRef = useRef<HTMLLIElement>(null);
   const endSentinelRef = useRef<HTMLLIElement>(null);
@@ -59,50 +119,17 @@ export function NewArrivalsCarousel({ products }: { products: Product[] }) {
     scroller.scrollBy({ left: direction * width, behavior: "smooth" });
   };
 
-  if (products.length === 0) return null;
-
   return (
     <>
-      <m.div
-        className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 px-6 md:px-12 lg:px-20"
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-      >
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-purple-500">
-            New Arrivals
-          </p>
-          <h2 className="mt-4 text-balance text-[clamp(1.5rem,3vw,2.5rem)] font-display font-extrabold leading-[1.02] tracking-[-0.03em] text-ink">
-            Just landed.
-          </h2>
-        </div>
-
-        <div className="flex items-center gap-6">
-          <Link
-            href="/new-in"
-            className="label group inline-flex min-h-[44px] items-center gap-2 text-ink transition-colors duration-200 ease-state hover:text-purple-500"
-          >
-            <span className="relative">
-              View all
-              <span className="absolute -bottom-1.5 left-0 h-px w-full origin-left scale-x-0 bg-purple-500 transition-transform duration-300 ease-enter group-hover:scale-x-100" />
-            </span>
-            <span
-              aria-hidden="true"
-              className="transition-transform duration-200 ease-state group-hover:translate-x-0.5"
-            >
-              →
-            </span>
-          </Link>
-
+      <SectionHeading
+        after={
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => scrollByCard(-1)}
               disabled={atStart}
               aria-label="Scroll left"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline text-ink transition-colors duration-200 ease-state hover:border-ink disabled:cursor-not-allowed disabled:opacity-30"
+              className={arrowButtonClass}
             >
               <ChevronLeft aria-hidden="true" size={18} strokeWidth={1.5} />
             </button>
@@ -111,13 +138,13 @@ export function NewArrivalsCarousel({ products }: { products: Product[] }) {
               onClick={() => scrollByCard(1)}
               disabled={atEnd}
               aria-label="Scroll right"
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-hairline text-ink transition-colors duration-200 ease-state hover:border-ink disabled:cursor-not-allowed disabled:opacity-30"
+              className={arrowButtonClass}
             >
               <ChevronRight aria-hidden="true" size={18} strokeWidth={1.5} />
             </button>
           </div>
-        </div>
-      </m.div>
+        }
+      />
 
       <ul
         ref={scrollerRef}
@@ -130,5 +157,184 @@ export function NewArrivalsCarousel({ products }: { products: Product[] }) {
         <li ref={endSentinelRef} aria-hidden="true" className="w-px shrink-0" />
       </ul>
     </>
+  );
+}
+
+/**
+ * The 360° ring itself — `perspective: 1200` on the stage, `preserve-3d` on
+ * the ring, each card placed at `cardIndex · stepDeg` around the circle and
+ * counter-rotated by the same amount so it faces the viewer *at its own
+ * placement*, per the brief's literal formula. That counter-rotation does
+ * **not** track the ring's own live spin (the brief's formula is a function
+ * of `cardIndex` alone) — so cards visibly turn as the ring auto-spins and
+ * only face dead-on at the front position, the same way a real rotating
+ * display case reads. Implemented exactly as specified, not "corrected"
+ * into a billboard effect that would need a different formula.
+ *
+ * Two rotation regimes share one persistent `<m.div>` (never swapped for a
+ * plain `div`, so the eight cards inside never remount): "auto" applies the
+ * `carousel-3d-ring--auto` CSS class (the literal `carouselSpin` keyframe,
+ * `globals.css`) and passes Framer no `animate` target, so the browser's own
+ * animation owns `transform`; "manual" removes that class and gives Framer
+ * an explicit `rotateY` target with the brief's own spring config. Handing
+ * off between the two is a **disclosed trade-off**: a live CSS keyframe's
+ * current sub-degree angle isn't something Framer's tracked motion value
+ * knows about (it was never the one driving `transform`), so an interaction
+ * that switches from auto to manual — or auto-resuming after one — snaps to
+ * the nearest logical card position rather than continuing the exact frame
+ * the spin was at. Reading the running animation's live angle via
+ * `getComputedStyle` matrix decomposition would remove the snap, at real
+ * complexity/fragility cost for a homepage decoration; judged not worth it.
+ */
+function Carousel3DRing({ products }: { products: Product[] }) {
+  const stepDeg = 360 / products.length;
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [mode, setMode] = useState<RingMode>("auto");
+  const [rotationDeg, setRotationDeg] = useState(0);
+  const [hovered, setHovered] = useState(false);
+  const resumeTimer = useRef<number | null>(null);
+  const pointerStartX = useRef<number | null>(null);
+
+  const clearResumeTimer = useCallback(() => {
+    if (resumeTimer.current !== null) window.clearTimeout(resumeTimer.current);
+  }, []);
+
+  const scheduleAutoResume = useCallback(() => {
+    clearResumeTimer();
+    resumeTimer.current = window.setTimeout(() => {
+      setMode("auto");
+      setActiveIndex(0);
+      setRotationDeg(0);
+    }, AUTO_RESUME_MS);
+  }, [clearResumeTimer]);
+
+  useEffect(() => clearResumeTimer, [clearResumeTimer]);
+
+  // Auto mode ticks `activeIndex` roughly in step with the CSS spin's own
+  // per-card cadence — purely so the dots and each card's opacity/scale
+  // band track the visual rotation; the spin itself needs no JS to run.
+  useEffect(() => {
+    if (mode !== "auto" || hovered) return;
+    const stepMs = RING_AUTOPLAY_MS / products.length;
+    const timer = window.setInterval(() => {
+      setActiveIndex((current) => (current + 1) % products.length);
+    }, stepMs);
+    return () => window.clearInterval(timer);
+  }, [mode, hovered, products.length]);
+
+  const goToIndex = useCallback(
+    (targetIndex: number) => {
+      const delta = shortestDelta(targetIndex, activeIndex, products.length);
+      setMode("manual");
+      setActiveIndex(targetIndex);
+      setRotationDeg((current) => current - delta * stepDeg);
+      scheduleAutoResume();
+    },
+    [activeIndex, products.length, stepDeg, scheduleAutoResume],
+  );
+
+  const step = useCallback(
+    (direction: 1 | -1) => {
+      goToIndex((activeIndex + direction + products.length) % products.length);
+    },
+    [activeIndex, products.length, goToIndex],
+  );
+
+  return (
+    <>
+      <div
+        className="carousel-3d-stage relative mx-auto mt-10 h-[260px] w-full max-w-[960px] md:h-[320px] lg:h-[420px]"
+        style={{ perspective: 1200 }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        onPointerDown={(event) => {
+          pointerStartX.current = event.clientX;
+        }}
+        onPointerUp={(event) => {
+          if (pointerStartX.current === null) return;
+          const delta = event.clientX - pointerStartX.current;
+          pointerStartX.current = null;
+          if (delta <= -SWIPE_THRESHOLD_PX) step(1);
+          else if (delta >= SWIPE_THRESHOLD_PX) step(-1);
+        }}
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "radial-gradient(circle, rgba(124,42,232,0.05) 0%, transparent 70%)" }}
+        />
+
+        <m.div
+          className={cn("absolute inset-0", mode === "auto" && "carousel-3d-ring--auto")}
+          style={{ transformStyle: "preserve-3d" }}
+          animate={mode === "manual" ? { rotateY: rotationDeg } : undefined}
+          transition={{ type: "spring", stiffness: 80, damping: 20 }}
+        >
+          {products.map((product, index) => (
+            <Carousel3DCard
+              key={product.id}
+              product={product}
+              cardIndex={index}
+              stepDeg={stepDeg}
+              isActive={index === activeIndex}
+              band={bandFor(Math.abs(shortestDelta(index, activeIndex, products.length)))}
+              onFocusCard={goToIndex}
+              priority={index === 0}
+            />
+          ))}
+        </m.div>
+      </div>
+
+      <div className="mt-8 flex items-center justify-center gap-4">
+        <button type="button" onClick={() => step(-1)} aria-label="Previous product" className={arrowButtonClass}>
+          <ChevronLeft aria-hidden="true" size={18} strokeWidth={1.5} />
+        </button>
+
+        <div className="flex items-center gap-2">
+          {products.map((product, index) => (
+            <button
+              key={product.id}
+              type="button"
+              onClick={() => goToIndex(index)}
+              aria-label={`Show ${product.name}`}
+              aria-current={index === activeIndex || undefined}
+              className={cn(
+                "h-2 w-2 rounded-full transition-colors duration-200 ease-state",
+                index === activeIndex ? "bg-purple-500" : "bg-hairline hover:bg-charcoal/40",
+              )}
+            />
+          ))}
+        </div>
+
+        <button type="button" onClick={() => step(1)} aria-label="Next product" className={arrowButtonClass}>
+          <ChevronRight aria-hidden="true" size={18} strokeWidth={1.5} />
+        </button>
+      </div>
+    </>
+  );
+}
+
+/**
+ * "Just landed" (client brief, 2026-08-31) — a 360° auto-rotating 3D
+ * carousel, CSS `transform`s only (no new library), Framer Motion for the
+ * section-heading entrance and the manual-rotation spring only. Under
+ * reduced motion this renders the previous pass's flat scroller instead,
+ * per the brief's own explicit fallback instruction — untouched, not
+ * reimplemented.
+ */
+export function NewArrivalsCarousel({ products }: { products: Product[] }) {
+  const reducedMotion = usePrefersReducedMotion();
+
+  if (products.length === 0) return null;
+
+  if (reducedMotion) {
+    return <FlatScrollCarousel products={products} />;
+  }
+
+  return (
+    <m.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+      <SectionHeading />
+      <Carousel3DRing products={products} />
+    </m.div>
   );
 }

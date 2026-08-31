@@ -313,6 +313,77 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### "Just landed" — 360° CSS 3D carousel, flat scroller kept as the reduced-motion fallback (2026-08-31, twenty-fifth pass)
+
+`tsc`, `next lint`, a clean `next build` all green; `/` is 162 kB. No browser tool connected — the
+usual `next start` + curl check is only partial proof here (see the note below), so this pass also
+confirmed the 3D code actually shipped by grepping the **compiled** client bundle, not just source.
+
+**Built:** `carousel-3d-card.tsx` (new) — a single tile whose position comes from
+`rotateY(cardIndex·stepDeg) translateZ(var(--carousel-radius)) rotateY(-cardIndex·stepDeg)`, per
+the brief's own literal formula, with `.carousel-3d-card`'s size/centring in `globals.css` reading
+the same `--carousel-radius`/`--carousel-card-w/h` custom properties so three responsive values
+(200/280px, 150/210px, 120/170px) never need a resize listener — the browser just re-resolves the
+`var()` when the media query flips. `new-arrivals-carousel.tsx` rewritten: `Carousel3DRing` owns
+the stage (`perspective: 1200`), the ring (`preserve-3d`), rotation state, the 3s auto-resume
+timer, pointer-swipe, and the arrows/dots below the circle; `NewArrivalsCarousel` picks between it
+and the **untouched** flat scroller from the previous pass based on `usePrefersReducedMotion()` —
+the brief's own explicit fallback instruction ("show flat horizontal scroll instead — fall back to
+the previous carousel design"), so `FlatScrollCarousel` is the exact same code, not a rebuild.
+
+**One formula produces a real, disclosed visual consequence, implemented as specified rather than
+"corrected."** The counter-rotation that keeps each card facing the viewer is a function of
+`cardIndex` alone — it does not track the ring's own live rotation. That means cards visibly turn
+as the ring auto-spins and only face the viewer dead-on when they reach the front position, the
+same way an actual rotating display case (a lazy Susan, a jewellery case) reads — not a flaw in
+the formula, the literal, expected consequence of it. Flagged here in case it wasn't the intended
+read, rather than silently picking a different ("billboard," always-facing) formula the brief
+didn't ask for.
+
+**The other disclosed trade-off: handing off between auto-spin and manual control snaps to the
+nearest card rather than continuing the exact live frame.** The brief asks for two genuinely
+different rotation regimes on the same element — a free-running CSS `@keyframes carouselSpin`
+(20s, `animation-play-state: paused` on hover) for idle auto-rotation, and a Framer Motion
+`type: "spring", stiffness: 80, damping: 20` for arrow/card/swipe interactions, each snapping to
+a **specific card** (shortest-path calculated: `shortestDelta()` picks whichever of the two
+directions around the ring is fewer than half the slots). Both share one persistent `<m.div>`
+(never swapped for a plain `div` — the eight cards inside would remount on every mode change
+otherwise) that either carries the `carousel-3d-ring--auto` class with no Framer `animate` target
+(CSS owns `transform`), or an explicit `animate={{rotateY}}` with no CSS class (Framer owns it).
+The gap: a running CSS animation's live sub-degree angle isn't something Framer's tracked motion
+value has ever known, since it was never the one driving `transform` — so the moment of handoff,
+either direction, resets to a clean 45°-multiple position rather than continuing smoothly from
+wherever the spin visually was. A seamless version exists (read the live angle via
+`getComputedStyle` and decompose the transform matrix) but adds real fragility for a homepage
+decoration; not built without being asked for specifically.
+
+**Dots and per-card opacity/scale bands are driven by `activeIndex`, ticked on a timer during auto
+mode** (`RING_AUTOPLAY_MS / products.length`, so it paces roughly with the visual spin) rather than
+computed continuously from the live rotation angle — the same handoff gap above applies to reading
+that angle every frame, and a `setInterval` matching the spin's own per-card cadence is the
+practical middle ground between "static bands that never update during auto-play" and a full `rAF`
+loop reading computed transforms.
+
+**Card content simplified from `NewArrivalCard`, deliberately, not as an oversight.** The brief's
+own "card appearance in 3D space" asks for exactly two things — an image and a hover/active
+name+price overlay — nothing about quick-add, wishlist, or badges. A quick-add size-picker has
+nowhere sane to render on a ~120–200px tile mid-rotation, so `Carousel3DCard` doesn't carry one;
+clicking the non-front card brings it to front, clicking the front card navigates to its PDP.
+
+**Verified:** source-grepped `perspective: 1200`, `preserve-3d`, `rotateY` (card transform),
+`carouselSpin` (declaration + keyframe), `animation-play-state: paused` — all present, all in the
+files named in the brief's own VERIFY list. Because `usePrefersReducedMotion()` deliberately
+defaults `true` on the server (documented in the hook itself — "motion is opt-in, not opt-out,"
+the same reasoning the hero already relies on), a plain `next start` + curl always shows the flat
+fallback regardless of real preference, so that check alone can't confirm the 3D path shipped.
+Confirmed instead by grepping the **compiled** output directly: `.carousel-3d-ring--auto` is
+present in the built CSS, and the string `"Previous product"` (the 3D ring's own arrow label, not
+present anywhere in the flat fallback) is present in a built JS chunk — proof the 3D component's
+code is genuinely in the client bundle, not eliminated as dead code. The actual rotating
+animation, hover-pause, click-to-front and swipe behaviour still need a real browser to see —
+no browser tool is connected in this session, disclosed rather than claimed.
+
+
 #### Hero image motion system, "Just landed" rebuilt as a horizontal carousel (2026-08-31, twenty-fourth pass)
 
 `tsc`, `next lint`, a clean `next build` all green; `/` is 160 kB. No browser tool connected —
