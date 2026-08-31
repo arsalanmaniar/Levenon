@@ -47,11 +47,11 @@ const DOT_COLOR: Record<ToastType, string> = {
  *
  * Wired into `CartProvider`/`WishlistProvider`'s own add/remove/toggle
  * callbacks rather than at each individual call site (`AddToCart`,
- * `QuickAddCard`, `WishlistHeart`, the wishlist page's own add-to-cart,
- * …) — this codebase has many entry points for both actions, and calling
- * `showToast` once inside the shared action gets every one of them for
- * free, the same reasoning the bag/heart nav icons' own count-watching
- * animations already used two passes ago.
+ * `NewArrivalCard`, `ProductCard`, `WishlistHeart`, the wishlist page's own
+ * add-to-cart, …) — this codebase has many entry points for both actions,
+ * and calling `showToast` once inside the shared action gets every one of
+ * them for free, the same reasoning the bag/heart nav icons' own
+ * count-watching animations already used two passes ago.
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastEntry[]>([]);

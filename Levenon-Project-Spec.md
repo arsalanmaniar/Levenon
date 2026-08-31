@@ -313,6 +313,82 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Hero image motion system, "Just landed" rebuilt as a horizontal carousel (2026-08-31, twenty-fourth pass)
+
+`tsc`, `next lint`, a clean `next build` all green; `/` is 160 kB. No browser tool connected —
+verified via `next start` + curl against rendered HTML and source, not by eye.
+
+**1. Hero product photo — full motion system.** `ProductPhotoPanel` now owns its own per-slide
+entrance/exit, independent of the slide-level opacity crossfade and the text column's fade-up:
+
+- **Entrance/exit.** The brief specified "entrance, on each slide mount" (y/scale, 0.8s, 0.3s
+  delay, a named cubic-bezier) and, separately, "slide transition — image specific" (x/scale,
+  0.6s, with an *exit* the first spec never gave the image at all). Since every slide change in
+  this architecture unmounts and remounts the whole slide, both describe the same real event.
+  Resolved as: the fuller entrance spec (it has an actual easing curve and delay — reads as the
+  more deliberately "premium" of the two) drives `animate`, and the second spec's numbers — the
+  only ones that cover an exit — drive `exit`. Implemented as a nested `AnimatePresence` keyed by
+  slide index around just the image, independent of the outer slide crossfade (the same technique
+  an earlier hero pass used for independently-timed background/text/image layers).
+- **Float**, a *second*, separate motion component per the brief's own instruction, nested inside
+  the first: `y: [0, -12, 0]`, 4s, infinite, `delay: 1.1` — timed to start exactly when the
+  entrance (0.8s + 0.3s) finishes, not mid-motion.
+- **Glow pulse and hover boost** stayed CSS, not Framer Motion, because they had to: the glow is
+  (and was already, from an earlier pass) a real `::before` pseudo-element, which has no DOM node
+  for a JS motion library to attach to. `opacity` carries the pulse (`0.15↔0.3`, 3s loop) rather
+  than the background's own alpha channel, so `:hover` can set one property to `0.35`; the running
+  `animation` is explicitly paused on `:hover` first, since an infinite keyframe repaints `opacity`
+  every frame and would otherwise fight a plain CSS transition for the same property.
+- **Hover scale** (`whileHover={{scale:1.03}}`, 0.4s) sits on the same element as the glow, so one
+  physical hover triggers both. Both the pulse and the hover boost are gated behind
+  `@media (prefers-reduced-motion: no-preference)` — the brief didn't ask for this specific gate
+  on hover, but `product-card.tsx`'s own hover-zoom already sets that precedent (`if
+  (!reducedMotion...) imageScale.set(1.05)`), so this follows it for consistency rather than
+  leaving one hover effect in this codebase ungated while every comparable one already is one.
+- `SlideRightPanel`'s old generic entrance wrapper (built for the CSS-art visuals) no longer wraps
+  the photo path at all — it would have double-animated it against `ProductPhotoPanel`'s own new
+  system. The CSS-art fallback (slide 5) is untouched, still using that wrapper.
+
+**2. "Just landed" — full redesign, 1+3 grid to horizontal carousel.** `QuickAddCard` and the
+`FEATURED_LEAD_IMAGE_SIZES`/`FEATURED_SIDE_IMAGE_SIZES` promises that existed only for it are
+deleted; two comments elsewhere that named `QuickAddCard` as a live add-to-cart entry point
+(`product-card.tsx`, `toast-provider.tsx`) now name `NewArrivalCard` instead, so they don't go
+stale pointing at a deleted file. Built:
+
+- **`new-arrival-card.tsx`** (new) — a fixed 3:4 tile, `object-cover`, `scale-[1.04]` on hover
+  inside its own `overflow-hidden` box; a purple "New" pill (unconditional here — every card in
+  this carousel is by construction one of the newest rows, unlike the full grid's per-product
+  "first 8 in default order" check); `WishlistHeart` top-right; `LowStockBadge` (already built for
+  exactly "≤5 left, amber," reused rather than rebuilt) bottom-left; a Quick Add bar that
+  genuinely *slides* (`translate-y-full → translate-y-0`), not the standard grid card's
+  opacity-only reveal, per the brief's own "slides up from bottom."
+- **`new-arrivals-carousel.tsx`** (new) — header row and scroller in one client component
+  deliberately: the header's arrow buttons drive the scroller's ref, and a ref made in one client
+  component can't be handed to a separate sibling, so colocating both sidesteps that rather than
+  working around it. `scrollBy({ left: cardWidth + gap, behavior: "smooth" })`, cardWidth read live
+  off the first rendered card rather than hardcoded, so it stays correct across the 60%/33%/25%
+  breakpoints without three separate constants. Left/right disabled state is
+  **`IntersectionObserver`-driven**, per the brief: two 1px sentinel `<li>`s bookend the real
+  cards, each arrow disables exactly when its own sentinel is fully visible in the scroller —
+  correct at every breakpoint's different card width without the component ever computing a
+  scroll position itself.
+- **`featured-products.tsx`** rewritten — `catalogue.slice(-8)`, the brief's own literal "last 8
+  in the array," not a `createdAt` sort (the previous rail's method); reversed after slicing so
+  the most-recently-added row renders first in the carousel, since "new arrivals" reading
+  newest-first is the only order the label makes sense in and the brief specified *which* eight,
+  not their order.
+- Card entrance is staggered via `whileInView` **per card** (0.4s, 0.06s × index), not a single
+  section-level reveal — matches the brief's explicit "only visible ones, not all at once."
+- `FeaturedProductsFallback` (Suspense skeleton) updated to the new header + horizontal-strip
+  shape, so the loading state doesn't visibly reflow into the real carousel.
+
+**Verified:** rendered HTML confirms `id="new-in"`, real copy ("Just landed."), 8 `data-card`
+elements (all 8 products present), both arrow buttons with correct `aria-label`s, and the hero's
+`hero-photo-glow` still renders. Source-grepped: the float's `y: [0, -12, 0]`, `hero-glow-pulse`
+(declaration and keyframe both), `scroll-snap` in both new carousel files, `scrollBy` in the arrow
+handler.
+
+
 #### Hero — real product photography back on slides 1–4, CSS art kept as the fallback (2026-08-31, twenty-third pass)
 
 `tsc`, `next lint`, a clean `next build` all green; `/` is 159 kB. No browser tool connected —

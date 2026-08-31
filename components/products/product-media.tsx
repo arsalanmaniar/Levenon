@@ -80,16 +80,14 @@ export const GRID_IMAGE_SIZES =
   "(max-width: 1023px) 50vw, (max-width: 1535px) 33vw, 25vw";
 
 /**
- * Editorial rail (`featured-products.tsx`): one column below `md`, then a
- * three-column grid where the lead piece spans two of them and the three
- * supporting pieces take one. Different layout from the grid above, so it
- * needs its own promise rather than borrowing that one.
+ * New Arrivals carousel (`featured-products.tsx`, `new-arrival-card.tsx`,
+ * client brief 2026-08-31) — matches the card's own real rendered width at
+ * each breakpoint (`calc(60%-12px)` mobile, `calc(33%-12px)` tablet,
+ * `calc(25%-12px)` desktop), not the viewport-filling promises the grid and
+ * the old 1+3 editorial rail this replaced made.
  */
-export const FEATURED_LEAD_IMAGE_SIZES =
-  "(max-width: 767px) 100vw, 62vw";
-
-export const FEATURED_SIDE_IMAGE_SIZES =
-  "(max-width: 767px) 100vw, 31vw";
+export const NEW_ARRIVALS_CARD_IMAGE_SIZES =
+  "(max-width: 767px) 60vw, (max-width: 1023px) 33vw, 25vw";
 
 /** Detail page: full width on mobile, seven of twelve columns on desktop. */
 export const DETAIL_IMAGE_SIZES = "(max-width: 1024px) 100vw, 58vw";

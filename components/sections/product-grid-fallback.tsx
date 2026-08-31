@@ -33,16 +33,17 @@ export function ProductGridFallback() {
 
 /**
  * Suspense fallback for `FeaturedProducts` (client brief, 2026-08-28 — Item
- * 4B names "new arrivals" explicitly). Mirrors its real 1-large-plus-3
- * asymmetric layout exactly, chrome and all, so nothing reflows once the
- * catalogue resolves — only the card interiors swap from grey pulse to real
- * content.
+ * 4B names "new arrivals" explicitly; layout updated 2026-08-31 for the
+ * carousel redesign). Mirrors the real header row and a horizontal strip of
+ * card-shaped placeholders — not scrollable itself, just enough of the real
+ * shape that nothing visibly reflows once the catalogue resolves and the
+ * carousel's own scroll/arrow behaviour takes over.
  */
 export function FeaturedProductsFallback() {
   return (
     <section id="new-in" className="scroll-mt-[var(--nav-h)]">
-      <div className="mx-auto max-w-shell px-6 pb-20 pt-20 md:px-12 lg:px-20 md:pb-28 md:pt-24">
-        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b border-hairline pb-6">
+      <div className="mx-auto max-w-shell pb-20 pt-20 md:pb-28 md:pt-24">
+        <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 px-6 md:px-12 lg:px-20">
           <div>
             <p className="label text-charcoal">New Arrivals</p>
             <h2 className="mt-4 font-display text-balance text-h2 font-extrabold leading-[1.02] tracking-[-0.03em]">
@@ -51,15 +52,12 @@ export function FeaturedProductsFallback() {
           </div>
         </div>
 
-        <div className="mt-14 grid gap-6 md:grid-cols-3 md:items-start">
-          <div className="md:col-span-2">
-            <ProductCardSkeleton />
-          </div>
-          <div className="flex flex-col gap-6">
-            {[0, 1, 2].map((i) => (
-              <ProductCardSkeleton key={i} />
-            ))}
-          </div>
+        <div className="no-scrollbar mt-10 flex gap-6 overflow-x-hidden px-6 md:px-12 lg:px-20">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="w-[calc(60%-12px)] shrink-0 md:w-[calc(33%-12px)] lg:w-[calc(25%-12px)]">
+              <ProductCardSkeleton />
+            </div>
+          ))}
         </div>
       </div>
     </section>

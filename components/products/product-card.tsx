@@ -184,7 +184,7 @@ export function ProductCard({
               click from navigating, rather than the whole card being
               restructured around it. Hover-revealed on a fine pointer only;
               always present below `lg`, where there is no hover to reveal
-              it from (same rule `QuickAddCard`'s own trigger already uses).
+              it from (same rule `NewArrivalCard`'s own trigger already uses).
             */}
             {inStock && (
               <div

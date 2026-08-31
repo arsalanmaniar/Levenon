@@ -294,6 +294,20 @@
 }
 
 @layer components {
+  /* New Arrivals carousel (client brief, 2026-08-31) — a real horizontal
+     scroller, not a fake one with a visible scrollbar competing with the
+     `scroll-snap` cards for the reader's attention. Arrow buttons and
+     swipe/trackpad scrolling both still work; only the OS scrollbar chrome
+     is hidden. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Mono utility text: eyebrows, tags, prices, SKUs. Always uppercase. */
   .label {
     font-family: var(--font-mono), ui-monospace, monospace;
@@ -494,14 +508,17 @@
 
 /* ---------------------------------------------------------------------------
    Hero product-photo glow (client brief, 2026-08-31) — a real `::before`
-   pseudo-element rather than an extra sibling `div`, per the brief's own
-   "pseudo-element" wording. `z-index: -1` needs the host to be a stacking
-   context, which `.relative` on the element carrying this class already
-   establishes. Literal `rgba(124, 42, 232, 0.2)`, not `var(--purple-500-rgb)`
-   — that token remaps under `[data-theme="dark"]` (to purple-300's value,
-   for text-contrast reasons elsewhere), and this glow has no text-contrast
-   need to justify moving with it; same "literal colour, not a token" rule
-   the rest of the hero already follows.
+   pseudo-element rather than an extra sibling `div`, per an earlier pass's
+   "pseudo-element" wording, which is exactly why the pulse (this pass) and
+   the hover boost (this pass) are both plain CSS rather than Framer Motion
+   below: a pseudo-element has no DOM node for a motion library to attach
+   to. Literal `#7C2AE8`, not `var(--purple-500)` — that token remaps under
+   `[data-theme="dark"]` (to purple-300's value, for text-contrast reasons
+   elsewhere), and this glow has no text-contrast need to justify moving
+   with it; same "literal colour, not a token" rule the rest of the hero
+   already follows. `opacity` carries the pulse (0.15↔0.3) rather than the
+   background's own alpha channel, so `:hover` and the reduced-motion floor
+   below can each set one property instead of re-deriving an rgba() string.
    --------------------------------------------------------------------------- */
 .hero-photo-glow {
   position: relative;
@@ -512,8 +529,39 @@
   position: absolute;
   inset: -15%;
   z-index: -1;
-  background: rgba(124, 42, 232, 0.2);
+  background: #7c2ae8;
   filter: blur(300px);
+  /* Reduced-motion floor: static 0.2, no pulse — this is what shows when
+     the animation below never applies. */
+  opacity: 0.2;
+  transition: opacity 0.4s ease-in-out;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-photo-glow::before {
+    animation: hero-glow-pulse 3s ease-in-out infinite;
+  }
+
+  /* Paused, not fought — a running `animation` repaints `opacity` every
+     frame and would otherwise stomp this on the very next tick. Pausing
+     lets the `transition` above carry it to 0.35 smoothly; resuming on
+     mouse-leave picks the pulse back up rather than restarting it. */
+  .hero-photo-glow:hover::before {
+    animation-play-state: paused;
+    opacity: 0.35;
+  }
+}
+
+@keyframes hero-glow-pulse {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.3;
+    transform: scale(1.1);
+  }
 }
 
 /* ---------------------------------------------------------------------------

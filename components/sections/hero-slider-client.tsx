@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, m } from "framer-motion";
+import { AnimatePresence, m, type Variants } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
@@ -32,6 +32,38 @@ const HERO_PHOTO_SIZES = "(max-width: 767px) 90vw, 45vw";
 const AUTOPLAY_MS = 6000;
 const SWIPE_THRESHOLD_PX = 50;
 const TRANSITION_S = 0.8;
+
+/**
+ * The product photo's own per-slide-change transition (client brief,
+ * 2026-08-31), independent of the slide-level opacity crossfade above and
+ * of the text column's plain fade-up — the brief specified two, slightly
+ * different things for "the moment the image appears" (an "entrance, on
+ * each slide mount" — y/scale, 0.8s, 0.3s delay, a named cubic-bezier ease
+ * — and a "slide transition, image specific" — x/scale, 0.6s, no delay,
+ * with an *exit* the first spec never mentioned). In this architecture
+ * every slide change unmounts and remounts the whole slide, so both specs
+ * describe the same real event. Resolved as: the fuller, more specific
+ * enter values (this is the one with an actual easing curve and delay —
+ * reads as the more deliberately "premium" of the two) for `animate`, and
+ * the exit values from the second spec for `exit`, since the first spec
+ * never gave the image an exit at all. Nothing here is invented — every
+ * number traces back to one or the other half of the brief.
+ */
+const IMAGE_VARIANTS: Variants = {
+  initial: { opacity: 0, y: 30, scale: 0.96 },
+  animate: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.8, delay: 0.3, ease: [0.25, 0.1, 0, 1] },
+  },
+  exit: {
+    opacity: 0,
+    x: 40,
+    scale: 0.95,
+    transition: { duration: 0.6 },
+  },
+};
 
 /**
  * Literal colours throughout this file, never the `--paper`/`--ink` tokens
@@ -246,26 +278,74 @@ function Visual5() {
  * A real garment photo — 45% of the slide width, 85% of its height,
  * `object-contain` (full garment visible) `object-top` (top-anchored crop,
  * per the brief), bottom-aligned in the column, with a soft purple glow
- * behind it (`.hero-photo-glow`, a real `::before` pseudo-element, see
- * `globals.css`). Intrinsic `width`/`height` rather than `fill` — the same
- * choice the earlier "full garment, not cropped" hero pass settled on: a
- * `fill` box forces its *own* aspect ratio onto the photo, where intrinsic
- * sizing plus `h-full w-auto` lets the photo's real proportions decide its
- * own width within the height cap.
+ * behind it (`.hero-photo-glow`, a real `::before` pseudo-element — its
+ * pulse and hover boost are plain CSS, see `globals.css`, since a
+ * pseudo-element has no DOM node for Framer Motion to animate). Intrinsic
+ * `width`/`height` rather than `fill` — the same choice an earlier "full
+ * garment, not cropped" pass settled on: a `fill` box forces its *own*
+ * aspect ratio onto the photo, where intrinsic sizing plus `h-full w-auto`
+ * lets the photo's real proportions decide its own width within the
+ * height cap.
+ *
+ * Two nested motion components, per the brief: the outer one owns the
+ * per-slide entrance/exit (`IMAGE_VARIANTS` above) and the hover scale —
+ * `whileHover` needs no explicit `transition` of its own, since it falls
+ * back to this element's own top-level `transition` prop (0.4s) rather
+ * than `IMAGE_VARIANTS`' enter/exit-specific ones. The inner one owns
+ * nothing but the continuous float, `delay: 1.1` so it picks up exactly
+ * when the entrance (0.8s duration + 0.3s delay) finishes rather than
+ * fighting it mid-motion.
  */
-function ProductPhotoPanel({ photo }: { photo: NonNullable<HeroSlide["photo"]> }) {
+function ProductPhotoPanel({
+  photo,
+  index,
+  reducedMotion,
+}: {
+  photo: NonNullable<HeroSlide["photo"]>;
+  index: number;
+  reducedMotion: boolean;
+}) {
+  const image = (
+    <Image
+      src={photo.url}
+      alt={photo.alt}
+      width={photo.width}
+      height={photo.height}
+      sizes={HERO_PHOTO_SIZES}
+      className="h-full w-auto max-w-full object-contain object-top"
+    />
+  );
+
+  if (reducedMotion) {
+    return (
+      <div className="flex h-full w-full items-end justify-center">
+        <div className="hero-photo-glow h-[85%]">{image}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full w-full items-end justify-center">
-      <div className="hero-photo-glow h-[85%]">
-        <Image
-          src={photo.url}
-          alt={photo.alt}
-          width={photo.width}
-          height={photo.height}
-          sizes={HERO_PHOTO_SIZES}
-          className="h-full w-auto max-w-full object-contain object-top"
-        />
-      </div>
+      <AnimatePresence initial={false}>
+        <m.div
+          key={index}
+          className="hero-photo-glow h-[85%]"
+          variants={IMAGE_VARIANTS}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          whileHover={{ scale: 1.03 }}
+          transition={{ duration: 0.4 }}
+        >
+          <m.div
+            className="h-full"
+            animate={{ y: [0, -12, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.1 }}
+          >
+            {image}
+          </m.div>
+        </m.div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -275,7 +355,12 @@ function ProductPhotoPanel({ photo }: { photo: NonNullable<HeroSlide["photo"]> }
  * brief, 2026-08-31, twenty-third pass), otherwise that slide's own
  * `Visual*` CSS/SVG composition (slide 5 today; any slide a future pass
  * un-sets `photo` on falls back the same way, without code changes here).
- * Either way, wrapped in the same shared entrance animation.
+ *
+ * The photo path renders unwrapped — `ProductPhotoPanel` now owns its own
+ * complete entrance/exit/hover system (this pass), so wrapping it in the
+ * generic entrance below would double-animate it (two competing
+ * opacity/scale mounts). The CSS-art fallback still uses that generic
+ * wrapper, unchanged from the pass that introduced it.
  */
 function SlideRightPanel({
   slide,
@@ -286,23 +371,23 @@ function SlideRightPanel({
   index: number;
   reducedMotion: boolean;
 }) {
-  const content = slide.photo ? (
-    <ProductPhotoPanel photo={slide.photo} />
-  ) : (
-    <div className="flex h-full w-full items-center justify-center">
-      {index === 0 ? (
-        <Visual1 />
-      ) : index === 1 ? (
-        <Visual2 reducedMotion={reducedMotion} />
-      ) : index === 2 ? (
-        <Visual3 />
-      ) : index === 3 ? (
-        <Visual4 />
-      ) : (
-        <Visual5 />
-      )}
-    </div>
-  );
+  if (slide.photo) {
+    return <ProductPhotoPanel photo={slide.photo} index={index} reducedMotion={reducedMotion} />;
+  }
+
+  const art =
+    index === 0 ? (
+      <Visual1 />
+    ) : index === 1 ? (
+      <Visual2 reducedMotion={reducedMotion} />
+    ) : index === 2 ? (
+      <Visual3 />
+    ) : index === 3 ? (
+      <Visual4 />
+    ) : (
+      <Visual5 />
+    );
+  const content = <div className="flex h-full w-full items-center justify-center">{art}</div>;
 
   if (reducedMotion) {
     return <div className="relative h-full w-full">{content}</div>;
