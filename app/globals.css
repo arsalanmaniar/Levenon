@@ -493,6 +493,30 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Hero product-photo glow (client brief, 2026-08-31) — a real `::before`
+   pseudo-element rather than an extra sibling `div`, per the brief's own
+   "pseudo-element" wording. `z-index: -1` needs the host to be a stacking
+   context, which `.relative` on the element carrying this class already
+   establishes. Literal `rgba(124, 42, 232, 0.2)`, not `var(--purple-500-rgb)`
+   — that token remaps under `[data-theme="dark"]` (to purple-300's value,
+   for text-contrast reasons elsewhere), and this glow has no text-contrast
+   need to justify moving with it; same "literal colour, not a token" rule
+   the rest of the hero already follows.
+   --------------------------------------------------------------------------- */
+.hero-photo-glow {
+  position: relative;
+}
+
+.hero-photo-glow::before {
+  content: "";
+  position: absolute;
+  inset: -15%;
+  z-index: -1;
+  background: rgba(124, 42, 232, 0.2);
+  filter: blur(300px);
+}
+
+/* ---------------------------------------------------------------------------
    Hero editorial art — always-running decoration (client brief, 2026-08-31).
    Independent of the slide crossfade/entrance motion in
    `hero-slider-client.tsx` (all Framer Motion, gated on `usePrefersReducedMotion`

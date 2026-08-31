@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, m } from "framer-motion";
@@ -17,7 +18,16 @@ export type HeroSlide = {
   badge?: string;
   /** Slide 5 only — the one paper-background slide; everything else is dark. */
   light?: boolean;
+  /**
+   * A real garment photo for the right side, in place of that slide's CSS
+   * art (client brief, 2026-08-31, twenty-third pass). Slides that don't
+   * set this keep rendering their `Visual*` composition — see
+   * `SlideRightPanel` below.
+   */
+  photo?: { url: string; alt: string; width: number; height: number };
 };
+
+const HERO_PHOTO_SIZES = "(max-width: 767px) 90vw, 45vw";
 
 const AUTOPLAY_MS = 6000;
 const SWIPE_THRESHOLD_PX = 50;
@@ -232,28 +242,75 @@ function Visual5() {
   );
 }
 
-/** Wraps whichever `Visual*` belongs to this slide in the shared entrance animation. */
-function SlideVisual({ index, reducedMotion }: { index: number; reducedMotion: boolean }) {
-  const content =
-    index === 0 ? (
-      <Visual1 />
-    ) : index === 1 ? (
-      <Visual2 reducedMotion={reducedMotion} />
-    ) : index === 2 ? (
-      <Visual3 />
-    ) : index === 3 ? (
-      <Visual4 />
-    ) : (
-      <Visual5 />
-    );
+/**
+ * A real garment photo — 45% of the slide width, 85% of its height,
+ * `object-contain` (full garment visible) `object-top` (top-anchored crop,
+ * per the brief), bottom-aligned in the column, with a soft purple glow
+ * behind it (`.hero-photo-glow`, a real `::before` pseudo-element, see
+ * `globals.css`). Intrinsic `width`/`height` rather than `fill` — the same
+ * choice the earlier "full garment, not cropped" hero pass settled on: a
+ * `fill` box forces its *own* aspect ratio onto the photo, where intrinsic
+ * sizing plus `h-full w-auto` lets the photo's real proportions decide its
+ * own width within the height cap.
+ */
+function ProductPhotoPanel({ photo }: { photo: NonNullable<HeroSlide["photo"]> }) {
+  return (
+    <div className="flex h-full w-full items-end justify-center">
+      <div className="hero-photo-glow h-[85%]">
+        <Image
+          src={photo.url}
+          alt={photo.alt}
+          width={photo.width}
+          height={photo.height}
+          sizes={HERO_PHOTO_SIZES}
+          className="h-full w-auto max-w-full object-contain object-top"
+        />
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The right-side panel — a real photo where the slide has one (client
+ * brief, 2026-08-31, twenty-third pass), otherwise that slide's own
+ * `Visual*` CSS/SVG composition (slide 5 today; any slide a future pass
+ * un-sets `photo` on falls back the same way, without code changes here).
+ * Either way, wrapped in the same shared entrance animation.
+ */
+function SlideRightPanel({
+  slide,
+  index,
+  reducedMotion,
+}: {
+  slide: HeroSlide;
+  index: number;
+  reducedMotion: boolean;
+}) {
+  const content = slide.photo ? (
+    <ProductPhotoPanel photo={slide.photo} />
+  ) : (
+    <div className="flex h-full w-full items-center justify-center">
+      {index === 0 ? (
+        <Visual1 />
+      ) : index === 1 ? (
+        <Visual2 reducedMotion={reducedMotion} />
+      ) : index === 2 ? (
+        <Visual3 />
+      ) : index === 3 ? (
+        <Visual4 />
+      ) : (
+        <Visual5 />
+      )}
+    </div>
+  );
 
   if (reducedMotion) {
-    return <div className="relative flex items-center justify-center">{content}</div>;
+    return <div className="relative h-full w-full">{content}</div>;
   }
 
   return (
     <m.div
-      className="relative flex items-center justify-center"
+      className="relative h-full w-full"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.8, delay: 0.2 }}
@@ -381,11 +438,11 @@ function SlideContent({
       )}
 
       <div className="relative z-10 flex h-full w-full flex-col items-center justify-center gap-10 px-6 md:flex-row md:justify-between md:gap-0 md:px-0">
-        <div className="order-2 md:order-1 md:w-3/5 md:pl-[clamp(2rem,6vw,6rem)]">
+        <div className="order-2 md:order-1 md:w-[55%] md:pl-[clamp(2rem,6vw,6rem)]">
           {reducedMotion ? <TextBlockStatic slide={slide} /> : <TextBlockAnimated slide={slide} />}
         </div>
-        <div className="order-1 hidden h-full md:order-2 md:flex md:w-2/5 md:items-center md:justify-center">
-          <SlideVisual index={index} reducedMotion={reducedMotion} />
+        <div className="order-1 hidden h-full md:order-2 md:flex md:w-[45%]">
+          <SlideRightPanel slide={slide} index={index} reducedMotion={reducedMotion} />
         </div>
       </div>
     </div>
@@ -393,12 +450,12 @@ function SlideContent({
 }
 
 /**
- * The hero, rebuilt pure CSS/SVG (client brief, 2026-08-31, twenty-second
- * pass) — full history in `hero-slider.tsx`'s doc comment. No `<Image>`
- * anywhere in this file, no photography dependency of any kind: every
- * slide's right-side visual is hand-drawn geometry (`Visual1`–`Visual5`
- * above), and every slide's background is a literal CSS gradient (or, for
- * slide 5, a flat paper hex).
+ * The hero — full history in `hero-slider.tsx`'s doc comment. Slides 1–4
+ * show a real garment photo on the right (client brief, 2026-08-31,
+ * twenty-third pass); slide 5 still has no photography dependency at all,
+ * still rendering `Visual5`'s hand-drawn geometry — see `SlideRightPanel`.
+ * Every slide's background is still a literal CSS gradient (or, for
+ * slide 5, a flat paper hex), untouched by this pass.
  *
  * Reduced motion branches the render tree rather than animating at
  * `duration: 0` — SKILL.md §7's rule is "never construct the animation".

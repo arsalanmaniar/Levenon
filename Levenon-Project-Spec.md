@@ -313,6 +313,51 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Hero — real product photography back on slides 1–4, CSS art kept as the fallback (2026-08-31, twenty-third pass)
+
+`tsc`, `next lint`, a clean `next build` all green; `/` is 159 kB. No browser tool connected —
+verified via `next start` + curl against rendered HTML, not by eye.
+
+**Four real Cloudinary photos, read straight from `catalogue-data.ts` and hardcoded into
+`hero-slider.tsx`** — no `listProducts()` call added back: four fixed, versioned URLs don't need
+the whole catalogue re-read on every request just to find them again. `images[0]`, real `alt`/
+`width`/`height` from the same row, each with a source-line comment pointing at exactly where in
+`catalogue-data.ts` it came from:
+- Slide 1 (New Collection) → Adda Work Chiffon Suit
+- Slide 2 (Hand Embroidery) → Monsoon Blooms Chikankari
+- Slide 3 (Eid Collection) → Sequence Net Suit
+- Slide 4 (Fabric First) → Tussel Organza Suit
+
+`next.config.mjs` already declared `res.cloudinary.com` (added long before the hero existed, for
+the product grid) — checked, not re-added.
+
+**Slide 5 deliberately untouched.** The brief named four products for four slides; slide 5 ("The
+Atelier," the brand/wordmark slide, the project's one paper-background slide) wasn't one of them,
+and a garment photo doesn't fit what that slide is actually about — it keeps last pass's `Visual5`
+CSS/SVG art.
+
+**Built:** `SlideVisual` (pure CSS-art dispatcher) became `SlideRightPanel` — a photo where
+`slide.photo` is set, that slide's own `Visual*` composition otherwise, both wrapped in the same
+shared entrance animation (opacity + scale, unchanged from last pass). `ProductPhotoPanel`: 45%
+column width (widened from last pass's 40%, text column narrowed to match, 55/45), the photo
+itself 85% of the slide's height, `object-contain` (full garment, never cropped) `object-top`,
+bottom-aligned in its column. Intrinsic `width`/`height` on the `<Image>`, not `fill` — the same
+choice an earlier pass settled on for exactly this reason: a `fill` box forces the *box's* aspect
+ratio onto the photo, where intrinsic sizing plus `h-full w-auto` lets the photo's own proportions
+decide its width within the height cap.
+
+**The purple glow is a real `::before` pseudo-element** (`.hero-photo-glow` in `globals.css`), per
+the brief's own wording, not an extra sibling `div`. Literal `rgba(124, 42, 232, 0.2)`, not
+`var(--purple-500-rgb)` — that token remaps under dark site-theme (to purple-300's value, for a
+text-contrast reason that doesn't apply to a decorative glow), and the hero's now-three-pass-old
+rule is literal colour only, no token, for exactly this class of bug.
+
+**Verified:** rendered HTML confirms the first `<img src>` on the homepage resolves to the Adda
+Work Chiffon Suit's real Cloudinary URL through the existing `f_auto,q_auto,w_1920,c_limit`
+transform (the loader pipeline, unmodified, still applies correctly), `hero-photo-glow` and
+`object-contain object-top` both present in the rendered class list.
+
+
 #### Hero rebuilt pure CSS/SVG — no photography dependency at all (2026-08-31, twenty-second pass)
 
 `tsc`, `next lint`, a clean `next build` all green; `/` is 159 kB. No browser tool connected —
