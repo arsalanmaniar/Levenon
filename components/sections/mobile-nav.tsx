@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, m } from "framer-motion";
-import { Menu, X, Heart, ShoppingBag, Search, ChevronDown } from "lucide-react";
+import { Menu, X, Heart, ShoppingBag, Search, ChevronDown, User } from "lucide-react";
 import { useModalBehaviour } from "@/hooks/use-modal-behaviour";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { useCart } from "@/components/cart/cart-provider";
 import { useWishlist } from "@/components/wishlist/wishlist-provider";
+import { useAuth } from "@/lib/auth/auth-context";
 import { Wordmark } from "@/components/ui/wordmark";
 import { cn } from "@/lib/cn";
 import type { Category } from "@/lib/types";
@@ -57,6 +58,7 @@ export function MobileNav({ categories }: { categories: Category[] }) {
 
   const { totals, openCart } = useCart();
   const { count: wishlistCount } = useWishlist();
+  const { user, isAuthenticated, isLoading, logout } = useAuth();
   const reducedMotion = usePrefersReducedMotion();
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -276,6 +278,51 @@ export function MobileNav({ categories }: { categories: Category[] }) {
                           <span className="text-purple-500">{totals.itemCount}</span>
                         </button>
                       </li>
+                      {/* Sign-in/account entry (client brief, 2026-09-02,
+                          Item D) — the desktop `AccountMenu` is hidden below
+                          `md`, so this overlay is the only place a phone
+                          reader reaches it. `isLoading` gate matches
+                          `AccountMenu`'s own, so this never flashes "Sign
+                          in" for someone already signed in. */}
+                      {!isLoading &&
+                        (isAuthenticated && user ? (
+                          <>
+                            <li>
+                              <Link
+                                href="/account"
+                                onClick={close}
+                                className="label flex min-h-[48px] items-center gap-3 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
+                              >
+                                <User aria-hidden="true" size={18} strokeWidth={1.5} />
+                                My Account
+                              </Link>
+                            </li>
+                            <li>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  close();
+                                  logout();
+                                }}
+                                className="label flex min-h-[48px] w-full items-center gap-3 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
+                              >
+                                <User aria-hidden="true" size={18} strokeWidth={1.5} />
+                                Sign out
+                              </button>
+                            </li>
+                          </>
+                        ) : (
+                          <li>
+                            <Link
+                              href="/login"
+                              onClick={close}
+                              className="label flex min-h-[48px] items-center gap-3 text-charcoal transition-colors duration-200 ease-state hover:text-ink"
+                            >
+                              <User aria-hidden="true" size={18} strokeWidth={1.5} />
+                              Sign in
+                            </Link>
+                          </li>
+                        ))}
                     </ul>
                   </nav>
                 </m.div>

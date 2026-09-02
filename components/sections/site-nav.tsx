@@ -5,6 +5,7 @@ import { NavLinks } from "./nav-links";
 import { MobileNav } from "./mobile-nav";
 import { CartButton } from "@/components/cart/cart-button";
 import { WishlistButton } from "@/components/wishlist/wishlist-button";
+import { AccountMenu } from "@/components/auth/account-menu";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { SearchBar } from "@/components/search/search-bar";
 import { listCategories, listProducts } from "@/lib/server/products";
@@ -70,11 +71,19 @@ export async function SiteNav() {
         actions={
           /* Right cluster order is explicit: Search, Wishlist, Bag, then the
               theme toggle last — a later brief's specific ordering, swapped
-              from the previous pass's toggle-first arrangement. */
+              from the previous pass's toggle-first arrangement.
+              `AccountMenu` added alongside the toggle, not in place of it
+              (client brief, 2026-09-02, Item D: "add alongside"), hidden
+              below `md` since `MobileNav` carries its own sign-in/account
+              entry in the overlay instead — no room for a sixth control in
+              this row on a phone. */
           <>
             <SearchBar />
             <WishlistButton />
             <CartButton />
+            <span className="hidden md:inline-flex">
+              <AccountMenu />
+            </span>
             <ThemeToggle />
             <MobileNav categories={categories} />
           </>

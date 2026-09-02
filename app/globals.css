@@ -347,43 +347,15 @@
     height: var(--carousel-card-h);
     margin-top: calc(var(--carousel-card-h) / -2);
     margin-left: calc(var(--carousel-card-w) / -2);
-    transition:
-      opacity 0.5s cubic-bezier(0.65, 0, 0.35, 1),
-      transform 0.5s cubic-bezier(0.65, 0, 0.35, 1),
-      filter 0.5s cubic-bezier(0.65, 0, 0.35, 1);
-  }
-
-  @keyframes carouselSpin {
-    from {
-      transform: rotateY(0deg);
-    }
-    to {
-      transform: rotateY(-360deg);
-    }
-  }
-
-  /* Continuous auto-spin — applied only while the ring is in "auto" mode
-     (see the component); a manual arrow/card/swipe interaction removes
-     this class entirely rather than only pausing it, so Framer Motion's
-     own spring can take sole ownership of `transform` without the two
-     fighting over the same property. */
-  .carousel-3d-ring--auto {
-    animation: carouselSpin 20s linear infinite;
-  }
-
-  .carousel-3d-stage:hover .carousel-3d-ring--auto {
-    animation-play-state: paused;
-  }
-
-  /* Belt-and-braces floor — `new-arrivals-carousel.tsx` already never
-     renders this markup at all under reduced motion (it renders the plain
-     scroller instead), so this rule should never actually be reached, the
-     same "JS branches too, this is just the CSS-side backstop" pattern the
-     hero's own always-running decoration already uses. */
-  @media (prefers-reduced-motion: reduce) {
-    .carousel-3d-ring--auto {
-      animation: none;
-    }
+    /* No `transition` here, deliberately (client brief, 2026-09-02 —
+       replaced the `@keyframes carouselSpin` this class used to carry with
+       a `useAnimationFrame` loop, see `new-arrivals-carousel.tsx`): this
+       element's own `transform` is rewritten every animation frame by that
+       loop, and transitioning a value already being updated 60 times a
+       second only makes the card visibly lag behind the ring instead of
+       tracking it. The opacity/scale/brightness band, which changes far
+       less often, gets its own transition on a separate inner element in
+       `carousel-3d-card.tsx` instead. */
   }
 
   /* Mono utility text: eyebrows, tags, prices, SKUs. Always uppercase. */

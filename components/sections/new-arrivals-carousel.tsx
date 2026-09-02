@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { m } from "framer-motion";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { m, useAnimationFrame } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NewArrivalCard } from "@/components/products/new-arrival-card";
 import { Carousel3DCard, type Carousel3DBand } from "@/components/products/carousel-3d-card";
@@ -13,9 +13,7 @@ import type { Product } from "@/lib/types";
 const SCROLL_GAP_PX = 24; // matches `gap-6`, the flat fallback's own card gap
 const AUTO_RESUME_MS = 3000;
 const SWIPE_THRESHOLD_PX = 40;
-const RING_AUTOPLAY_MS = 20000;
-
-type RingMode = "auto" | "manual";
+const RING_DEGREES_PER_SECOND = 18; // 360deg / 20s
 
 function bandFor(distance: number): Carousel3DBand {
   if (distance === 0) return { opacity: 1, scale: 1.05, brightness: 1 };
@@ -162,82 +160,83 @@ function FlatScrollCarousel({ products }: { products: Product[] }) {
 
 /**
  * The 360° ring itself — `perspective: 1200` on the stage, `preserve-3d` on
- * the ring, each card placed at `cardIndex · stepDeg` around the circle and
- * counter-rotated by the same amount so it faces the viewer *at its own
- * placement*, per the brief's literal formula. That counter-rotation does
- * **not** track the ring's own live spin (the brief's formula is a function
- * of `cardIndex` alone) — so cards visibly turn as the ring auto-spins and
- * only face dead-on at the front position, the same way a real rotating
- * display case reads. Implemented exactly as specified, not "corrected"
- * into a billboard effect that would need a different formula.
+ * the ring, each card billboarded via `Carousel3DCard`'s own live-angle
+ * formula (see its doc comment).
  *
- * Two rotation regimes share one persistent `<m.div>` (never swapped for a
- * plain `div`, so the eight cards inside never remount): "auto" applies the
- * `carousel-3d-ring--auto` CSS class (the literal `carouselSpin` keyframe,
- * `globals.css`) and passes Framer no `animate` target, so the browser's own
- * animation owns `transform`; "manual" removes that class and gives Framer
- * an explicit `rotateY` target with the brief's own spring config. Handing
- * off between the two is a **disclosed trade-off**: a live CSS keyframe's
- * current sub-degree angle isn't something Framer's tracked motion value
- * knows about (it was never the one driving `transform`), so an interaction
- * that switches from auto to manual — or auto-resuming after one — snaps to
- * the nearest logical card position rather than continuing the exact frame
- * the spin was at. Reading the running animation's live angle via
- * `getComputedStyle` matrix decomposition would remove the snap, at real
- * complexity/fragility cost for a homepage decoration; judged not worth it.
+ * **Rewritten 2026-09-02** — the previous version drove auto-spin with a
+ * CSS `@keyframes` animation and manual rotation with a separate Framer
+ * Motion `animate` target sharing the same element, switching which one
+ * was "in control" by toggling a class. The two never shared state, so
+ * there was nothing for either to hand off *from* — CSS doesn't expose its
+ * live animated angle to JS, and Framer's tracked motion value had never
+ * been told what that angle was. In practice the CSS animation, cards, and
+ * JS were all fighting over the same `transform`, and the spin never
+ * visibly ran. Replaced with one continuous source of truth: `rotationRef`
+ * (a `useRef`, not `useState` — this updates every animation frame, and a
+ * `setState` at 60fps would mean 60 renders a second) advanced by
+ * `useAnimationFrame`, mirrored into `displayAngle` (a `useState`, so
+ * React actually re-renders the cards with it) on every frame. Auto-spin,
+ * arrow steps, card clicks and swipes all now mutate the exact same
+ * `rotationRef` — there is only ever one number, so there is nothing left
+ * to hand off between.
+ *
+ * `isHovering`/`isInteracting` are refs, not state — the animation-frame
+ * callback reads them every frame, and putting them in state would mean a
+ * render on every hover/interaction edge for a value the rAF loop only
+ * ever *reads*, never displays.
  */
 function Carousel3DRing({ products }: { products: Product[] }) {
   const stepDeg = 360 / products.length;
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [mode, setMode] = useState<RingMode>("auto");
-  const [rotationDeg, setRotationDeg] = useState(0);
-  const [hovered, setHovered] = useState(false);
-  const resumeTimer = useRef<number | null>(null);
+  const rotationRef = useRef(0);
+  const isHovering = useRef(false);
+  const isInteracting = useRef(false);
+  const interactionTimer = useRef<number | null>(null);
   const pointerStartX = useRef<number | null>(null);
+  const [displayAngle, setDisplayAngle] = useState(0);
 
-  const clearResumeTimer = useCallback(() => {
-    if (resumeTimer.current !== null) window.clearTimeout(resumeTimer.current);
+  useAnimationFrame((_time, delta) => {
+    if (isHovering.current || isInteracting.current) return;
+    rotationRef.current -= (delta / 1000) * RING_DEGREES_PER_SECOND;
+    setDisplayAngle(rotationRef.current);
+  });
+
+  const clearInteractionTimer = useCallback(() => {
+    if (interactionTimer.current !== null) window.clearTimeout(interactionTimer.current);
   }, []);
 
-  const scheduleAutoResume = useCallback(() => {
-    clearResumeTimer();
-    resumeTimer.current = window.setTimeout(() => {
-      setMode("auto");
-      setActiveIndex(0);
-      setRotationDeg(0);
-    }, AUTO_RESUME_MS);
-  }, [clearResumeTimer]);
+  useEffect(() => clearInteractionTimer, [clearInteractionTimer]);
 
-  useEffect(() => clearResumeTimer, [clearResumeTimer]);
+  /** Arrow/card/swipe interactions all funnel through here — one rotation, one resume timer. */
+  const rotateBy = useCallback(
+    (deltaDeg: number) => {
+      isInteracting.current = true;
+      rotationRef.current += deltaDeg;
+      setDisplayAngle(rotationRef.current);
+      clearInteractionTimer();
+      interactionTimer.current = window.setTimeout(() => {
+        isInteracting.current = false;
+      }, AUTO_RESUME_MS);
+    },
+    [clearInteractionTimer],
+  );
 
-  // Auto mode ticks `activeIndex` roughly in step with the CSS spin's own
-  // per-card cadence — purely so the dots and each card's opacity/scale
-  // band track the visual rotation; the spin itself needs no JS to run.
-  useEffect(() => {
-    if (mode !== "auto" || hovered) return;
-    const stepMs = RING_AUTOPLAY_MS / products.length;
-    const timer = window.setInterval(() => {
-      setActiveIndex((current) => (current + 1) % products.length);
-    }, stepMs);
-    return () => window.clearInterval(timer);
-  }, [mode, hovered, products.length]);
+  // The front card, derived from the live angle rather than tracked
+  // separately in its own piece of state — `displayAngle` is already the
+  // single source of truth, so a second value that could drift out of
+  // sync with it would be a bug waiting to happen, not a simplification.
+  const activeIndex = useMemo(() => {
+    const normalized = (((-displayAngle % 360) + 360) % 360) / stepDeg;
+    return Math.round(normalized) % products.length;
+  }, [displayAngle, stepDeg, products.length]);
+
+  const step = useCallback((direction: 1 | -1) => rotateBy(-direction * stepDeg), [rotateBy, stepDeg]);
 
   const goToIndex = useCallback(
     (targetIndex: number) => {
       const delta = shortestDelta(targetIndex, activeIndex, products.length);
-      setMode("manual");
-      setActiveIndex(targetIndex);
-      setRotationDeg((current) => current - delta * stepDeg);
-      scheduleAutoResume();
+      rotateBy(-delta * stepDeg);
     },
-    [activeIndex, products.length, stepDeg, scheduleAutoResume],
-  );
-
-  const step = useCallback(
-    (direction: 1 | -1) => {
-      goToIndex((activeIndex + direction + products.length) % products.length);
-    },
-    [activeIndex, products.length, goToIndex],
+    [activeIndex, products.length, stepDeg, rotateBy],
   );
 
   return (
@@ -245,8 +244,12 @@ function Carousel3DRing({ products }: { products: Product[] }) {
       <div
         className="carousel-3d-stage relative mx-auto mt-10 h-[260px] w-full max-w-[960px] md:h-[320px] lg:h-[420px]"
         style={{ perspective: 1200 }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={() => {
+          isHovering.current = true;
+        }}
+        onMouseLeave={() => {
+          isHovering.current = false;
+        }}
         onPointerDown={(event) => {
           pointerStartX.current = event.clientX;
         }}
@@ -264,25 +267,21 @@ function Carousel3DRing({ products }: { products: Product[] }) {
           style={{ background: "radial-gradient(circle, rgba(124,42,232,0.05) 0%, transparent 70%)" }}
         />
 
-        <m.div
-          className={cn("absolute inset-0", mode === "auto" && "carousel-3d-ring--auto")}
-          style={{ transformStyle: "preserve-3d" }}
-          animate={mode === "manual" ? { rotateY: rotationDeg } : undefined}
-          transition={{ type: "spring", stiffness: 80, damping: 20 }}
-        >
+        <div className="absolute inset-0" style={{ transformStyle: "preserve-3d" }}>
           {products.map((product, index) => (
             <Carousel3DCard
               key={product.id}
               product={product}
               cardIndex={index}
               stepDeg={stepDeg}
+              displayAngle={displayAngle}
               isActive={index === activeIndex}
               band={bandFor(Math.abs(shortestDelta(index, activeIndex, products.length)))}
               onFocusCard={goToIndex}
               priority={index === 0}
             />
           ))}
-        </m.div>
+        </div>
       </div>
 
       <div className="mt-8 flex items-center justify-center gap-4">

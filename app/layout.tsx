@@ -9,9 +9,11 @@ import { AnnouncementBar } from "@/components/providers/announcement-bar";
 import { CustomCursor } from "@/components/providers/custom-cursor";
 import { ToastProvider } from "@/components/providers/toast-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { AuthProvider } from "@/lib/auth/auth-context";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { ScrollToTop } from "@/components/ui/scroll-to-top";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { ChatWidget } from "@/components/chat/chat-widget";
 import { WishlistProvider } from "@/components/wishlist/wishlist-provider";
 import { RecentlyViewedProvider } from "@/components/recently-viewed/recently-viewed-provider";
 import "./globals.css";
@@ -129,16 +131,24 @@ export default function RootLayout({
               each of the many call sites (product cards, quick-add, the
               PDP, the wishlist page) wiring one individually. */}
           <ToastProvider>
-            {/* Separate providers: clearing one must never touch the other. */}
-            <WishlistProvider>
-              <RecentlyViewedProvider>
-                <CartProvider>
-                  <PageTransition>{children}</PageTransition>
-                  <CartDrawer />
-                  <ScrollToTop />
-                </CartProvider>
-              </RecentlyViewedProvider>
-            </WishlistProvider>
+            {/* Above Wishlist — the wishlist page reads `useAuth()` to gate
+                its contents (client brief, 2026-09-02: "Protected Wishlist"),
+                so the auth context has to be an ancestor of it. */}
+            <AuthProvider>
+              {/* Separate providers: clearing one must never touch the other. */}
+              <WishlistProvider>
+                <RecentlyViewedProvider>
+                  <CartProvider>
+                    <PageTransition>{children}</PageTransition>
+                    <CartDrawer />
+                    <ScrollToTop />
+                    {/* No cart/wishlist/auth context needed — self-contained,
+                        mounted globally the same way the two above are. */}
+                    <ChatWidget />
+                  </CartProvider>
+                </RecentlyViewedProvider>
+              </WishlistProvider>
+            </AuthProvider>
           </ToastProvider>
         </MotionProvider>
         </ThemeProvider>

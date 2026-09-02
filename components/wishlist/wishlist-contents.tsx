@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useWishlist } from "./wishlist-provider";
 import { WishlistAddToCart } from "./wishlist-add-to-cart";
 import { ProductMedia, GRID_IMAGE_SIZES } from "@/components/products/product-media";
+import { useAuth } from "@/lib/auth/auth-context";
 import { formatPrice, isInStock } from "@/lib/types";
 
 /**
@@ -13,9 +14,56 @@ import { formatPrice, isInStock } from "@/lib/types";
  * is nothing on the server to prerender. Cards are deliberately simpler than
  * the grid's: no mouse tilt, because this is a working list rather than a
  * shop window, and each row carries its own add-to-cart.
+ *
+ * **Protected** (client brief, 2026-09-02, Item E) — a signed-out reader
+ * sees a "sign in to save pieces" prompt instead of the list/empty-state
+ * below, regardless of what's actually sitting in the (still in-memory,
+ * still session-only) wishlist itself; signing in doesn't change what's in
+ * it, only whether this page will show it. `isLoading` gated the same way
+ * `AccountMenu` is, so a real signed-in reader never sees the sign-in
+ * prompt flash before the localStorage read resolves.
  */
 export function WishlistContents() {
   const { items, remove, clear } = useWishlist();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) return null;
+
+  if (!isAuthenticated) {
+    return (
+      <div className="mt-16 flex flex-col items-center py-12 text-center">
+        <svg
+          viewBox="0 0 120 120"
+          fill="none"
+          stroke="currentColor"
+          aria-hidden="true"
+          className="h-24 w-24 text-purple-500"
+        >
+          <circle cx="60" cy="60" r="38" strokeWidth="1.25" />
+          <circle
+            cx="60"
+            cy="60"
+            r="26"
+            strokeWidth="1"
+            strokeOpacity="0.4"
+            strokeDasharray="5 7"
+          />
+        </svg>
+
+        <p className="label mt-8 text-charcoal">Sign in to save pieces</p>
+        <p className="mt-4 max-w-[36ch] text-body leading-relaxed text-charcoal">
+          Create an account or sign in to keep a wishlist that&rsquo;s actually yours.
+        </p>
+
+        <Link
+          href="/login?next=/wishlist"
+          className="label mt-8 inline-flex min-h-[44px] items-center rounded-full bg-ink px-6 text-paper transition-colors duration-200 ease-state hover:bg-purple-700"
+        >
+          Sign in
+        </Link>
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (

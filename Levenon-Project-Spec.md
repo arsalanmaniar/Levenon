@@ -313,6 +313,105 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Carousel auto-spin fix (`useAnimationFrame`), client-side auth, live chat widget (2026-09-02, twenty-sixth pass)
+
+Three unrelated builds in one pass. `tsc`, `next lint`, a clean `next build` all green; `/` is
+163 kB. No browser tool connected — verified via `next start` + curl and source, not by eye.
+
+**1. 360° carousel — real root cause, real fix.** The previous pass's ring shared one `transform`
+between a CSS `@keyframes` animation (auto-spin) and a Framer Motion `animate` target (manual
+rotation), toggling a class to decide which was "in control." The two never actually shared
+state — CSS doesn't expose its live animated angle to JS, and Framer's tracked motion value had
+never been told what it was — so in practice both were fighting over the same property and the
+spin never visibly ran, exactly the bug reported. Rewritten on one continuous source of truth:
+`rotationRef` (a `useRef`, advanced every animation frame by `useAnimationFrame` — a `setState`
+at 60fps would mean 60 renders a second) mirrored into `displayAngle` (a `useState`, so cards
+actually re-render with it). `isHovering`/`isInteracting` are refs too, read every frame by the
+rAF callback, never displayed. Auto-spin, arrow steps, card clicks, and swipe all now mutate the
+same `rotationRef` — there is only one number, so there is nothing left to hand off between, and
+the previous pass's disclosed "snap on handoff" trade-off is gone, not just hidden.
+
+**Real billboarding, this time.** `Carousel3DCard`'s placement is now
+`cardIndex·stepDeg − displayAngle` for *both* the position and the counter-rotation that cancels
+it — the live ring angle is folded into every card's own transform every frame, so a card's
+position and the angle it must undo to face the viewer move together, and it stays face-on
+through the whole spin rather than only at the front position (the previous pass's formula was a
+function of `cardIndex` alone, which is why it couldn't). The `.carousel-3d-card` CSS transition
+that used to cover `transform` is gone too — a value already being rewritten 60 times a second
+only lags visibly behind the ring if a transition tries to smooth it as well; the opacity/scale/
+brightness band (which changes far less often — only when the front card changes) now lives on a
+separate inner element specifically so *it* keeps a smooth transition without inheriting that
+problem. `@keyframes carouselSpin` and `.carousel-3d-ring--auto` are deleted from `globals.css`,
+not left dead.
+
+**2. Client-side auth — `lib/auth/auth-context.tsx`, localStorage, no backend.** `AuthProvider`
+wraps the app (inside `ToastProvider`, above `WishlistProvider` — the wishlist page needs to read
+`useAuth()`). Accounts and the active session both persist to `localStorage`, the one deliberate
+exception to this project's own "nothing outlives the tab" rule the cart and wishlist providers
+still hold to — identity is the one thing a sign-in feature cannot be ephemeral about.
+**`TODO(real backend)` markers on `hashPassword`** and in the module's own doc comment: `btoa` is
+base64 *encoding*, reversible by anyone with devtools open, not a hash — this is a prototype, not
+a security boundary, and is documented as exactly that rather than left to look more finished than
+it is.
+
+Built: `/login` (email/password, `FormField`'s existing `shakeSignal` prop reused for the brief's
+own "field shake on error" — that behaviour already existed in this codebase for every other form,
+not built fresh; `?next=` support so the wishlist's own "Sign in" CTA returns a reader to
+`/wishlist` afterward, not the homepage), `/signup` (auto-login on success, per the brief),
+`/account` (placeholder — name/email from context, "Edit profile" a disabled placeholder button,
+real links to Track Order and sign-out), `/reset` (a real, honest placeholder page, not a 404 or a
+fabricated flow — this codebase's own "every link resolves to something real" rule, same reasoning
+`site-footer.tsx` already documents for its own placeholders). `AccountMenu` (nav): "Sign in" text
+link when signed out, a 28px purple initial circle opening a click-triggered dropdown when signed
+in — lighter than `useModalBehaviour` (no scroll-lock, no `inert` sweep) deliberately, since that
+hook is for genuine modal surfaces and this is a small anchored menu in the same family as
+`NavDropdown`'s hover panels, just click- instead of hover-triggered. Added *alongside* the theme
+toggle, not replacing it, hidden below `md` since `MobileNav` carries its own sign-in/account
+entry in the overlay instead. `WishlistContents` and `AccountView` both gate on `isAuthenticated`,
+both holding their loading state until the mount-time localStorage read resolves — the same
+"mounted gate" `ThemeToggle` already uses, so a real signed-in reader never sees a sign-in prompt
+flash before hydration catches up.
+
+**3. Live chat widget — `components/chat/chat-widget.tsx`, canned replies, no external service.**
+Bottom-**left**, mirroring the brief's own stated reason (avoid colliding with a bottom-right
+WhatsApp float) — though checked and disclosed: no floating WhatsApp button actually exists
+anywhere in this codebase today (WhatsApp checkout lives inside the cart drawer only). The corner
+choice stands regardless, in case one is added later. 48px purple bubble, `animate-ping` pulse
+ring (Tailwind's own built-in, `motion-reduce:animate-none`), unread red dot when a bot message
+arrives while the panel is closed. Panel slides up from the bubble (`y: 100% → 0`, 0.35s),
+welcome messages seeded once per session on first open (not on mount), four quick-reply chips each
+echoing as a "user" bubble before the canned bot reply, a text input whose `AUTO_REPLY` matches the
+brief's own copy verbatim. History in `sessionStorage` — the brief's "persists within session,
+clears on close" describes `sessionStorage`'s own built-in behaviour (cleared when the tab/browser
+session ends), not extra logic to wipe the conversation every time the *panel* closes, which would
+make every re-open start over and isn't how any real chat widget this pattern is modelled on
+actually behaves.
+
+**One quick reply intentionally simplified, disclosed rather than silently dropped.** "Size guide"
+links to the real `/size-guide` page; it does not also open the PDP's own `SizeGuide` modal
+component (the brief asked for both a link and "opens size guide"). That component manages its own
+`open` state internally with no external control, and adding one just for this single chat
+quick-reply would mean restructuring a shared component used elsewhere in the catalogue — judged
+not worth it for a widget that already has a working link-based path to the same information.
+
+**Stale-closure fix worth naming:** the chat widget's bot replies fire from a `setTimeout` roughly
+half a second after the message that triggered them; a plain closed-over `open` boolean would
+still read whatever it was *when the timeout was scheduled*, not the truth at the moment it
+actually fires, which would make the unread dot wrong exactly when a reader closes the panel while
+a reply is in flight. Fixed with an `openRef` the effect keeps current, read at fire time instead.
+
+**Verified:** rendered HTML confirms `/`, `/login`, `/signup`, `/account`, `/wishlist` all 200;
+`/login` shows real copy ("Welcome back."); the wishlist page and the nav's `AccountMenu` both
+correctly render **nothing** (a loading placeholder, not a wrong-state flash) in the raw SSR
+output, exactly matching their own documented "wait for the mount-time localStorage read" gate —
+confirmed by grepping for the absence of both the signed-in and signed-out wishlist states in that
+output, not just the absence of an error. Source-grepped: `useAnimationFrame` and `isHovering.current`
+present in the carousel, no live `@keyframes carouselSpin`/`animation: carouselSpin` rule remains
+(only a doc comment names the deleted class, for the next reader), `AuthProvider` wraps `layout.tsx`,
+`MessageCircle` and `sessionStorage` both present in the chat widget, `/login` and `/signup` both
+built as real routes.
+
+
 #### "Just landed" — 360° CSS 3D carousel, flat scroller kept as the reduced-motion fallback (2026-08-31, twenty-fifth pass)
 
 `tsc`, `next lint`, a clean `next build` all green; `/` is 162 kB. No browser tool connected — the
