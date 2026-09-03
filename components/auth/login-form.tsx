@@ -1,15 +1,23 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AuthField } from "./auth-field";
-import { AuthDivider, AuthSocialButtons, AuthSubmitButton } from "./auth-shared";
+import { AuthField, AuthStagger } from "./auth-field";
+import {
+  AuthDivider,
+  AuthForgotLink,
+  AuthSocialButtons,
+  AuthSubmitButton,
+  AuthSwitchLink,
+} from "./auth-shared";
 import { useAuth } from "@/lib/auth/auth-context";
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
+
+/** How long the success state is held before the redirect, so the check is actually seen. */
+const SUCCESS_HOLD_MS = 600;
 
 /**
  * `next` (client brief, 2026-09-02, Item E — "Protected Wishlist") — the
@@ -27,6 +35,7 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [submitting, setSubmitting] = useState(false);
+  const [succeeded, setSucceeded] = useState(false);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -50,22 +59,28 @@ export function LoginForm() {
       return;
     }
 
-    router.push(next);
+    // The check is the confirmation the reader acts on, so it needs a beat
+    // to register before the route changes out from under it.
+    setSubmitting(false);
+    setSucceeded(true);
+    window.setTimeout(() => router.push(next), SUCCESS_HOLD_MS);
   };
 
   return (
     <>
-      <form onSubmit={handleSubmit} noValidate className="mt-10">
-        <AuthField
-          label="Email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          error={errors.email}
-        />
+      <form onSubmit={handleSubmit} noValidate className="mt-10 space-y-6">
+        <AuthStagger index={0}>
+          <AuthField
+            label="Email"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            error={errors.email}
+          />
+        </AuthStagger>
 
-        <div className="mt-6">
+        <AuthStagger index={1}>
           <AuthField
             label="Password"
             type="password"
@@ -74,36 +89,27 @@ export function LoginForm() {
             onChange={(event) => setPassword(event.target.value)}
             error={errors.password}
           />
-        </div>
+          <div className="mt-3 text-right">
+            <AuthForgotLink href="/reset" />
+          </div>
+        </AuthStagger>
 
-        <div className="mt-3 text-right">
-          <Link
-            href="/reset"
-            className="font-mono text-[11px] text-purple-500 transition-colors duration-200 ease-state hover:underline"
-          >
-            Forgot password?
-          </Link>
-        </div>
-
-        <div className="mt-8">
-          <AuthSubmitButton type="submit" loading={submitting}>
-            Sign in
-          </AuthSubmitButton>
-        </div>
+        <AuthStagger index={2}>
+          <div className="mt-8">
+            <AuthSubmitButton type="submit" loading={submitting} success={succeeded}>
+              Sign in
+            </AuthSubmitButton>
+          </div>
+        </AuthStagger>
       </form>
 
-      <AuthDivider />
-      <AuthSocialButtons />
-
-      <p className="mt-8 font-sans text-[14px] text-charcoal">
-        New to Levenon?{" "}
-        <Link
-          href="/signup"
-          className="text-purple-500 transition-colors duration-200 ease-state hover:underline"
-        >
-          Create your account →
-        </Link>
-      </p>
+      <AuthStagger index={3}>
+        <AuthDivider />
+        <AuthSocialButtons />
+        <p className="mt-8 font-sans text-[14px] text-charcoal">
+          New to Levenon? <AuthSwitchLink href="/signup">Create your account</AuthSwitchLink>
+        </p>
+      </AuthStagger>
     </>
   );
 }

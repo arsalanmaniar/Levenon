@@ -313,6 +313,92 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Carousel z-fighting fixed, login/signup premium animations (2026-09-03, twenty-eighth pass)
+
+`tsc`, `next lint`, a clean `next build` all green. `/` 163 kB, `/login` 148 kB, `/signup` 148 kB
+— all well under the 200 kB ceiling. No browser tool connected; verified against the served HTML
+and the **compiled CSS bundle**, not just source.
+
+**1. Carousel overlap / z-fighting — root cause found and removed.** The brief's diagnosis
+("preserve-3d + opacity + z-index conflict") was close but not quite it. The actual cause was the
+billboarding formula two passes back: folding the ring's live rotation into each card
+(`rotateY(i·step − angle) translateZ(r) rotateY(−…)`) left **every card's plane parallel to the
+screen**. That is precisely the arrangement `preserve-3d` cannot sort — front and back cards
+occupied overlapping screen space with no depth difference between them, so paint order came out
+arbitrary. Rewritten to the conventional pattern the brief specifies: the *ring* rotates
+(`.carousel-3d-ring`, sized to exactly one card, centred by a flex stage), each card keeps one
+fixed seat (`rotateY(i·step) translateZ(radius)`), and `backface-visibility: hidden` drops the far
+side outright. `translateZ` now gives the browser real depth to sort by, which is what actually
+fixes it.
+
+**The visible trade-off, stated plainly:** cards now turn with the ring rather than always facing
+the reader — front card square-on, neighbours angled, like a physical carousel. That is inherent
+to this pattern and is *what produces the depth cue that fixes the bug*; the previous pass's log
+flagged these two as mutually exclusive, and this brief picked the side that works. Depth shading
+(`brightness` 1 → 0.4, `scale` 1 → 0.8) is derived inside the card from its own world angle folded
+into `[0, 180]`, so 350° reads as 10° from the front rather than 350° from it. Stage is
+`perspective: 1000` + `overflow-hidden` — safe specifically because the clipping element carries
+`perspective`, not `preserve-3d` (clipping a `preserve-3d` element is what flattens its children).
+Sensitivity 0.25, spring 100/25, radius/card size 380px/180×260 on desktop via the existing CSS
+custom-property ladder. **Also corrected:** the arrow direction was backwards — a card is at the
+front when `placement + angle ≡ 0`, so advancing the index means *lowering* the angle; `step()`
+now negates.
+
+**2. Login/signup premium animations.** Panels enter from opposite edges (−60/+60px, 0.6s, the
+brief's easing, right panel +0.1s), form fields stagger in behind them via a shared `AuthStagger`
+wrapper (0.3s start, 0.08s apart) so both forms share one timing source rather than re-deriving it.
+
+`AuthField` rebuilt as a **floating-label** field: the label is absolutely positioned over the
+input and animates `y −24 / scale 0.85 / colour → purple-500` on focus-or-value, rather than being
+two elements swapped — one accessible name at all times, `pointer-events-none` so clicks still land
+on the input, `htmlFor` intact. Focus also animates the border to purple-500, adds a `0 0 0 3px`
+purple glow, and warms the background to `#FAFAF8`. Errors turn border and label red, shake the
+field (via `useAnimationControls` — **not** a keyed remount, which would tear the input out of the
+DOM and take the reader's focus with it mid-correction), and slide an `AlertCircle` message in
+below.
+
+`AuthSubmitButton` holds one fixed 52px box across three states so nothing reflows: idle, loading
+(label fades out, `Loader2` fades in, both absolutely positioned), and **success** (green,
+`Check`, held 600ms before the redirect so the confirmation is actually seen — a redirect firing
+instantly would make the success state unobservable). Hover adds a CSS sheen sweep plus
+`scale 1.01` and letter-spacing 0.08em → 0.12em.
+
+Left panel decoration rebuilt: three dashed rings at the brief's own dasharrays, speeds and
+directions, each **drawing itself in via `strokeDashoffset`** — not Framer's `pathLength`, which
+writes `strokeDasharray`/`strokeDashoffset` itself and therefore cannot coexist with a decorative
+dash pattern (the brief's own stated alternative, and the only one that keeps the dashes). Six
+floating particles with **hardcoded** positions, durations and delays rather than `Math.random()`:
+random values in render differ between server and client and trip a hydration mismatch.
+
+Signup's strength meter is now 4 segments with the brief's literal colours — written as hex, not
+the matching `--error`/`--amber`/`--purple-500`/`--success` tokens, because three of those four
+remap under `[data-theme="dark"]` and a strength meter's whole job is that red/amber/green mean
+the same thing every time.
+
+**One instruction deliberately reversed from last pass, and why.** The social buttons shipped
+`disabled` previously. This brief asks for hover-lift and tap animations on them — and a disabled
+control that lifts under the pointer is a worse lie than an enabled one, since it invites the
+interaction then refuses it silently. They are now live buttons that answer honestly: clicking one
+raises a toast ("Google sign-in isn't connected yet") through the existing toast system. The
+`TODO(wire to OAuth)` stands; nothing pretends to sign anyone in.
+
+**Also fixed while in there:** `AuthSwitchLink`'s arrow originally carried its own `whileHover`,
+which only fires for the element actually under the pointer — the arrow would have moved only when
+hovered directly, not when hovering the words beside it. Now the link carries the gesture and the
+arrow reads it through a propagated variant. And `AuthField` hit the same Framer/DOM handler type
+collision `shimmer-button.tsx` already documents (`onAnimationStart` et al.), resolved with the
+same omit list rather than a cast.
+
+**Verified:** `/`, `/login`, `/signup`, `/wishlist`, `/account` all 200. Confirmed in the
+**compiled CSS**, not just source: `.carousel-3d-ring{position:relative;transform-style:preserve-3d}`
+and its card-sized dimensions, `backface-visibility:hidden`, and
+`auth-orbit-outer{animation:hero-spin 30s linear infinite}` / `auth-orbit-inner{…12s…}`. Signup's
+form server-renders in full (confirm field, divider, social buttons). Source-grepped:
+`backface-visibility` ×2, `brightness(` in the card, `strokeDashoffset` ×5 in the login panel,
+`whileHover` ×5 and `Loader2` ×2 in the auth button module, zero remaining references to the
+removed `bandFor`/`displayAngle`/`Carousel3DBand` API.
+
+
 #### Carousel drag-to-rotate, premium split-screen auth pages (2026-09-03, twenty-seventh pass)
 
 `tsc`, `next lint`, a clean `next build` all green; `/` is 163 kB, `/login` and `/signup` 146 kB.

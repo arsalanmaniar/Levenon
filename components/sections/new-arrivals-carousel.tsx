@@ -5,23 +5,17 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import { m, useMotionValueEvent, useSpring } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NewArrivalCard } from "@/components/products/new-arrival-card";
-import { Carousel3DCard, type Carousel3DBand } from "@/components/products/carousel-3d-card";
+import { Carousel3DCard } from "@/components/products/carousel-3d-card";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
 import type { Product } from "@/lib/types";
 
 const SCROLL_GAP_PX = 24; // matches `gap-6`, the flat fallback's own card gap
 /** Degrees of ring rotation per pixel dragged. Tuned by the brief; higher feels twitchy. */
-const DRAG_SENSITIVITY = 0.3;
+const DRAG_SENSITIVITY = 0.25;
 /** Past this much pointer travel, the gesture was a drag and any click it ends on is suppressed. */
 const DRAG_CLICK_THRESHOLD_PX = 6;
 const HINT_DISMISSED_KEY = "levenon_carousel_hint_seen";
-
-function bandFor(distance: number): Carousel3DBand {
-  if (distance === 0) return { opacity: 1, scale: 1.05, brightness: 1 };
-  if (distance <= 2) return { opacity: 0.6, scale: 0.85, brightness: 0.85 };
-  return { opacity: 0.2, scale: 0.7, brightness: 0.6 };
-}
 
 /** Shortest signed distance from `index` to `activeIndex` around an N-card ring, in slots. */
 function shortestDelta(index: number, activeIndex: number, total: number): number {
@@ -161,33 +155,30 @@ function FlatScrollCarousel({ products }: { products: Product[] }) {
 }
 
 /**
- * The 360° ring — **drag-driven only** (client brief, 2026-09-03). All
- * auto-spin is gone: no `useAnimationFrame` loop, no hover-pause, no
- * auto-resume timer, and `@keyframes carouselSpin` was already deleted a
- * pass earlier. The reader spins it like a dial and it stays where they
- * leave it.
+ * The 360° ring — drag-driven only, no auto-spin.
  *
- * `angle` is the committed target; `springAngle` is the animated value the
- * cards actually render from, so a release snaps smoothly to the nearest
- * card rather than jumping. Framer's `useSpring` holds that value outside
- * React, so `useMotionValueEvent` mirrors it into `renderAngle` state —
- * this is a `setState` per animated frame, which is the deliberate cost of
- * the brief's own card formula needing the live angle as a **number** in
- * every card's `transform`. (The alternative — publishing it as a CSS
- * custom property and doing the arithmetic in `calc()` — keeps it entirely
- * off the main thread, but the spring only runs briefly after a release
- * rather than continuously, so the cost is bounded and the simpler,
- * more obviously-correct version wins here.)
+ * **Positioning rewritten 2026-09-03 to fix cards overlapping / z-fighting.**
+ * The previous version kept every card billboarded toward the reader by
+ * folding the ring's live angle into each card's own transform
+ * (`rotateY(i·step − angle) translateZ(r) rotateY(−…)`), leaving the ring
+ * itself unrotated. That flattened every card's plane parallel to the
+ * screen, which is exactly the case `preserve-3d` cannot depth-sort: front
+ * and back cards overlapped in screen space with no z difference to
+ * separate them, and paint order came out arbitrary. Now the *ring*
+ * rotates and each card keeps one fixed seat (`rotateY(i·step)
+ * translateZ(r)`), so cards genuinely face outward, `translateZ` gives the
+ * browser real depth to sort by, and `backface-visibility: hidden` drops
+ * the far side entirely. This is also the arrangement the previous pass's
+ * log flagged as impossible to combine with billboarding — the brief has
+ * since chosen this side of that trade, and it is the side that fixes the
+ * bug.
  *
- * **The brief's two rotation instructions cancel each other, so only one is
- * applied.** It asks to put `springAngle` on the ring's own transform *and*
- * to subtract it in each card (`rotateY(cardIndex * 45 - springAngle)`).
- * Doing both is a no-op: the ring turning by A and every card's placement
- * dropping by A leaves each card at exactly `cardIndex * 45` — visually
- * frozen no matter how far you drag. The card formula alone is the one that
- * works (it's what already ships), so the ring stays unrotated and the live
- * angle is folded into each card. Same result the brief is describing,
- * arrived at without the double-count.
+ * `angle` is the committed target; `springAngle` animates toward it so a
+ * release snaps smoothly. Framer holds that value outside React, so
+ * `useMotionValueEvent` mirrors it into `renderAngle` state — a `setState`
+ * per animated frame, but only while the spring is settling after a
+ * release, not continuously. The cards need the live number to compute
+ * their own depth shading, which is what makes the mirror necessary.
  */
 function Carousel3DRing({ products }: { products: Product[] }) {
   const stepDeg = 360 / products.length;
@@ -197,7 +188,7 @@ function Carousel3DRing({ products }: { products: Product[] }) {
   const [dragging, setDragging] = useState(false);
   const [hintDismissed, setHintDismissed] = useState(true);
 
-  const springAngle = useSpring(0, { stiffness: 120, damping: 20 });
+  const springAngle = useSpring(0, { stiffness: 100, damping: 25 });
   useMotionValueEvent(springAngle, "change", setRenderAngle);
   useEffect(() => springAngle.set(angle), [angle, springAngle]);
 
@@ -269,8 +260,11 @@ function Carousel3DRing({ products }: { products: Product[] }) {
     if (dragDistance.current > DRAG_CLICK_THRESHOLD_PX) dismissHint();
   };
 
+  // Right arrow advances to the *next* product. A card sits at the front
+  // when `placement + angle ≡ 0`, so raising the index means lowering the
+  // angle — hence the negation rather than a bare `+ direction`.
   const step = useCallback((direction: 1 | -1) => {
-    setAngle((current) => current + direction * stepDeg);
+    setAngle((current) => current - direction * stepDeg);
   }, [stepDeg]);
 
   // The front card, derived from the live angle rather than tracked in its
@@ -295,10 +289,14 @@ function Carousel3DRing({ products }: { products: Product[] }) {
     <>
       <div
         className={cn(
-          "carousel-3d-stage relative mx-auto mt-10 h-[260px] w-full max-w-[960px] touch-none select-none md:h-[320px] lg:h-[420px]",
+          "carousel-3d-stage relative mx-auto mt-10 flex h-[360px] w-full items-center justify-center overflow-hidden touch-none select-none lg:h-[480px]",
           dragging ? "cursor-grabbing" : "cursor-grab",
         )}
-        style={{ perspective: 1200 }}
+        // `overflow-hidden` is safe here specifically because this element
+        // carries `perspective`, not `preserve-3d` — clipping a
+        // `preserve-3d` element is what flattens its children's depth, and
+        // that responsibility sits one level down on `.carousel-3d-ring`.
+        style={{ perspective: 1000 }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
@@ -319,16 +317,20 @@ function Carousel3DRing({ products }: { products: Product[] }) {
           style={{ background: "radial-gradient(circle, rgba(124,42,232,0.05) 0%, transparent 70%)" }}
         />
 
-        <div className="absolute inset-0" style={{ transformStyle: "preserve-3d" }}>
+        {/* The ring: exactly one card in size, centred by the flex stage,
+            and the single element that actually rotates. */}
+        <div
+          className="carousel-3d-ring"
+          style={{ transform: `rotateY(${renderAngle}deg)` }}
+        >
           {products.map((product, index) => (
             <Carousel3DCard
               key={product.id}
               product={product}
               cardIndex={index}
-              stepDeg={stepDeg}
-              displayAngle={renderAngle}
+              placementDeg={index * stepDeg}
+              angleDeg={index * stepDeg + renderAngle}
               isActive={index === activeIndex}
-              band={bandFor(Math.abs(shortestDelta(index, activeIndex, products.length)))}
               onFocusCard={goToIndex}
               priority={index === 0}
             />

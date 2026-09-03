@@ -1,66 +1,88 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AuthField } from "./auth-field";
-import { AuthDivider, AuthSocialButtons, AuthSubmitButton } from "./auth-shared";
+import { m } from "framer-motion";
+import { AuthField, AuthStagger } from "./auth-field";
+import {
+  AuthDivider,
+  AuthSocialButtons,
+  AuthSubmitButton,
+  AuthSwitchLink,
+} from "./auth-shared";
 import { useAuth } from "@/lib/auth/auth-context";
-import { cn } from "@/lib/cn";
+import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-type Strength = { score: 0 | 1 | 2 | 3; label: string; barClass: string; textClass: string };
+const SUCCESS_HOLD_MS = 600;
 
 /**
- * Password strength, scored on what actually makes a password hard to
- * guess rather than on a single rule: length past the 8-character minimum,
- * and variety across character classes. Deliberately coarse — three visible
- * bands (the brief's own red → amber → green), not a false-precision
- * percentage, since this is guidance for a person, not a security control.
- *
- * `--amber` is the token this codebase already reserves for urgency/warning
- * (see `low-stock-badge.tsx`), so the middle band uses it rather than
- * introducing a fourth accent colour.
+ * Four strength bands, each with the brief's own literal colour. Written as
+ * hex rather than the `--error`/`--amber`/`--purple-500`/`--success` tokens
+ * they happen to match: three of those four remap under `[data-theme="dark"]`
+ * (purple-500 in particular becomes purple-300's value), and a strength
+ * meter's whole job is that red, amber and green mean the same thing every
+ * time they are seen.
  */
-function scorePassword(password: string): Strength {
-  if (!password) {
-    return { score: 0, label: "", barClass: "bg-hairline", textClass: "text-charcoal" };
-  }
+const STRENGTH_BANDS = [
+  { label: "Weak", colour: "#DC2626" },
+  { label: "Fair", colour: "#D97706" },
+  { label: "Good", colour: "#7C2AE8" },
+  { label: "Strong", colour: "#2D7A4F" },
+] as const;
 
+/**
+ * Scored on what actually makes a password hard to guess — length past the
+ * 8-character minimum, and variety across character classes — rather than
+ * on a single rule. Returns 0 (nothing typed) through 4.
+ */
+function scorePassword(password: string): number {
+  if (!password) return 0;
   const classes = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((pattern) =>
     pattern.test(password),
   ).length;
   const points = (password.length >= 8 ? 1 : 0) + (password.length >= 12 ? 1 : 0) + classes;
-
-  if (points <= 2) return { score: 1, label: "Weak", barClass: "bg-error", textClass: "text-error" };
-  if (points <= 4) return { score: 2, label: "Fair", barClass: "bg-amber", textClass: "text-amber" };
-  return { score: 3, label: "Strong", barClass: "bg-success", textClass: "text-success" };
+  if (points <= 2) return 1;
+  if (points <= 3) return 2;
+  if (points <= 4) return 3;
+  return 4;
 }
 
 function PasswordStrengthBar({ password }: { password: string }) {
-  const strength = scorePassword(password);
-  if (!password) return null;
+  const reducedMotion = usePrefersReducedMotion();
+  const score = scorePassword(password);
+  if (score === 0) return null;
+
+  const band = STRENGTH_BANDS[score - 1];
 
   return (
     <div className="mt-2">
       <div className="flex gap-1" aria-hidden="true">
-        {[1, 2, 3].map((band) => (
-          <span
-            key={band}
-            className={cn(
-              "h-0.5 flex-1 rounded-full transition-colors duration-300 ease-state",
-              band <= strength.score ? strength.barClass : "bg-hairline",
-            )}
-          />
-        ))}
+        {[1, 2, 3, 4].map((segment) => {
+          const filled = segment <= score;
+          return (
+            <m.span
+              key={segment}
+              className="h-0.5 flex-1 origin-left rounded-[1px]"
+              style={{ backgroundColor: filled ? band.colour : "#EAE8E2" }}
+              initial={false}
+              animate={{ scaleX: filled ? 1 : 1, opacity: filled ? 1 : 0.6 }}
+              transition={{ duration: reducedMotion ? 0 : 0.2 }}
+            />
+          );
+        })}
       </div>
-      {/* `aria-live` so a screen-reader user gets the same feedback the bar
-          gives visually — the bars themselves are decorative. */}
-      <p aria-live="polite" className={cn("mt-1.5 font-mono text-[10px] uppercase tracking-[0.1em]", strength.textClass)}>
-        {strength.label}
+      {/* `aria-live` so a screen-reader user gets the same feedback the bars
+          give visually — the bars themselves are decorative. */}
+      <p
+        aria-live="polite"
+        className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.1em]"
+        style={{ color: band.colour }}
+      >
+        {band.label}
       </p>
     </div>
   );
@@ -83,6 +105,7 @@ export function SignupForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [succeeded, setSucceeded] = useState(false);
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -110,21 +133,25 @@ export function SignupForm() {
       return;
     }
 
-    router.push("/");
+    setSubmitting(false);
+    setSucceeded(true);
+    window.setTimeout(() => router.push("/"), SUCCESS_HOLD_MS);
   };
 
   return (
     <>
-      <form onSubmit={handleSubmit} noValidate className="mt-10">
-        <AuthField
-          label="Full name"
-          autoComplete="name"
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          error={errors.name}
-        />
+      <form onSubmit={handleSubmit} noValidate className="mt-10 space-y-6">
+        <AuthStagger index={0}>
+          <AuthField
+            label="Full name"
+            autoComplete="name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            error={errors.name}
+          />
+        </AuthStagger>
 
-        <div className="mt-6">
+        <AuthStagger index={1}>
           <AuthField
             label="Email"
             type="email"
@@ -133,9 +160,9 @@ export function SignupForm() {
             onChange={(event) => setEmail(event.target.value)}
             error={errors.email}
           />
-        </div>
+        </AuthStagger>
 
-        <div className="mt-6">
+        <AuthStagger index={2}>
           <AuthField
             label="Password"
             type="password"
@@ -145,9 +172,9 @@ export function SignupForm() {
             error={errors.password}
           />
           <PasswordStrengthBar password={password} />
-        </div>
+        </AuthStagger>
 
-        <div className="mt-6">
+        <AuthStagger index={3}>
           <AuthField
             label="Confirm password"
             type="password"
@@ -156,27 +183,24 @@ export function SignupForm() {
             onChange={(event) => setConfirmPassword(event.target.value)}
             error={errors.confirmPassword}
           />
-        </div>
+        </AuthStagger>
 
-        <div className="mt-8">
-          <AuthSubmitButton type="submit" loading={submitting}>
-            Create account
-          </AuthSubmitButton>
-        </div>
+        <AuthStagger index={4}>
+          <div className="mt-8">
+            <AuthSubmitButton type="submit" loading={submitting} success={succeeded}>
+              Create account
+            </AuthSubmitButton>
+          </div>
+        </AuthStagger>
       </form>
 
-      <AuthDivider />
-      <AuthSocialButtons />
-
-      <p className="mt-8 font-sans text-[14px] text-charcoal">
-        Already have an account?{" "}
-        <Link
-          href="/login"
-          className="text-purple-500 transition-colors duration-200 ease-state hover:underline"
-        >
-          Sign in →
-        </Link>
-      </p>
+      <AuthStagger index={5}>
+        <AuthDivider />
+        <AuthSocialButtons />
+        <p className="mt-8 font-sans text-[14px] text-charcoal">
+          Already have an account? <AuthSwitchLink href="/login">Sign in</AuthSwitchLink>
+        </p>
+      </AuthStagger>
     </>
   );
 }

@@ -308,17 +308,17 @@
     display: none;
   }
 
-  /* New Arrivals 360° carousel (client brief, 2026-08-31) — the motion-
-     allowed replacement for the plain scroller above (kept, unchanged, as
-     the `prefers-reduced-motion` fallback — see `new-arrivals-carousel.tsx`).
-     Radius and card size live here as custom properties, keyed off the same
-     breakpoints Tailwind uses elsewhere in this file, so the carousel's own
-     `transform: translateZ(var(--carousel-radius))` in
-     `carousel-3d-card.tsx` never needs a resize listener to stay correct —
-     the browser re-resolves the `var()` on its own when the media query
-     flips. */
+  /* New Arrivals 360° carousel — the motion-allowed replacement for the
+     plain scroller above (kept, unchanged, as the `prefers-reduced-motion`
+     fallback — see `new-arrivals-carousel.tsx`). Radius and card size live
+     here as custom properties, keyed off the same breakpoints Tailwind uses
+     elsewhere in this file, so the card's own
+     `transform: translateZ(var(--carousel-radius))` never needs a resize
+     listener to stay correct — the browser re-resolves the `var()` on its
+     own when the media query flips. Desktop values are the brief's
+     (2026-09-03): 380px radius, 180×260 cards. */
   .carousel-3d-stage {
-    --carousel-radius: 200px;
+    --carousel-radius: 190px;
     --carousel-card-w: 120px;
     --carousel-card-h: 170px;
   }
@@ -327,35 +327,47 @@
     .carousel-3d-stage {
       --carousel-radius: 280px;
       --carousel-card-w: 150px;
-      --carousel-card-h: 210px;
+      --carousel-card-h: 215px;
     }
   }
 
   @media (min-width: 1024px) {
     .carousel-3d-stage {
-      --carousel-radius: 420px;
-      --carousel-card-w: 200px;
-      --carousel-card-h: 280px;
+      --carousel-radius: 380px;
+      --carousel-card-w: 180px;
+      --carousel-card-h: 260px;
     }
+  }
+
+  /* The ring is exactly one card wide and tall and sits centred in the
+     stage, so each card can seat itself at `top/left: 0` with no negative
+     margins — the whole ring, not the individual card, is what gets
+     centred. That is what keeps every card's transform a pure
+     `rotateY() translateZ()` with a shared origin, which is in turn what
+     lets the browser depth-sort them at all. */
+  .carousel-3d-ring {
+    position: relative;
+    width: var(--carousel-card-w);
+    height: var(--carousel-card-h);
+    transform-style: preserve-3d;
   }
 
   .carousel-3d-card {
     position: absolute;
-    top: 50%;
-    left: 50%;
+    top: 0;
+    left: 0;
     width: var(--carousel-card-w);
     height: var(--carousel-card-h);
-    margin-top: calc(var(--carousel-card-h) / -2);
-    margin-left: calc(var(--carousel-card-w) / -2);
-    /* No `transition` here, deliberately (client brief, 2026-09-02 —
-       replaced the `@keyframes carouselSpin` this class used to carry with
-       a `useAnimationFrame` loop, see `new-arrivals-carousel.tsx`): this
-       element's own `transform` is rewritten every animation frame by that
-       loop, and transitioning a value already being updated 60 times a
-       second only makes the card visibly lag behind the ring instead of
-       tracking it. The opacity/scale/brightness band, which changes far
-       less often, gets its own transition on a separate inner element in
-       `carousel-3d-card.tsx` instead. */
+    /* The fix for the reported overlap / z-fighting (client brief,
+       2026-09-03). Cards now face outward from the ring's centre, so a card
+       on the far side presents its back to the reader — hiding that back
+       face removes it from the paint entirely instead of letting it show
+       through the near cards. No `transition` on this element's own
+       transform: it is a fixed seat that never animates (the ring rotates,
+       not the card), and the depth filter/scale that *does* change gets its
+       own transition on the inner element in `carousel-3d-card.tsx`. */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
   }
 
   /* Mono utility text: eyebrows, tags, prices, SKUs. Always uppercase. */
@@ -660,21 +672,21 @@
     animation: hero-spin 20s linear infinite;
   }
 
-  /* Auth pages' brand panel (client brief, 2026-09-03) — four concentric
-     rings turning at different rates and directions. Reuses `hero-spin`
-     rather than declaring a second identical keyframe; only the durations
-     and direction differ, which is all `animation` needs to express. */
-  .auth-orbit-1 {
+  /* Auth pages' brand panel — three concentric dashed rings turning at
+     different rates and directions (client brief, 2026-09-03: outer 30s
+     clockwise, middle 20s counter-clockwise, inner 12s clockwise). Reuses
+     `hero-spin` rather than declaring a second identical keyframe; only the
+     durations and direction differ, which is all `animation` needs to
+     express. Sitting inside the `no-preference` guard means the rings hold
+     still for a reader who asked for that, with no JS branch involved. */
+  .auth-orbit-outer {
     animation: hero-spin 30s linear infinite;
   }
-  .auth-orbit-2 {
-    animation: hero-spin 22s linear infinite reverse;
+  .auth-orbit-middle {
+    animation: hero-spin 20s linear infinite reverse;
   }
-  .auth-orbit-3 {
-    animation: hero-spin 16s linear infinite;
-  }
-  .auth-orbit-4 {
-    animation: hero-spin 11s linear infinite reverse;
+  .auth-orbit-inner {
+    animation: hero-spin 12s linear infinite;
   }
 }
 
