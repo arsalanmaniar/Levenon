@@ -3,8 +3,8 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FormField } from "@/components/ui/form-field";
-import { ShimmerAction } from "@/components/ui/shimmer-button";
+import { AuthField } from "./auth-field";
+import { AuthDivider, AuthSocialButtons, AuthSubmitButton } from "./auth-shared";
 import { useAuth } from "@/lib/auth/auth-context";
 
 function isValidEmail(value: string): boolean {
@@ -26,7 +26,6 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
-  const [shakeSignal, setShakeSignal] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = (event: FormEvent) => {
@@ -38,17 +37,16 @@ export function LoginForm() {
 
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
-      setShakeSignal((current) => current + 1);
       return;
     }
 
     setSubmitting(true);
+    setErrors({});
     const result = login(email, password);
 
     if (!result.ok) {
       setSubmitting(false);
       setErrors({ password: result.error });
-      setShakeSignal((current) => current + 1);
       return;
     }
 
@@ -56,49 +54,56 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} noValidate className="mt-10 space-y-5">
-      <FormField
-        label="Email"
-        type="email"
-        autoComplete="email"
-        value={email}
-        onChange={(event) => setEmail(event.target.value)}
-        error={errors.email}
-        shakeSignal={shakeSignal}
-        className="font-mono"
-      />
-      <FormField
-        label="Password"
-        type="password"
-        autoComplete="current-password"
-        value={password}
-        onChange={(event) => setPassword(event.target.value)}
-        error={errors.password}
-        shakeSignal={shakeSignal}
-      />
+    <>
+      <form onSubmit={handleSubmit} noValidate className="mt-10">
+        <AuthField
+          label="Email"
+          type="email"
+          autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          error={errors.email}
+        />
 
-      <div className="flex justify-end">
-        <Link
-          href="/reset"
-          className="label text-charcoal transition-colors duration-200 ease-state hover:text-purple-500"
-        >
-          Forgot password?
-        </Link>
-      </div>
+        <div className="mt-6">
+          <AuthField
+            label="Password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            error={errors.password}
+          />
+        </div>
 
-      <ShimmerAction type="submit" disabled={submitting} className="w-full">
-        Sign in
-      </ShimmerAction>
+        <div className="mt-3 text-right">
+          <Link
+            href="/reset"
+            className="font-mono text-[11px] text-purple-500 transition-colors duration-200 ease-state hover:underline"
+          >
+            Forgot password?
+          </Link>
+        </div>
 
-      <p className="text-center text-body text-charcoal">
+        <div className="mt-8">
+          <AuthSubmitButton type="submit" loading={submitting}>
+            Sign in
+          </AuthSubmitButton>
+        </div>
+      </form>
+
+      <AuthDivider />
+      <AuthSocialButtons />
+
+      <p className="mt-8 font-sans text-[14px] text-charcoal">
         New to Levenon?{" "}
         <Link
           href="/signup"
-          className="text-ink underline underline-offset-4 transition-colors duration-200 ease-state hover:text-purple-500"
+          className="text-purple-500 transition-colors duration-200 ease-state hover:underline"
         >
-          Create account →
+          Create your account →
         </Link>
       </p>
-    </form>
+    </>
   );
 }

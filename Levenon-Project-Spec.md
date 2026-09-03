@@ -313,6 +313,86 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Carousel drag-to-rotate, premium split-screen auth pages (2026-09-03, twenty-seventh pass)
+
+`tsc`, `next lint`, a clean `next build` all green; `/` is 163 kB, `/login` and `/signup` 146 kB.
+No browser tool connected — verified via `next start` + curl against rendered HTML and source.
+
+**1. Carousel — all auto-spin removed, drag only.** Gone: the `useAnimationFrame` loop, the
+`isHovering` ref and hover-pause, the auto-resume `setTimeout`, and `RING_DEGREES_PER_SECOND`
+(`@keyframes carouselSpin` was already deleted a pass earlier). The ring now only moves when the
+reader moves it — drag, arrows, or dots — and stays where they leave it. `angle` is the committed
+target; a Framer `useSpring` (stiffness 120, damping 20) carries the animated value, mirrored into
+`renderAngle` via `useMotionValueEvent` because the cards need it as a **number** in their own
+transforms. Pointer capture on `pointerdown`, `touch-none` on the stage.
+
+**Three things the brief specified that needed a judgment call, all disclosed rather than silently
+resolved:**
+
+- **The two rotation instructions cancel each other.** The brief asks to apply `springAngle` to
+  the ring's transform *and* to subtract it in every card (`rotateY(cardIndex * 45 - springAngle)`).
+  Doing both is a no-op — the ring turning by A while every card's placement drops by A leaves each
+  card at exactly `cardIndex * 45`, visually frozen no matter how far you drag. Only the card
+  formula is applied (it's the one that already works); the ring stays unrotated. Same visual
+  result the brief describes, without the double-count.
+- **Pointer events only, no separate `onTouchStart/Move/End`.** Pointer events already unify mouse,
+  touch and pen; adding touch handlers alongside them means every touch drag fires both sets and
+  moves the ring twice per gesture. `touch-action: none` (the brief's own instruction) is what
+  stops the page scrolling during a drag, and that works with pointer events on its own.
+- **Active-dot formula normalised.** The brief's `Math.round((-angle % 360) / 45) % 8` goes
+  negative the moment the reader drags the other way (JS `%` keeps the sign of the dividend), which
+  indexes off the end of the array. Wrapped into `[0, 360)` first.
+
+**Two real bugs caught and fixed during the build, not after:** (a) a drag that ends back on the
+slot it started from leaves `angle` unchanged, so the state effect that drives the spring never
+re-runs and the ring would sit stuck mid-slot — fixed by setting the spring directly on release as
+well as via state; (b) a drag finishing over a card would also register as a click on it and
+navigate — fixed with an `onClickCapture` guard on the stage that swallows the click when pointer
+travel exceeded 6px. During the drag itself the spring is `jump()`ed rather than `set()` so the
+ring tracks the finger exactly, with the spring reserved for the release snap. "Drag to explore"
+hint below the ring, dismissed for the session (`sessionStorage`) after the first real drag;
+default-dismissed on the server so it can only ever appear after mount, never flash during
+hydration.
+
+**2. `/login` and `/signup` rebuilt as split-screen premium pages.** New: `auth-split-layout.tsx`
+(45% brand panel / 55% form, brand panel hidden below `lg` with the wordmark moved above the form),
+`auth-field.tsx` (52px `rounded-[2px]` fields, mono labels, `Eye`/`EyeOff` password toggle,
+`AlertCircle` inline errors that shake in), `auth-shared.tsx` (solid submit button with a
+`Loader2` spinner, "or continue with" divider, Google/Facebook buttons), `auth-heading.tsx`.
+The brand panel's four concentric rings reuse the existing `hero-spin` keyframe at four different
+durations/directions (`.auth-orbit-1..4`) rather than declaring a second identical keyframe — and
+inherit the `prefers-reduced-motion` guard those classes already sit behind, so the panel needs no
+JS branch of its own. Signup gains a three-band password strength bar scored on length *and*
+character-class variety, using the existing `--error`/`--amber`/`--success` tokens rather than a
+fourth accent, with an `aria-live` label so the feedback isn't visual-only.
+
+**Deliberately not `ShimmerButton`** for the submit CTA — the brief's own reasoning (a login page
+wants solid and trustworthy, not a sweeping highlight) is a fair read of the convention, so this is
+the one primary CTA on the site that doesn't shimmer.
+
+**Social buttons ship `disabled`, with a `TODO(wire to OAuth)`.** This project's auth is
+`localStorage`-only — there is no server, no callback route, no client secret for an OAuth flow to
+use. Rendered visibly inert rather than as live buttons that would silently do nothing on click.
+
+**A real SSR problem found by checking the rendered HTML rather than trusting the build.**
+`LoginForm` reads `useSearchParams()` for its `?next=` redirect, which opts its entire `Suspense`
+subtree out of server rendering — with the `<h1>` inside that component, `/login` was shipping
+**no heading at all** in its SSR HTML and a blank right-hand panel until hydration (confirmed by
+grepping the served markup: "Welcome back." was absent). Hoisted the title block into a plain
+server component (`AuthHeading`) rendered outside the boundary, and gave the boundary a
+height-reserving fallback so nothing shifts when the form hydrates in. Re-verified: both headings
+now appear in the served HTML, and signup's full form (divider, social buttons, confirm field)
+server-renders too since it has no `useSearchParams`. Both auth pages also drop `SiteFooter`
+deliberately — the brand panel runs full-height, and a four-column footer beneath it would break
+that edge-to-edge read.
+
+**Verified:** `/`, `/login`, `/signup`, `/account`, `/wishlist` all 200. Source-grepped:
+`onPointerDown` and `useSpring` present in the carousel, `useAnimationFrame` neither imported nor
+called (the one remaining match is a doc comment recording its removal), `isHovering` gone
+entirely, no live `animation: carouselSpin` rule, "Drag to explore" present, `EyeOff` in the auth
+field, `w-[45%]`/`w-[55%]` in the split layout, password-strength scoring in the signup form.
+
+
 #### Carousel auto-spin fix (`useAnimationFrame`), client-side auth, live chat widget (2026-09-02, twenty-sixth pass)
 
 Three unrelated builds in one pass. `tsc`, `next lint`, a clean `next build` all green; `/` is

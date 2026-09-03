@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { m, useAnimationFrame } from "framer-motion";
+import { m, useMotionValueEvent, useSpring } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { NewArrivalCard } from "@/components/products/new-arrival-card";
 import { Carousel3DCard, type Carousel3DBand } from "@/components/products/carousel-3d-card";
@@ -11,9 +11,11 @@ import { cn } from "@/lib/cn";
 import type { Product } from "@/lib/types";
 
 const SCROLL_GAP_PX = 24; // matches `gap-6`, the flat fallback's own card gap
-const AUTO_RESUME_MS = 3000;
-const SWIPE_THRESHOLD_PX = 40;
-const RING_DEGREES_PER_SECOND = 18; // 360deg / 20s
+/** Degrees of ring rotation per pixel dragged. Tuned by the brief; higher feels twitchy. */
+const DRAG_SENSITIVITY = 0.3;
+/** Past this much pointer travel, the gesture was a drag and any click it ends on is suppressed. */
+const DRAG_CLICK_THRESHOLD_PX = 6;
+const HINT_DISMISSED_KEY = "levenon_carousel_hint_seen";
 
 function bandFor(distance: number): Carousel3DBand {
   if (distance === 0) return { opacity: 1, scale: 1.05, brightness: 1 };
@@ -32,7 +34,7 @@ function shortestDelta(index: number, activeIndex: number, total: number): numbe
 
 /**
  * "NEW ARRIVALS" eyebrow + "Just landed." + "View all →", unchanged copy
- * from the previous pass — per the brief's own "keep existing header row."
+ * from the previous pass — per an earlier brief's "keep existing header row."
  * `after` is a slot for the flat fallback's inline scroll arrows only; the
  * 3D carousel's arrows live below the ring instead (see `Carousel3DRing`),
  * so it renders this with nothing in the slot.
@@ -75,12 +77,12 @@ const arrowButtonClass =
   "flex h-10 w-10 items-center justify-center rounded-full border border-hairline text-ink transition-colors duration-200 ease-state hover:border-ink disabled:cursor-not-allowed disabled:opacity-30";
 
 /**
- * The pre-existing flat horizontal scroller — untouched from the previous
- * pass, and deliberately so: this is the `prefers-reduced-motion` fallback
- * the brief explicitly asks for ("show flat horizontal scroll instead —
- * fall back to the previous carousel design"), not a stripped-down version
- * of the 3D ring. Arrow disabled-state is IntersectionObserver-driven off
- * two 1px sentinel `<li>`s bookending the real cards.
+ * The pre-existing flat horizontal scroller — untouched, and deliberately
+ * so: this is the `prefers-reduced-motion` fallback an earlier brief
+ * explicitly asks for ("show flat horizontal scroll instead — fall back to
+ * the previous carousel design"), not a stripped-down version of the 3D
+ * ring. Arrow disabled-state is IntersectionObserver-driven off two 1px
+ * sentinel `<li>`s bookending the real cards.
  */
 function FlatScrollCarousel({ products }: { products: Product[] }) {
   const scrollerRef = useRef<HTMLUListElement>(null);
@@ -159,106 +161,156 @@ function FlatScrollCarousel({ products }: { products: Product[] }) {
 }
 
 /**
- * The 360° ring itself — `perspective: 1200` on the stage, `preserve-3d` on
- * the ring, each card billboarded via `Carousel3DCard`'s own live-angle
- * formula (see its doc comment).
+ * The 360° ring — **drag-driven only** (client brief, 2026-09-03). All
+ * auto-spin is gone: no `useAnimationFrame` loop, no hover-pause, no
+ * auto-resume timer, and `@keyframes carouselSpin` was already deleted a
+ * pass earlier. The reader spins it like a dial and it stays where they
+ * leave it.
  *
- * **Rewritten 2026-09-02** — the previous version drove auto-spin with a
- * CSS `@keyframes` animation and manual rotation with a separate Framer
- * Motion `animate` target sharing the same element, switching which one
- * was "in control" by toggling a class. The two never shared state, so
- * there was nothing for either to hand off *from* — CSS doesn't expose its
- * live animated angle to JS, and Framer's tracked motion value had never
- * been told what that angle was. In practice the CSS animation, cards, and
- * JS were all fighting over the same `transform`, and the spin never
- * visibly ran. Replaced with one continuous source of truth: `rotationRef`
- * (a `useRef`, not `useState` — this updates every animation frame, and a
- * `setState` at 60fps would mean 60 renders a second) advanced by
- * `useAnimationFrame`, mirrored into `displayAngle` (a `useState`, so
- * React actually re-renders the cards with it) on every frame. Auto-spin,
- * arrow steps, card clicks and swipes all now mutate the exact same
- * `rotationRef` — there is only ever one number, so there is nothing left
- * to hand off between.
+ * `angle` is the committed target; `springAngle` is the animated value the
+ * cards actually render from, so a release snaps smoothly to the nearest
+ * card rather than jumping. Framer's `useSpring` holds that value outside
+ * React, so `useMotionValueEvent` mirrors it into `renderAngle` state —
+ * this is a `setState` per animated frame, which is the deliberate cost of
+ * the brief's own card formula needing the live angle as a **number** in
+ * every card's `transform`. (The alternative — publishing it as a CSS
+ * custom property and doing the arithmetic in `calc()` — keeps it entirely
+ * off the main thread, but the spring only runs briefly after a release
+ * rather than continuously, so the cost is bounded and the simpler,
+ * more obviously-correct version wins here.)
  *
- * `isHovering`/`isInteracting` are refs, not state — the animation-frame
- * callback reads them every frame, and putting them in state would mean a
- * render on every hover/interaction edge for a value the rAF loop only
- * ever *reads*, never displays.
+ * **The brief's two rotation instructions cancel each other, so only one is
+ * applied.** It asks to put `springAngle` on the ring's own transform *and*
+ * to subtract it in each card (`rotateY(cardIndex * 45 - springAngle)`).
+ * Doing both is a no-op: the ring turning by A and every card's placement
+ * dropping by A leaves each card at exactly `cardIndex * 45` — visually
+ * frozen no matter how far you drag. The card formula alone is the one that
+ * works (it's what already ships), so the ring stays unrotated and the live
+ * angle is folded into each card. Same result the brief is describing,
+ * arrived at without the double-count.
  */
 function Carousel3DRing({ products }: { products: Product[] }) {
   const stepDeg = 360 / products.length;
-  const rotationRef = useRef(0);
-  const isHovering = useRef(false);
-  const isInteracting = useRef(false);
-  const interactionTimer = useRef<number | null>(null);
-  const pointerStartX = useRef<number | null>(null);
-  const [displayAngle, setDisplayAngle] = useState(0);
 
-  useAnimationFrame((_time, delta) => {
-    if (isHovering.current || isInteracting.current) return;
-    rotationRef.current -= (delta / 1000) * RING_DEGREES_PER_SECOND;
-    setDisplayAngle(rotationRef.current);
-  });
+  const [angle, setAngle] = useState(0);
+  const [renderAngle, setRenderAngle] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [hintDismissed, setHintDismissed] = useState(true);
 
-  const clearInteractionTimer = useCallback(() => {
-    if (interactionTimer.current !== null) window.clearTimeout(interactionTimer.current);
+  const springAngle = useSpring(0, { stiffness: 120, damping: 20 });
+  useMotionValueEvent(springAngle, "change", setRenderAngle);
+  useEffect(() => springAngle.set(angle), [angle, springAngle]);
+
+  const dragStartX = useRef(0);
+  const dragStartAngle = useRef(0);
+  const isDragging = useRef(false);
+  const dragDistance = useRef(0);
+
+  // The hint is dismissed for the rest of the session after one real drag.
+  // Read in an effect, not during render: `sessionStorage` doesn't exist on
+  // the server, and defaulting to "dismissed" means it can only ever appear
+  // after mount, never flash on and off during hydration.
+  useEffect(() => {
+    try {
+      setHintDismissed(window.sessionStorage.getItem(HINT_DISMISSED_KEY) === "1");
+    } catch {
+      setHintDismissed(false);
+    }
   }, []);
 
-  useEffect(() => clearInteractionTimer, [clearInteractionTimer]);
+  const dismissHint = useCallback(() => {
+    setHintDismissed(true);
+    try {
+      window.sessionStorage.setItem(HINT_DISMISSED_KEY, "1");
+    } catch {
+      // Private mode or blocked storage — the hint simply reappears next load.
+    }
+  }, []);
 
-  /** Arrow/card/swipe interactions all funnel through here — one rotation, one resume timer. */
-  const rotateBy = useCallback(
-    (deltaDeg: number) => {
-      isInteracting.current = true;
-      rotationRef.current += deltaDeg;
-      setDisplayAngle(rotationRef.current);
-      clearInteractionTimer();
-      interactionTimer.current = window.setTimeout(() => {
-        isInteracting.current = false;
-      }, AUTO_RESUME_MS);
-    },
-    [clearInteractionTimer],
+  /** Snap to the nearest card slot. */
+  const snap = useCallback(
+    (raw: number) => Math.round(raw / stepDeg) * stepDeg,
+    [stepDeg],
   );
 
-  // The front card, derived from the live angle rather than tracked
-  // separately in its own piece of state — `displayAngle` is already the
-  // single source of truth, so a second value that could drift out of
-  // sync with it would be a bug waiting to happen, not a simplification.
-  const activeIndex = useMemo(() => {
-    const normalized = (((-displayAngle % 360) + 360) % 360) / stepDeg;
-    return Math.round(normalized) % products.length;
-  }, [displayAngle, stepDeg, products.length]);
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    isDragging.current = true;
+    dragDistance.current = 0;
+    dragStartX.current = event.clientX;
+    dragStartAngle.current = angle;
+    setDragging(true);
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
 
-  const step = useCallback((direction: 1 | -1) => rotateBy(-direction * stepDeg), [rotateBy, stepDeg]);
+  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current) return;
+    const delta = event.clientX - dragStartX.current;
+    dragDistance.current = Math.abs(delta);
+    // Straight to the motion value, not through `setAngle` — during a drag
+    // the ring should track the finger exactly, with no spring lag between
+    // pointer and card. The spring only does its job on release.
+    springAngle.jump(dragStartAngle.current + delta * DRAG_SENSITIVITY);
+  };
+
+  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging.current) return;
+    isDragging.current = false;
+    setDragging(false);
+    event.currentTarget.releasePointerCapture(event.pointerId);
+
+    const delta = event.clientX - dragStartX.current;
+    const snapped = snap(dragStartAngle.current + delta * DRAG_SENSITIVITY);
+    setAngle(snapped);
+    // Also set the spring directly, not only via `setAngle`'s effect: a drag
+    // that ends back on the slot it started from leaves `angle` unchanged, so
+    // that effect never re-runs — and the spring would sit at whatever
+    // mid-slot position the last `jump` left it at, never snapping back.
+    springAngle.set(snapped);
+    if (dragDistance.current > DRAG_CLICK_THRESHOLD_PX) dismissHint();
+  };
+
+  const step = useCallback((direction: 1 | -1) => {
+    setAngle((current) => current + direction * stepDeg);
+  }, [stepDeg]);
+
+  // The front card, derived from the live angle rather than tracked in its
+  // own state — one source of truth, so a second value can't drift out of
+  // sync with it. Normalised into `[0, 360)` before rounding: the raw angle
+  // goes negative the moment the reader drags the other way, and a bare
+  // `-angle % 360` would too.
+  const activeIndex = useMemo(() => {
+    const normalized = (((-renderAngle % 360) + 360) % 360) / stepDeg;
+    return Math.round(normalized) % products.length;
+  }, [renderAngle, stepDeg, products.length]);
 
   const goToIndex = useCallback(
     (targetIndex: number) => {
       const delta = shortestDelta(targetIndex, activeIndex, products.length);
-      rotateBy(-delta * stepDeg);
+      setAngle((current) => current - delta * stepDeg);
     },
-    [activeIndex, products.length, stepDeg, rotateBy],
+    [activeIndex, products.length, stepDeg],
   );
 
   return (
     <>
       <div
-        className="carousel-3d-stage relative mx-auto mt-10 h-[260px] w-full max-w-[960px] md:h-[320px] lg:h-[420px]"
+        className={cn(
+          "carousel-3d-stage relative mx-auto mt-10 h-[260px] w-full max-w-[960px] touch-none select-none md:h-[320px] lg:h-[420px]",
+          dragging ? "cursor-grabbing" : "cursor-grab",
+        )}
         style={{ perspective: 1200 }}
-        onMouseEnter={() => {
-          isHovering.current = true;
-        }}
-        onMouseLeave={() => {
-          isHovering.current = false;
-        }}
-        onPointerDown={(event) => {
-          pointerStartX.current = event.clientX;
-        }}
-        onPointerUp={(event) => {
-          if (pointerStartX.current === null) return;
-          const delta = event.clientX - pointerStartX.current;
-          pointerStartX.current = null;
-          if (delta <= -SWIPE_THRESHOLD_PX) step(1);
-          else if (delta >= SWIPE_THRESHOLD_PX) step(-1);
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        // A drag that happens to finish over a card must not also register as
+        // a click on it. Capture phase, so this runs before the card's own
+        // handler rather than racing it.
+        onClickCapture={(event) => {
+          if (dragDistance.current > DRAG_CLICK_THRESHOLD_PX) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
         }}
       >
         <div
@@ -274,7 +326,7 @@ function Carousel3DRing({ products }: { products: Product[] }) {
               product={product}
               cardIndex={index}
               stepDeg={stepDeg}
-              displayAngle={displayAngle}
+              displayAngle={renderAngle}
               isActive={index === activeIndex}
               band={bandFor(Math.abs(shortestDelta(index, activeIndex, products.length)))}
               onFocusCard={goToIndex}
@@ -283,6 +335,12 @@ function Carousel3DRing({ products }: { products: Product[] }) {
           ))}
         </div>
       </div>
+
+      {!hintDismissed && (
+        <p className="mt-4 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-charcoal">
+          Drag to explore
+        </p>
+      )}
 
       <div className="mt-8 flex items-center justify-center gap-4">
         <button type="button" onClick={() => step(-1)} aria-label="Previous product" className={arrowButtonClass}>
@@ -314,12 +372,11 @@ function Carousel3DRing({ products }: { products: Product[] }) {
 }
 
 /**
- * "Just landed" (client brief, 2026-08-31) — a 360° auto-rotating 3D
- * carousel, CSS `transform`s only (no new library), Framer Motion for the
- * section-heading entrance and the manual-rotation spring only. Under
- * reduced motion this renders the previous pass's flat scroller instead,
- * per the brief's own explicit fallback instruction — untouched, not
- * reimplemented.
+ * "Just landed" — a drag-to-rotate 360° 3D carousel, CSS `transform`s only
+ * (no new library), Framer Motion for the section entrance and the
+ * release-snap spring. Under reduced motion this renders the flat scroller
+ * instead, per an earlier brief's explicit fallback instruction — untouched,
+ * not reimplemented.
  */
 export function NewArrivalsCarousel({ products }: { products: Product[] }) {
   const reducedMotion = usePrefersReducedMotion();

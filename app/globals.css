@@ -659,6 +659,23 @@
   .hero-orbit-ring {
     animation: hero-spin 20s linear infinite;
   }
+
+  /* Auth pages' brand panel (client brief, 2026-09-03) — four concentric
+     rings turning at different rates and directions. Reuses `hero-spin`
+     rather than declaring a second identical keyframe; only the durations
+     and direction differ, which is all `animation` needs to express. */
+  .auth-orbit-1 {
+    animation: hero-spin 30s linear infinite;
+  }
+  .auth-orbit-2 {
+    animation: hero-spin 22s linear infinite reverse;
+  }
+  .auth-orbit-3 {
+    animation: hero-spin 16s linear infinite;
+  }
+  .auth-orbit-4 {
+    animation: hero-spin 11s linear infinite reverse;
+  }
 }
 
 /* ---------------------------------------------------------------------------

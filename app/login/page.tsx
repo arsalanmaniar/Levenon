@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SiteNav } from "@/components/sections/site-nav";
-import { SiteFooter } from "@/components/sections/site-footer";
+import { AuthSplitLayout } from "@/components/auth/auth-split-layout";
+import { AuthHeading } from "@/components/auth/auth-heading";
 import { LoginForm } from "@/components/auth/login-form";
 
 export const metadata: Metadata = {
@@ -12,26 +13,30 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+/**
+ * No `SiteFooter` here, deliberately (client brief, 2026-09-03's split-
+ * screen redesign): the brand panel runs the full height of the viewport,
+ * and a four-column footer below it would break that edge-to-edge read and
+ * push the form off-centre. Every other route keeps its footer.
+ */
 export default function LoginPage() {
   return (
     <>
       <SiteNav />
       <main id="main">
-        <div className="mx-auto flex min-h-[180px] max-w-md flex-col justify-end px-6 pb-2 pt-16">
-          <p className="label text-charcoal">Account</p>
-          <h1 className="mt-4 font-display text-balance text-[clamp(2rem,5vw,3.25rem)] font-extrabold leading-[1.02] tracking-[-0.03em]">
-            Welcome back.
-          </h1>
-        </div>
-        <div className="mx-auto max-w-md px-6 pb-24">
+        <AuthSplitLayout>
+          <AuthHeading title="Welcome back." subtitle="Sign in to your Levenon account." />
           {/* `LoginForm` reads `useSearchParams()` for `?next=` — the App
-              Router requires that inside a `Suspense` boundary. */}
-          <Suspense fallback={null}>
+              Router requires that inside a `Suspense` boundary, and the
+              whole boundary is client-rendered as a result. The heading
+              above deliberately sits outside it so the page still ships
+              real content in its SSR HTML. The fallback reserves the form's
+              own height so nothing shifts when it hydrates in. */}
+          <Suspense fallback={<div aria-hidden="true" className="mt-10 h-[420px]" />}>
             <LoginForm />
           </Suspense>
-        </div>
+        </AuthSplitLayout>
       </main>
-      <SiteFooter />
     </>
   );
 }
