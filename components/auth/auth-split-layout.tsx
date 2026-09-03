@@ -119,7 +119,18 @@ export function AuthSplitLayout({ children }: { children: ReactNode }) {
         transition={{ duration: reducedMotion ? 0 : 0.6, ease: PANEL_EASE }}
       >
         <Link href="/" aria-label="Levenon — home">
-          <Wordmark logoColour="currentColor" className="h-8 w-auto text-paper" />
+          {/*
+            `logoColour={PAPER}` — a literal, **not** `text-paper` (fixed
+            2026-09-03, reported as "the Levenon text is black and hides in
+            dark theme"). This panel's background is a hardcoded dark
+            gradient that never changes with the site theme, but `--paper`
+            does: under `[data-theme="dark"]` it resolves to `#0F0E0D`, so
+            the mark was being painted near-black onto a near-black panel
+            and disappeared entirely. Same bug class the hero, footer and
+            announcement bar each hit and fixed — an always-dark surface
+            cannot dress itself in tokens that swap underneath it.
+          */}
+          <Wordmark logoColour={PAPER} className="h-8 w-auto" />
         </Link>
 
         <div className="mt-12">

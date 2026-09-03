@@ -67,7 +67,11 @@ function PasswordStrengthBar({ password }: { password: string }) {
             <m.span
               key={segment}
               className="h-0.5 flex-1 origin-left rounded-[1px]"
-              style={{ backgroundColor: filled ? band.colour : "#EAE8E2" }}
+              // Filled segments are literal (see `STRENGTH_BANDS`); the
+              // unfilled track is `--hairline`, which *must* swap — a
+              // literal `#EAE8E2` here was a bright bar across a near-black
+              // form in dark theme.
+              style={{ backgroundColor: filled ? band.colour : "var(--hairline)" }}
               initial={false}
               animate={{ scaleX: filled ? 1 : 1, opacity: filled ? 1 : 0.6 }}
               transition={{ duration: reducedMotion ? 0 : 0.2 }}

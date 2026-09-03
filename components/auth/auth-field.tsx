@@ -6,15 +6,6 @@ import { AlertCircle, Eye, EyeOff } from "lucide-react";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
 
-const INK = "#0B0B0D";
-const CHARCOAL = "#5B5A5F";
-const PURPLE_500 = "#7C2AE8";
-const ERROR = "#DC2626";
-const HAIRLINE = "#EAE8E2";
-const PAPER = "#FBFAF8";
-/** The "subtle warmth on focus" the brief asks for — a shade off `--paper`, not a new token. */
-const PAPER_FOCUS = "#FAFAF8";
-
 /**
  * Wraps a field in the staggered entrance the auth forms share (client
  * brief, 2026-09-03: 0.3s in, 0.08s apart). Exported so both forms lay
@@ -46,25 +37,28 @@ export function AuthStagger({ index, children }: { index: number; children: Reac
  * toggle and a focus glow — none of which those four forms want — is how a
  * shared primitive stops being shared.
  *
+ * **Every colour here is a token, never a literal (fixed 2026-09-03).**
+ * This field sits on the *form* side of the split layout, which follows the
+ * site theme like every other page — unlike the brand panel beside it,
+ * which is hardcoded dark and therefore uses literal light colours. An
+ * earlier version of this file had it backwards and painted a hardcoded
+ * white input with hardcoded near-black text, which in dark theme was a
+ * glaring white box, a bright `#EAE8E2` border, and a floated label at
+ * roughly 2.5:1 against the dark page behind it.
+ *
+ * The consequence: colour transitions are CSS classes, not Framer
+ * `animate` values. Framer cannot interpolate `var(--token)` strings — it
+ * would snap between them — whereas a CSS `transition` on a
+ * custom-property-backed colour handles the theme swap natively. Framer
+ * keeps what it is actually good for here: the transform-only label float
+ * and the error shake, neither of which is theme-dependent.
+ *
  * The label is absolutely positioned over the input and animates up and
  * down rather than being two elements swapped, so there is exactly one
  * accessible name for the field at all times. `pointer-events-none` on it
  * means a click anywhere in the box still lands on the input beneath;
  * `htmlFor` keeps the association a screen reader needs regardless.
  */
-/**
- * Framer redefines these DOM handlers with its own signatures (an
- * `AnimationDefinition`, not a DOM `AnimationEvent`), so they are omitted
- * here rather than passed through to `m.input` where the two types
- * collide. Same reasoning — and the same omit list — as
- * `shimmer-button.tsx`'s own `NativeButtonProps`. Nothing in this codebase
- * passes any of them to a field.
- */
-type NativeInputProps = Omit<
-  InputHTMLAttributes<HTMLInputElement>,
-  "onAnimationStart" | "onAnimationEnd" | "onAnimationIteration" | "onDrag" | "onDragStart" | "onDragEnd"
->;
-
 export function AuthField({
   label,
   error,
@@ -74,7 +68,7 @@ export function AuthField({
   onFocus,
   onBlur,
   ...inputProps
-}: NativeInputProps & { label: string; error?: string | null }) {
+}: InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string | null }) {
   const generatedId = useId().replace(/:/g, "");
   const inputId = inputProps.id ?? `auth-${generatedId}`;
   const errorId = `${inputId}-error`;
@@ -96,26 +90,24 @@ export function AuthField({
     shake.start({ x: [0, -8, 8, -4, 4, 0], transition: { duration: 0.4 } });
   }, [error, reducedMotion, shake]);
 
-  const labelColour = error ? ERROR : floated ? PURPLE_500 : CHARCOAL;
-  const borderColour = error ? ERROR : focused ? PURPLE_500 : HAIRLINE;
-
   return (
     <div>
       <m.div className="relative pt-6" animate={shake}>
         <m.label
           htmlFor={inputId}
-          className="pointer-events-none absolute left-4 top-6 flex h-[52px] origin-left items-center font-mono text-[11px] uppercase tracking-[0.1em]"
-          animate={{
-            y: floated ? -24 : 0,
-            scale: floated ? 0.85 : 1,
-            color: labelColour,
-          }}
+          className={cn(
+            "pointer-events-none absolute left-4 top-6 flex h-[52px] origin-left items-center",
+            "font-mono text-[11px] uppercase tracking-[0.1em] transition-colors duration-200 ease-state",
+            error ? "text-error" : floated ? "text-purple-500" : "text-charcoal",
+          )}
+          // Transform only — see the doc comment for why colour is a class.
+          animate={{ y: floated ? -24 : 0, scale: floated ? 0.85 : 1 }}
           transition={{ duration: reducedMotion ? 0 : 0.2 }}
         >
           {label}
         </m.label>
 
-        <m.input
+        <input
           {...inputProps}
           id={inputId}
           type={resolvedType}
@@ -130,18 +122,17 @@ export function AuthField({
           }}
           aria-invalid={Boolean(error) || undefined}
           aria-describedby={error ? errorId : undefined}
-          animate={{
-            borderColor: borderColour,
-            backgroundColor: focused ? PAPER_FOCUS : PAPER,
-            boxShadow: focused && !error ? `0 0 0 3px ${PURPLE_500}26` : `0 0 0 0px ${PURPLE_500}00`,
-          }}
-          transition={{ duration: reducedMotion ? 0 : 0.2 }}
           className={cn(
-            "h-[52px] w-full rounded-[2px] border px-4 font-sans text-[15px] outline-none",
+            "h-[52px] w-full rounded-[2px] border bg-paper px-4 font-sans text-[15px] text-ink outline-none",
+            "transition-[border-color,background-color,box-shadow] duration-200 ease-state",
+            // The brief's `0 0 0 3px #7C2AE8/15` focus glow, plus the
+            // subtle background warmth — the latter via a token so it
+            // darkens rather than brightens under `[data-theme="dark"]`.
+            "focus:border-purple-500 focus:bg-[var(--auth-field-focus)] focus:ring-[3px] focus:ring-purple-500/15",
+            error ? "border-error" : "border-hairline",
             isPassword && "pr-12",
             className,
           )}
-          style={{ color: INK }}
         />
 
         {isPassword && (

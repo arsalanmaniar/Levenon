@@ -313,6 +313,56 @@ enforcement remains unproven until a live connection exists.
 
 _(specs added here as new features are requested)_
 
+#### Auth pages dark-theme colour audit — four token/literal inversions fixed (2026-09-03, twenty-ninth pass)
+
+Reported: *"the Levenon text colour is black and in dark theme it hides."* Confirmed, and the audit
+it prompted found three more of the same class on the same two pages. `tsc`, `next lint`, clean
+`next build` all green; `/login` 147 kB, `/signup` 148 kB.
+
+**The rule these all broke.** The auth pages are split down the middle by *theme behaviour*, not
+just layout: the left brand panel is a hardcoded dark gradient that never changes with the site
+theme, so it must dress itself in **literal** light colours; the right form panel follows the site
+theme like every other page, so it must use **tokens**. The previous pass had it backwards on both
+sides at once.
+
+1. **The reported bug — wordmark invisible in dark theme.** The brand panel rendered
+   `<Wordmark logoColour="currentColor" className="text-paper" />`. `--paper` resolves to `#FBFAF8`
+   in light but **`#0F0E0D` under `[data-theme="dark"]`**, so the mark was painted near-black onto
+   a near-black panel. Now a literal `logoColour="#FBFAF8"`. Exactly the bug class the hero, footer
+   and announcement bar each hit and fixed — an always-dark surface cannot wear tokens that swap
+   underneath it.
+2. **Submit button label invisible in dark theme.** A literal `#0B0B0D` fill (Framer `animate`)
+   under a `text-paper` token label — the fill stayed black while the label went near-black. Now
+   `bg-ink text-paper hover:bg-purple-700`, which is `ThreadButton`'s own `solid` tone: both tokens
+   swap *together*, and that pairing is the property that makes it safe either way. Framer keeps
+   `scale`/`letterSpacing`, which have no theme dimension — and could not have driven the colours
+   anyway, since it cannot interpolate `var(--token)` strings. That constraint is why every colour
+   transition on these pages is now a CSS class rather than a Framer value.
+3. **`AuthField` was entirely literal** — hardcoded `#FBFAF8` background, `#0B0B0D` text,
+   `#EAE8E2` border, `#5B5A5F` label. On a dark page that is a glaring white box with a bright
+   border, and the *floated* label (which sits above the input, on the page background rather than
+   on the field) measured roughly 2.5:1. All four are tokens now.
+4. **Strength-bar unfilled track** was a literal `#EAE8E2` — a bright bar across a near-black form.
+   Now `var(--hairline)`. The *filled* segments stay literal, deliberately: those four colours are
+   semantic (red/amber/purple/green) and must mean the same thing in both themes.
+
+**New token: `--auth-field-focus`** (`#FAFAF8` light, `#171614` dark). The brief's "subtle warmth
+on focus" only reads as warmth against a light page; the same literal under dark theme is a white
+flash. The dark value lifts *away* from the page instead — same intent, inverted.
+
+**Verified in the served HTML and compiled CSS, not just source:** the wordmark now emits
+`background-color:#FBFAF8` (literal, not a var); the only remaining `text-paper` in `/login`'s HTML
+is the skip-link, correctly paired with `bg-ink`; `--auth-field-focus` is declared in both `:root`
+and `[data-theme=dark]`; and signup's submit button (server-rendered, unlike login's) emits
+`bg-ink hover:bg-purple-700 text-paper` — all token classes.
+
+**Left alone, and why:** `hover:bg-purple-700` pairs a non-swapping purple with `text-paper` in
+dark theme, which is a weaker contrast than ideal. That is `ThreadButton`'s `solid` tone verbatim
+and is therefore a pre-existing, site-wide pattern across dozens of call sites — matching it keeps
+the auth button consistent with every other primary button rather than diverging here. Flagged as a
+site-wide question, not changed unilaterally in a colour-audit pass.
+
+
 #### Carousel z-fighting fixed, login/signup premium animations (2026-09-03, twenty-eighth pass)
 
 `tsc`, `next lint`, a clean `next build` all green. `/` 163 kB, `/login` 148 kB, `/signup` 148 kB

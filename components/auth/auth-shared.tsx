@@ -7,10 +7,6 @@ import { useToast } from "@/components/providers/toast-provider";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import { cn } from "@/lib/cn";
 
-const INK = "#0B0B0D";
-const PURPLE_700 = "#5B1A9E";
-const SUCCESS = "#2D7A4F";
-
 /**
  * Solid submit button for the auth pages — explicitly **not**
  * `ShimmerButton`, which every other primary CTA on the site uses: the
@@ -22,6 +18,17 @@ const SUCCESS = "#2D7A4F";
  * idle (label), `loading` (label fades out, spinner fades in — both
  * absolutely positioned, so the button never resizes), and `success`
  * (green + a check, held for the moment before the redirect fires).
+ *
+ * **Background and text are token classes, not Framer `animate` colours
+ * (fixed 2026-09-03).** They were previously a literal `#0B0B0D` fill under
+ * a `text-paper` label — fine in light theme, but `--paper` resolves to
+ * `#0F0E0D` under `[data-theme="dark"]`, so the label went near-black on a
+ * still-black button and vanished. `bg-ink text-paper hover:bg-purple-700`
+ * is exactly `ThreadButton`'s own `solid` tone: both tokens swap *together*,
+ * which is the property that makes the pair safe in either theme. Framer
+ * keeps `scale` and `letterSpacing`, which have no theme dimension — and it
+ * could not have driven the colours anyway, since it cannot interpolate
+ * `var(--token)` strings.
  */
 export function AuthSubmitButton({
   children,
@@ -41,19 +48,14 @@ export function AuthSubmitButton({
       className={cn(
         "group relative flex h-[52px] w-full items-center justify-center overflow-hidden rounded-[2px]",
         "font-display text-[14px] font-semibold text-paper",
-        "disabled:cursor-not-allowed",
+        "transition-colors duration-[250ms] ease-state disabled:cursor-not-allowed",
+        success ? "bg-success" : "bg-ink",
+        !busy && "hover:bg-purple-700",
         props.className,
       )}
       initial={false}
-      animate={{
-        backgroundColor: success ? SUCCESS : INK,
-        letterSpacing: "0.08em",
-      }}
-      whileHover={
-        reducedMotion || busy
-          ? undefined
-          : { backgroundColor: PURPLE_700, scale: 1.01, letterSpacing: "0.12em" }
-      }
+      animate={{ letterSpacing: "0.08em" }}
+      whileHover={reducedMotion || busy ? undefined : { scale: 1.01, letterSpacing: "0.12em" }}
       whileTap={reducedMotion || busy ? undefined : { scale: 0.98 }}
       transition={{ duration: 0.25 }}
     >
@@ -181,6 +183,11 @@ export function AuthSocialButtons() {
           onClick={() => notConnected(provider.name)}
           className={base}
           initial={false}
+          // `--purple-300` is one of the few tokens that does *not* remap in
+          // dark theme, so the literal is honest here. The lift shadow is
+          // deliberately left black: it reads on paper and simply doesn't
+          // register on the dark ground, which is the correct behaviour for
+          // a drop shadow rather than something to invert.
           whileHover={
             reducedMotion
               ? undefined

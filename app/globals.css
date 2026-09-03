@@ -52,6 +52,16 @@
   --amber-rgb: 217 119 6;
   --error-rgb: 220 38 38;
 
+  /*
+   * The auth fields' focus background (client brief, 2026-09-03: "paper →
+   * #FAFAF8, very subtle warmth on focus"). A token rather than the literal
+   * hex the brief gives, because the literal only reads as "warmth" against
+   * a light page — under `[data-theme="dark"]` the same value is a bright
+   * white flash on a near-black form. The dark counterpart below lifts
+   * *away* from the page instead, which is the same intent inverted.
+   */
+  --auth-field-focus: #fafaf8;
+
   --shell: 1400px;
   --nav-h: 72px;
   /*
@@ -118,6 +128,9 @@
    */
   --purple-500: #b98cf2;
   --purple-500-rgb: 185 140 242;
+
+  /* See the light-theme declaration for why this is a token at all. */
+  --auth-field-focus: #171614;
 
   color-scheme: dark;
 }
